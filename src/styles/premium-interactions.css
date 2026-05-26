@@ -1,0 +1,48 @@
+:root {
+  --lift-distance: -3px;
+  --lift-shadow: 0 14px 30px rgba(0,0,0,0.12);
+}
+
+button,
+.btn,
+.card-action,
+.interactive-card {
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    opacity .18s ease,
+    background .18s ease;
+  will-change: transform;
+}
+
+button:hover,
+.btn:hover,
+.card-action:hover,
+.interactive-card:hover {
+  transform: translateY(var(--lift-distance));
+  box-shadow: var(--lift-shadow);
+}
+
+button:active,
+.btn:active,
+.card-action:active,
+.interactive-card:active {
+  transform: scale(0.98);
+}
+
+.pos-fast-button {
+  min-height: 72px;
+  border-radius: 18px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.kitchen-live {
+  animation: pulseKitchen 1.8s infinite;
+}
+
+@keyframes pulseKitchen {
+  0% { opacity: .85; }
+  50% { opacity: 1; }
+  100% { opacity: .85; }
+}

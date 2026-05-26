@@ -1,0 +1,437 @@
+import prisma from "../lib/prisma.js";
+
+function startOfDay(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfDay(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getRange(query) {
+  const now = new Date();
+  const from = query.from
+    ? new Date(query.from)
+    : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const to = query.to ? new Date(query.to) : now;
+
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
+
+  return { from, to };
+}
+
+function statusCounts(orders) {
+  const base = {
+    pending: 0,
+    in_progress: 0,
+    ready: 0,
+    served: 0,
+    cancelled: 0,
+  };
+
+  for (const order of orders) {
+    base[order.status] = (base[order.status] || 0) + 1;
+  }
+
+  return base;
+}
+
+function buildHourlyToday(ordersToday) {
+  const hours = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    label: `${String(hour).padStart(2, "0")}:00`,
+    orders: 0,
+    revenue: 0,
+  }));
+
+  for (const order of ordersToday) {
+    const h = new Date(order.createdAt).getHours();
+    hours[h].orders += 1;
+
+    if (order.paymentStatus === "paid" || order.status === "served") {
+      hours[h].revenue += toNumber(order.totalAmount);
+    }
+  }
+
+  return hours.filter((row) => row.orders > 0 || row.revenue > 0);
+}
+
+function buildProductStats(orders) {
+  const map = new Map();
+
+  for (const order of orders) {
+    for (const item of order.items || []) {
+      const key = item.menuItemId || item.nameSnapshot || "prodotto";
+
+      const current = map.get(key) || {
+        id: item.menuItemId || key,
+        name: item.nameSnapshot || "Prodotto",
+        category: item.categorySnapshot || "Senza categoria",
+        preparationArea: item.preparationArea || "kitchen",
+        quantity: 0,
+        revenue: 0,
+      };
+
+      current.quantity += toNumber(item.quantity);
+      current.revenue += toNumber(item.quantity) * toNumber(item.priceSnapshot);
+
+      map.set(key, current);
+    }
+  }
+
+  return [...map.values()].sort(
+    (a, b) => b.quantity - a.quantity || b.revenue - a.revenue
+  );
+}
+
+export const getAnalyticsSummary = async (req, res) => {
+  try {
+    const range = getRange(req.query);
+
+    if (!range) {
+      return res.status(400).json({
+        message: "Intervallo date non valido",
+      });
+    }
+
+    const restaurantId = req.user?.restaurantId;
+
+    if (!restaurantId) {
+      return res.status(401).json({
+        message: "Ristorante non autorizzato",
+      });
+    }
+
+    const todayStart = startOfDay();
+    const todayEnd = endOfDay();
+
+    const [
+      ordersInRange,
+      ordersToday,
+      activeOrders,
+      tables,
+      menuItems,
+      unavailableItems,
+      recentErrors,
+      failedPayments,
+      staffUsersCount,
+    ] = await Promise.all([
+      prisma.order.findMany({
+        where: {
+          restaurantId,
+          createdAt: {
+            gte: range.from,
+            lte: range.to,
+          },
+          status: {
+            not: "cancelled",
+          },
+        },
+        include: {
+          table: true,
+          items: true,
+          payments: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      }),
+
+      prisma.order.findMany({
+        where: {
+          restaurantId,
+          createdAt: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+          status: {
+            not: "cancelled",
+          },
+        },
+        include: {
+          table: true,
+          items: true,
+          payments: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      }),
+
+      prisma.order.findMany({
+        where: {
+          restaurantId,
+          status: {
+            in: ["pending", "in_progress", "ready"],
+          },
+        },
+        include: {
+          table: true,
+          items: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      }),
+
+      prisma.table.findMany({
+        where: {
+          restaurantId,
+          isActive: true,
+        },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      }),
+
+      prisma.menuItem.findMany({
+        where: {
+          restaurantId,
+          isDeleted: false,
+        },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      }),
+
+      prisma.menuItem.findMany({
+        where: {
+          restaurantId,
+          isDeleted: false,
+          isAvailable: false,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+        take: 8,
+      }),
+
+      prisma.errorLog.findMany({
+        where: {
+          restaurantId,
+          resolvedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 8,
+      }),
+
+      prisma.paymentTransaction.findMany({
+        where: {
+          restaurantId,
+          status: {
+            in: ["unpaid", "pending", "failed"],
+          },
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 8,
+        include: {
+          order: {
+            include: {
+              table: true,
+            },
+          },
+        },
+      }),
+
+      prisma.user.count({
+        where: {
+          restaurantId,
+          role: {
+            in: ["admin", "kitchen", "bar", "cashier"],
+          },
+          isActive: true,
+        },
+      }),
+    ]);
+
+    const completedToday = ordersToday.filter((order) => order.status === "served");
+    const completedRange = ordersInRange.filter((order) => order.status === "served");
+
+    const paidToday = ordersToday.filter(
+      (order) => order.paymentStatus === "paid" || order.status === "served"
+    );
+
+    const paidRange = ordersInRange.filter(
+      (order) => order.paymentStatus === "paid" || order.status === "served"
+    );
+
+    const revenueToday = paidToday.reduce(
+      (sum, order) => sum + toNumber(order.totalAmount),
+      0
+    );
+
+    const revenueRange = paidRange.reduce(
+      (sum, order) => sum + toNumber(order.totalAmount),
+      0
+    );
+
+    const activeTableIds = new Set(
+      activeOrders.map((order) => order.tableId).filter(Boolean)
+    );
+
+    const activeTables = tables
+      .filter((table) => activeTableIds.has(table.id))
+      .map((table) => ({
+        id: table.id,
+        name: table.name,
+        code: table.code,
+        zone: table.zone,
+      }));
+
+    const byDayMap = new Map();
+    const byPaymentMap = new Map();
+
+    for (const order of ordersInRange) {
+      const day = order.createdAt.toISOString().slice(0, 10);
+
+      const dayData = byDayMap.get(day) || {
+        date: day,
+        orders: 0,
+        completed: 0,
+        revenue: 0,
+      };
+
+      dayData.orders += 1;
+
+      if (order.status === "served") {
+        dayData.completed += 1;
+      }
+
+      if (order.paymentStatus === "paid" || order.status === "served") {
+        dayData.revenue += toNumber(order.totalAmount);
+      }
+
+      byDayMap.set(day, dayData);
+
+      const paymentKey = order.paymentMethod || "non_indicato";
+
+      const paymentData = byPaymentMap.get(paymentKey) || {
+        method: paymentKey,
+        orders: 0,
+        revenue: 0,
+      };
+
+      paymentData.orders += 1;
+
+      if (order.paymentStatus === "paid" || order.status === "served") {
+        paymentData.revenue += toNumber(order.totalAmount);
+      }
+
+      byPaymentMap.set(paymentKey, paymentData);
+    }
+
+    const topProductsRange = buildProductStats(paidRange).slice(0, 10);
+    const topProductsToday = buildProductStats(paidToday).slice(0, 10);
+
+    return res.json({
+      range,
+      generatedAt: new Date().toISOString(),
+
+      kpis: {
+        revenueToday,
+        revenueRange,
+
+        ordersToday: ordersToday.length,
+        completedOrdersToday: completedToday.length,
+
+        ordersRange: ordersInRange.length,
+        completedOrdersRange: completedRange.length,
+
+        averageTicketToday: paidToday.length ? revenueToday / paidToday.length : 0,
+        averageTicketRange: paidRange.length ? revenueRange / paidRange.length : 0,
+
+        openOrders: activeOrders.length,
+
+        activeTables: activeTables.length,
+        totalTables: tables.length,
+        freeTables: Math.max(0, tables.length - activeTables.length),
+
+        menuItems: menuItems.length,
+        unavailableItems: unavailableItems.length,
+
+        unresolvedErrors: recentErrors.length,
+        paymentAlerts: failedPayments.length,
+      },
+
+      live: {
+        activeTables,
+
+        activeOrders: activeOrders.slice(0, 12).map((order) => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          table: order.table?.name || order.table?.code || "Tavolo",
+          totalAmount: order.totalAmount,
+          createdAt: order.createdAt,
+          itemsCount: (order.items || []).reduce(
+            (sum, item) => sum + toNumber(item.quantity),
+            0
+          ),
+        })),
+
+        statusCounts: statusCounts(ordersToday),
+      },
+
+      alerts: {
+        unavailableItems: unavailableItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          updatedAt: item.updatedAt,
+        })),
+
+        recentErrors: recentErrors.map((log) => ({
+          id: log.id,
+          source: log.source,
+          message: log.message,
+          createdAt: log.createdAt,
+        })),
+
+        paymentAlerts: failedPayments.map((payment) => ({
+          id: payment.id,
+          status: payment.status,
+          amount: payment.amount,
+          createdAt: payment.createdAt,
+          orderId: payment.orderId,
+          table:
+            payment.order?.table?.name ||
+            payment.order?.table?.code ||
+            "Tavolo",
+        })),
+      },
+
+      setup: {
+        menuItems: menuItems.length,
+        tables: tables.length,
+        staffUsers: staffUsersCount,
+      },
+
+      charts: {
+        byDay: [...byDayMap.values()],
+        byHourToday: buildHourlyToday(ordersToday),
+        topProducts: topProductsRange,
+        topProductsToday,
+        byPayment: [...byPaymentMap.values()],
+      },
+    });
+  } catch (error) {
+    console.error("getAnalyticsSummary error:", error);
+
+    return res.status(500).json({
+      message: "Errore durante recupero analytics",
+    });
+  }
+};
