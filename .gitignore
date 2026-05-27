@@ -41,3 +41,5 @@ backend/prisma/dev.db
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
