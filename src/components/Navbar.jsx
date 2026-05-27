@@ -29,7 +29,7 @@ function Navbar() {
   const role = (user?.role || "").toLowerCase();
 
   const isSuperAdmin = role === "superadmin";
-  const isAdmin = isSuperAdmin || role === "admin" || role === "owner";
+  const isAdmin = role === "admin" || role === "owner" || isSuperAdmin;
   const canKitchen = isAdmin || role === "kitchen";
   const canBar = isAdmin || role === "bar";
   const canCashier = isAdmin || role === "cashier";
@@ -40,7 +40,6 @@ function Navbar() {
         { to: "/", label: "Landing", match: ["/"] },
         { to: "/login", label: "Login", match: ["/login"] },
         { to: "/register", label: "Register", match: ["/register"] },
-        { to: "/menu/demo/demo-table-1", label: "Demo Menu", match: ["/menu"] },
       ];
     }
 
@@ -60,22 +59,17 @@ function Navbar() {
         match: ["/dashboard"],
       },
 
-      isSuperAdmin && { to: "/super-admin", label: "Super Admin", match: ["/super-admin"] },
-      isAdmin && { to: "/admin", label: "Admin", match: ["/admin"] },
-
-      { to: "/menu/demo/demo-table-1", label: "Menu", match: ["/menu", "/cliente/menu"] },
       canKitchen && { to: "/cucina", label: "Cucina", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
 
       isAdmin && { to: "/tavoli", label: "Tavoli", match: ["/tavoli"] },
-      isAdmin && { to: "/qr", label: "QR", match: ["/qr"] },
       isAdmin && { to: "/storico", label: "Storico", match: ["/storico"] },
       isAdmin && { to: "/statistiche", label: "Statistiche", match: ["/statistiche"] },
       isAdmin && { to: "/billing", label: "Billing", match: ["/billing"] },
-      isAdmin && { to: "/errori", label: "Log errori", match: ["/errori"] },
+      isSuperAdmin && { to: "/super-admin", label: "Super Admin", match: ["/super-admin"] },
     ].filter(Boolean);
-  }, [logged, role, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
+  }, [logged, role, isAdmin, isSuperAdmin, canKitchen, canBar, canCashier]);
 
   function isActive(link) {
     return (link.match || [link.to]).some((path) => {
@@ -93,8 +87,6 @@ function Navbar() {
     localStorage.removeItem("auth_user");
     localStorage.removeItem("auth_restaurant");
     localStorage.removeItem("ristorante_attivo");
-    localStorage.removeItem("super_admin_original_token");
-    localStorage.removeItem("super_admin_original_user");
 
     window.location.href = "/login";
   }
@@ -105,7 +97,7 @@ function Navbar() {
         position: "sticky",
         top: 0,
         zIndex: 1000,
-        padding: "12px 18px",
+        padding: "8px 14px",
         background:
           "linear-gradient(135deg, rgba(18,59,107,0.90) 0%, rgba(29,78,216,0.84) 55%, rgba(8,145,178,0.78) 100%)",
         backdropFilter: "blur(16px)",
@@ -119,7 +111,7 @@ function Navbar() {
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          gap: 12,
+          gap: 8,
         }}
       >
         <div
@@ -134,8 +126,8 @@ function Navbar() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 48,
-                height: 48,
+                width: 38,
+                height: 38,
                 borderRadius: 15,
                 background: "linear-gradient(135deg, #ffffff 0%, #dbeafe 100%)",
                 display: "flex",
@@ -153,7 +145,7 @@ function Navbar() {
             </div>
 
             <div style={{ color: "white" }}>
-              <div style={{ fontWeight: 900, fontSize: 20 }}>EasyMenu</div>
+              <div style={{ fontWeight: 900, fontSize: 18 }}>EasyMenu</div>
 
               <div style={{ fontSize: 13, display: "flex", gap: 8 }}>
                 <span

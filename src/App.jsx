@@ -1,21 +1,17 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import AdminPanel from "./pages/AdminPanel.jsx";
 import Bar from "./pages/Bar.jsx";
 import Billing from "./pages/Billing.jsx";
 import Cassa from "./pages/Cassa.jsx";
 import Cliente from "./pages/Cliente.jsx";
 import Cucina from "./pages/Cucina.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
-import Errori from "./pages/Errori.jsx";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
-import QRCodeTavoli from "./pages/QRCodeTavoli.jsx";
 import Register from "./pages/Register.jsx";
 import Statistiche from "./pages/Statistiche.jsx";
 import Storico from "./pages/Storico.jsx";
-import SuperAdmin from "./pages/SuperAdmin.jsx";
 import Tavoli from "./pages/Tavoli.jsx";
 
 export default function App() {
@@ -33,17 +29,16 @@ export default function App() {
         <Route path="/cliente/menu/:tavolo" element={<Cliente />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/super-admin" element={<ProtectedRoute roles={["superadmin"]}><SuperAdmin /></ProtectedRoute>} />
         <Route path="/billing" element={<ProtectedRoute roles={["owner", "admin"]}><Billing /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute roles={["owner", "admin"]}><AdminPanel /></ProtectedRoute>} />
+        <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
         <Route path="/cucina" element={<ProtectedRoute roles={["owner", "admin", "kitchen"]}><Cucina /></ProtectedRoute>} />
         <Route path="/bar" element={<ProtectedRoute roles={["owner", "admin", "bar"]}><Bar /></ProtectedRoute>} />
         <Route path="/cassa" element={<ProtectedRoute roles={["owner", "admin", "cashier"]}><Cassa /></ProtectedRoute>} />
         <Route path="/tavoli" element={<ProtectedRoute roles={["owner", "admin", "cashier"]}><Tavoli /></ProtectedRoute>} />
-        <Route path="/qr" element={<ProtectedRoute roles={["owner", "admin"]}><QRCodeTavoli /></ProtectedRoute>} />
+        <Route path="/qr" element={<Navigate to="/tavoli" replace />} />
         <Route path="/storico" element={<ProtectedRoute roles={["owner", "admin"]}><Storico /></ProtectedRoute>} />
         <Route path="/statistiche" element={<ProtectedRoute roles={["owner", "admin"]}><Statistiche /></ProtectedRoute>} />
-        <Route path="/errori" element={<ProtectedRoute roles={["owner", "admin"]}><Errori /></ProtectedRoute>} />
+        <Route path="/errori" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

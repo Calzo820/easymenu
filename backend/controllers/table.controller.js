@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import prisma from "../lib/prisma.js";
-import { billingBlockPayload, resolveBillingState } from "../lib/billingPolicy.js";
 
 function parseIntValue(value, fallback = 0) {
   const n = Number(value);
@@ -33,13 +32,17 @@ export const getPublicTableMenu = async (req, res) => {
   try {
     const { slug, tableToken } = req.params;
     const table = await prisma.table.findFirst({
-      where: { qrToken: tableToken, isActive: true, restaurant: { slug, isActive: true } },
-      include: { restaurant: { include: { subscription: true } } },
+      where: {
+        isActive: true,
+        restaurant: { slug, isActive: true },
+        OR: [
+          { qrToken: tableToken },
+          { code: String(tableToken || "").toUpperCase() },
+        ],
+      },
+      include: { restaurant: true },
     });
     if (!table) return res.status(404).json({ message: "Tavolo o ristorante non trovato" });
-
-    const billing = resolveBillingState(table.restaurant.subscription, table.restaurant);
-    if (!billing.allowed) return res.status(402).json(billingBlockPayload(billing));
 
     const items = await prisma.menuItem.findMany({
       where: { restaurantId: table.restaurantId, isAvailable: true, isDeleted: false },

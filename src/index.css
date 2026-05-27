@@ -95,17 +95,17 @@ p {
 .app-shell {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 14px;
 }
 
 /* 🔥 FIX HERO */
 .glass-hero {
   background: rgba(255, 255, 255, 0.9); /* chiaro */
   color: var(--text-main); /* testo nero */
-  border-radius: 28px;
-  padding: 28px;
+  border-radius: 18px;
+  padding: 14px;
   backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-strong);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
 }
 
 /* forza testo nero dentro hero */
@@ -124,11 +124,11 @@ p {
   align-items: center;
   gap: 8px;
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.6);
   color: var(--text-main); /* nero */
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .os-grid {
@@ -151,13 +151,13 @@ p {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
-  padding: 22px;
+  padding: 16px;
 }
 
 .metric-card {
   background: white;
   border-radius: 20px;
-  padding: 20px;
+  padding: 14px;
   box-shadow: var(--shadow-soft);
   border: 1px solid rgba(226, 232, 240, 0.8);
   transition:
@@ -179,7 +179,7 @@ p {
 }
 
 .metric-value {
-  font-size: 32px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
 }
@@ -196,7 +196,7 @@ p {
 }
 
 .panel-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
   margin-bottom: 8px;
@@ -257,36 +257,31 @@ p {
   }
 
   .glass-hero {
-    padding: 22px;
+    padding: 16px;
   }
 
   .metric-value {
     font-size: 26px;
   }
 }
-/* Landing: effetto rialzo solo su elementi realmente cliccabili */
-.landing-lift {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    filter 0.18s ease,
-    border-color 0.18s ease;
-  will-change: transform;
+
+/* Efficiency patch: compact headers and responsive customer menu */
+.em-compact-hero h1 {
+  font-size: clamp(24px, 3vw, 32px) !important;
 }
 
-.landing-lift:hover {
-  transform: translateY(-3px);
-  filter: brightness(1.03);
-}
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 10px !important;
+  }
 
-.landing-lift:active {
-  transform: translateY(-1px) scale(0.99);
-}
+  .glass-hero {
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
 
-.landing-lift:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.32);
-  outline-offset: 3px;
+  .section-card {
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
 }

@@ -401,6 +401,7 @@ function Cliente() {
     tableTokenParam ||
     params.get("token") ||
     params.get("tableToken") ||
+    (slugParam && tavoloParam ? tavoloParam : "") ||
     "";
 
   const tavoloFallback = params.get("tavolo") || "1";
@@ -445,14 +446,6 @@ function Cliente() {
     splitCount: 1,
     summary: null,
     copiedLink: "",
-  });
-
-  const [publicContext, setPublicContext] = useState({
-    restaurantId: "",
-    restaurantSlug: activeSlug,
-    tableId: "",
-    tableToken: activeTableToken,
-    tableName: "",
   });
 
   const tavoloVisuale =
@@ -525,7 +518,7 @@ function Cliente() {
         const menuMapped = items.map((item) => ({
           id: item.id,
           nome: item.name,
-          ingredienti: item.description || "",
+          ingredienti: item.ingredients || item.description || item.shortDescription || "",
           prezzo: item.price,
           categoria: item.category || "Altro",
           categoriaBackend: item.category || "Altro",
@@ -570,13 +563,6 @@ function Cliente() {
         }
 
         setLogoRistorante(data.restaurant?.logoUrl || "");
-        setPublicContext({
-          restaurantId: data.restaurant?.id || "",
-          restaurantSlug: data.restaurant?.slug || activeSlug,
-          tableId: data.table?.id || "",
-          tableToken: data.table?.qrToken || activeTableToken,
-          tableName: data.table?.name || data.table?.code || "",
-        });
       } catch (err) {
         setErrore(err.message || "Errore nel caricamento del menu");
       } finally {
@@ -830,12 +816,8 @@ function Cliente() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            // Compatibilità completa: il backend può accettare sia slug/token QR
-            // sia id interni risolti dalla chiamata public table.
             restaurantSlug,
             tableToken: tableTokenFinal,
-            restaurantId: publicContext.restaurantId || undefined,
-            tableId: publicContext.tableId || undefined,
             customerName: "",
             notes: nota.trim(),
             clientRequestId,
@@ -1686,8 +1668,9 @@ function Cliente() {
                   onClick={() => apriSchedaPiatto(p)}
                   style={{
                     display: "flex",
+                    flexWrap: "wrap",
                     gap: 14,
-                    padding: "16px 0",
+                    padding: "14px 0",
                     borderBottom: i === piatti.length - 1 ? "none" : "1px solid #e8eef7",
                     cursor: "pointer",
                     alignItems: "center",
@@ -1697,8 +1680,8 @@ function Cliente() {
                     src={p.img || placeholderFood}
                     alt={p.nome}
                     style={{
-                      width: 96,
-                      height: 96,
+                      width: "clamp(72px, 22vw, 96px)",
+                      height: "clamp(72px, 22vw, 96px)",
                       objectFit: "cover",
                       borderRadius: 18,
                       flexShrink: 0,
@@ -1710,7 +1693,7 @@ function Cliente() {
                     <div
                       style={{
                         fontWeight: 900,
-                        fontSize: 19,
+                        fontSize: "clamp(17px, 4.8vw, 19px)",
                         color: "#123b6b",
                         lineHeight: 1.2,
                       }}
