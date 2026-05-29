@@ -14,29 +14,23 @@ function formatDate(value) {
 
 const planDetails = {
   starter: {
-    title: "Starter",
-    price: "€49/mese",
-    subtitle: "Per partire con QR menu e ordini al tavolo.",
-    features: ["Menu digitale", "Ordini QR", "Cucina/cassa", "Statistiche base"],
-  },
-  growth: {
-    title: "Growth",
-    price: "€99/mese",
-    subtitle: "Il piano consigliato per vendere EasyMenu come SaaS serio.",
-    features: ["Tutto Starter", "Pagamenti Stripe", "Upsell", "Split conto", "Analytics avanzate"],
+    title: "Ristorante",
+    price: "€49,99/mese",
+    subtitle: "Piano unico per locali singoli: menu QR, ordini live, cucina, bar, cassa e dashboard.",
+    features: ["Menu digitale responsive", "QR per tavolo", "Ordini live", "Cucina/bar/cassa", "Gestione menu e tavoli"],
   },
   enterprise: {
-    title: "Enterprise",
+    title: "Catene e gruppi",
     price: "Su misura",
-    subtitle: "Per gruppi, catene e configurazioni multi-sede.",
-    features: ["Multi-locale", "Supporto prioritario", "Onboarding", "Integrazioni personalizzate"],
+    subtitle: "Per più sedi, brand con esigenze avanzate, ruoli, supporto e setup dedicato.",
+    features: ["Multi-ristorante", "Supporto configurazione", "Ruoli avanzati", "Integrazioni personalizzate"],
   },
 };
 
 function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
   const plan = planDetails[id];
   const active = currentPlan === id;
-  const recommended = id === "growth";
+  const recommended = id === "starter";
 
   return (
     <div
@@ -67,7 +61,7 @@ function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
 
       <button
         disabled={active || loadingPlan === id}
-        onClick={() => onCheckout(id)}
+        onClick={() => id === "enterprise" ? window.open("https://wa.me/3240467723?text=Ciao%2C%20vorrei%20informazioni%20su%20EasyMenu%20per%20catene%20o%20pi%C3%B9%20ristoranti.", "_blank") : onCheckout(id)}
         style={{
           marginTop: 22,
           width: "100%",
@@ -81,7 +75,7 @@ function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
           opacity: loadingPlan === id ? 0.7 : 1,
         }}
       >
-        {active ? "Piano attuale" : loadingPlan === id ? "Apro Stripe..." : "Scegli piano"}
+        {id === "enterprise" ? "Parla con noi" : active ? "Piano attuale" : loadingPlan === id ? "Apro Stripe..." : "Vai al pagamento"}
       </button>
     </div>
   );
@@ -94,9 +88,9 @@ export default function Billing() {
   const [loadingPlan, setLoadingPlan] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
 
-  const queryParams = useMemo(() => new URLSearchParams(window.location.search), []);
-  const queryStatus = queryParams.get("billing");
-  const requestedPlan = queryParams.get("plan");
+  const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const queryStatus = searchParams.get("billing");
+  const requestedPlan = searchParams.get("plan");
 
   async function load() {
     try {
@@ -115,6 +109,13 @@ export default function Billing() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (requestedPlan === "starter") {
+      handleCheckout("starter");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedPlan]);
+
   async function handleCheckout(plan) {
     try {
       setLoadingPlan(plan);
@@ -126,16 +127,6 @@ export default function Billing() {
       setLoadingPlan("");
     }
   }
-
-
-
-  useEffect(() => {
-    if (!requestedPlan || loading) return;
-    const allowedPlans = new Set(["starter", "growth", "enterprise"]);
-    if (!allowedPlans.has(requestedPlan)) return;
-    handleCheckout(requestedPlan);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedPlan, loading]);
 
   async function handlePortal() {
     try {
@@ -149,7 +140,7 @@ export default function Billing() {
     }
   }
 
-  const currentPlan = data?.subscription?.plan || data?.restaurant?.plan || "starter";
+  const currentPlan = data?.subscription?.plan || data?.restaurant?.plan || "";
   const status = data?.subscription?.status || "trialing";
 
   return (
@@ -194,7 +185,7 @@ export default function Billing() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-            {["starter", "growth", "enterprise"].map((id) => (
+            {["starter", "enterprise"].map((id) => (
               <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} onCheckout={handleCheckout} />
             ))}
           </div>

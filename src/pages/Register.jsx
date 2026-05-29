@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import {
   apiPost,
-  saveAuthSession,
+  setAuthToken,
 } from "../lib/api";
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
   const [form, setForm] = useState({
     restaurantName: "",
@@ -83,7 +85,7 @@ export default function Register() {
         throw new Error("Registrazione completata ma token non ricevuto.");
       }
 
-      saveAuthSession(data);
+      setAuthToken(data.token);
 
       if (data.user) {
         localStorage.setItem("auth_user", JSON.stringify(data.user));
@@ -99,6 +101,12 @@ export default function Register() {
       setSuccesso("Registrazione completata con successo.");
 
       setTimeout(() => {
+        const next = queryParams.get("next");
+        const plan = queryParams.get("plan");
+        if (next) {
+          navigate(`${next}${plan ? `?plan=${encodeURIComponent(plan)}` : ""}`, { replace: true });
+          return;
+        }
         navigate("/dashboard");
       }, 600);
     } catch (error) {
