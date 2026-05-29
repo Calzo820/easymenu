@@ -15,15 +15,15 @@ function formatDate(value) {
 const planDetails = {
   starter: {
     title: "Starter",
-    price: "€49,99/mese",
-    subtitle: "2 settimane di prova iniziali, poi abbonamento mensile.",
-    features: ["Menu digitale", "QR per tavolo", "Ordini live", "Cucina, bar e cassa", "Statistiche base"],
+    price: "€49/mese",
+    subtitle: "Per partire con QR menu e ordini al tavolo.",
+    features: ["Menu digitale", "Ordini QR", "Cucina/cassa", "Statistiche base"],
   },
   growth: {
-    title: "Catene",
-    price: "Su misura",
-    subtitle: "Per catene o gruppi multi-sede: contattaci per una proposta dedicata.",
-    features: ["Multi-sede", "Onboarding guidato", "Supporto prioritario", "Configurazioni dedicate"],
+    title: "Growth",
+    price: "€99/mese",
+    subtitle: "Il piano consigliato per vendere EasyMenu come SaaS serio.",
+    features: ["Tutto Starter", "Pagamenti Stripe", "Upsell", "Split conto", "Analytics avanzate"],
   },
   enterprise: {
     title: "Enterprise",
@@ -36,7 +36,7 @@ const planDetails = {
 function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
   const plan = planDetails[id];
   const active = currentPlan === id;
-  const recommended = id === "starter";
+  const recommended = id === "growth";
 
   return (
     <div
@@ -67,7 +67,7 @@ function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
 
       <button
         disabled={active || loadingPlan === id}
-        onClick={() => id === "growth" ? (window.location.href = "mailto:calzo820@gmail.com?subject=EasyMenu%20Catene") : onCheckout(id)}
+        onClick={() => onCheckout(id)}
         style={{
           marginTop: 22,
           width: "100%",
@@ -81,7 +81,7 @@ function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
           opacity: loadingPlan === id ? 0.7 : 1,
         }}
       >
-        {id === "growth" ? "Contattaci" : active ? "Piano attuale" : loadingPlan === id ? "Apro Stripe..." : "Vai al pagamento"}
+        {active ? "Piano attuale" : loadingPlan === id ? "Apro Stripe..." : "Scegli piano"}
       </button>
     </div>
   );
@@ -115,13 +115,6 @@ export default function Billing() {
     load();
   }, []);
 
-  useEffect(() => {
-    if (requestedPlan === "starter") {
-      handleCheckout("starter");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedPlan]);
-
   async function handleCheckout(plan) {
     try {
       setLoadingPlan(plan);
@@ -133,6 +126,16 @@ export default function Billing() {
       setLoadingPlan("");
     }
   }
+
+
+
+  useEffect(() => {
+    if (!requestedPlan || loading) return;
+    const allowedPlans = new Set(["starter", "growth", "enterprise"]);
+    if (!allowedPlans.has(requestedPlan)) return;
+    handleCheckout(requestedPlan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedPlan, loading]);
 
   async function handlePortal() {
     try {
@@ -191,7 +194,7 @@ export default function Billing() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-            {["starter", "growth"].map((id) => (
+            {["starter", "growth", "enterprise"].map((id) => (
               <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} onCheckout={handleCheckout} />
             ))}
           </div>

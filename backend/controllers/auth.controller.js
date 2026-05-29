@@ -22,16 +22,14 @@ const signToken = (user) =>
       userId: user.id,
       restaurantId: user.restaurantId,
       role: user.role,
-      email: user.email,
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
 
-function sanitizeUser(user, restaurantIdOverride = null) {
+function sanitizeUser(user) {
   return {
     id: user.id,
-    restaurantId: restaurantIdOverride || user.restaurantId,
     name: user.name,
     email: user.email,
     role: user.role,
@@ -153,7 +151,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Credenziali non valide" });
     }
 
-    if (!user.restaurant || user.restaurant.isActive === false) {
+    if (user.role !== "superadmin" && (!user.restaurant || user.restaurant.isActive === false)) {
       return res.status(403).json({ message: "Ristorante non attivo" });
     }
 
@@ -175,7 +173,7 @@ export const login = async (req, res) => {
       message: "Login effettuato",
       token,
       user: sanitizeUser(user),
-      restaurant: sanitizeRestaurant(user.restaurant),
+      restaurant: user.restaurant ? sanitizeRestaurant(user.restaurant) : null,
     });
   } catch (error) {
     console.error("login error:", error);
@@ -193,30 +191,20 @@ export const me = async (req, res) => {
       include: { restaurant: true },
     });
 
+    const activeRestaurant = req.user.restaurantId
+      ? await prisma.restaurant.findUnique({ where: { id: req.user.restaurantId } })
+      : user?.restaurant;
+
     if (!user || !user.isActive) {
       return res.status(404).json({ message: "Utente non trovato" });
     }
 
-    const tokenRestaurantId = req.user.restaurantId || user.restaurantId;
-    const restaurant = user.role === "superadmin"
-      ? await prisma.restaurant.findUnique({ where: { id: tokenRestaurantId } })
-      : user.restaurant;
-
     return res.json({
-      user: sanitizeUser(user, tokenRestaurantId),
-      restaurant: restaurant ? sanitizeRestaurant(restaurant) : null,
-      isSuperAdminImpersonating: Boolean(req.user.isSuperAdminImpersonating),
+      user: sanitizeUser(user),
+      restaurant: user.restaurant ? sanitizeRestaurant(user.restaurant) : null,
     });
   } catch (error) {
     console.error("me error:", error);
     return res.status(500).json({ message: "Errore server" });
   }
-};
-
-export const logout = async (_req, res) => {
-  return res.json({ message: "Logout effettuato" });
-};
-
-export const refresh = async (req, res) => {
-  return me(req, res);
 };

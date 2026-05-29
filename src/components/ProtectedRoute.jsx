@@ -31,8 +31,8 @@ function ProtectedRoute({ children, roles = [] }) {
           localStorage.setItem("restaurant_id", data.restaurant.id || "");
         }
 
-        const normalizedRole = String(user.role || "").toLowerCase();
-        const allowed = normalizedRole === "superadmin" || normalizedRoles.length === 0 || normalizedRoles.includes(normalizedRole);
+        const role = String(user.role || "").toLowerCase();
+        const allowed = role === "superadmin" || normalizedRoles.length === 0 || normalizedRoles.includes(role);
         if (active) setState({ loading: false, allowed, user });
       } catch {
         clearAuthSession();

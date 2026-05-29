@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import {
   apiPost,
@@ -30,6 +30,7 @@ const DEMO_USERS = [
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({
     email: "",
@@ -124,8 +125,11 @@ export default function Login() {
 
       setSuccesso("Login effettuato con successo.");
 
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next");
+      const plan = params.get("plan");
       const role = data?.user?.role || "owner";
-      const redirectPath = getDashboardPathByRole(role);
+      const redirectPath = next ? `${next}${plan ? `?plan=${encodeURIComponent(plan)}` : ""}` : getDashboardPathByRole(role);
 
       setTimeout(() => {
         navigate(redirectPath);

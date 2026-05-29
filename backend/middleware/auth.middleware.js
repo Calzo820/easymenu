@@ -20,9 +20,6 @@ export const requireAuth = (req, res, next) => {
       userId: decoded.userId,
       restaurantId: decoded.restaurantId,
       role: decoded.role,
-      email: decoded.email || null,
-      isSuperAdminImpersonating: Boolean(decoded.isSuperAdminImpersonating),
-      platformRestaurantId: decoded.platformRestaurantId || null,
     };
 
     next();
@@ -32,20 +29,14 @@ export const requireAuth = (req, res, next) => {
 };
 
 export const requireRole = (roles = []) => {
-  const allowedRoles = Array.isArray(roles) ? roles : [roles];
-
   return (req, res, next) => {
     if (!req.user?.role) {
       return res.status(401).json({ message: "Utente non autenticato" });
     }
 
-    // Il superadmin ha accesso completo. Quando entra in un ristorante, usa
-    // restaurantId nel token e può usare tutti gli endpoint owner/admin/cashier/kitchen/bar.
-    if (req.user.role === "superadmin") {
-      return next();
-    }
+    if (req.user.role === "superadmin") return next();
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({ message: "Permessi insufficienti" });
     }
 

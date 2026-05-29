@@ -70,7 +70,7 @@ function StepCard({ number, title, text }) {
         borderRadius: 22,
         padding: 22,
         border: "1px solid #dce8f6",
-        boxShadow: "0 18px 34px rgba(18,59,107,0.09)",
+        boxShadow: "0 14px 28px rgba(18,59,107,0.06)",
       }}
     >
       <div
@@ -184,34 +184,7 @@ function StatPill({ value, label }) {
   );
 }
 
-function PricingCard({
-  title,
-  price,
-  subtitle,
-  features,
-  highlighted,
-  ctaLabel = "Contattaci",
-  ctaTo,
-  contactMode = false,
-}) {
-  const buttonStyle = {
-    display: "block",
-    textAlign: "center",
-    marginTop: 24,
-    textDecoration: "none",
-    borderRadius: 18,
-    padding: "15px 18px",
-    background: highlighted
-      ? "linear-gradient(135deg, #22c55e 0%, #10b981 100%)"
-      : "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
-    color: "white",
-    fontWeight: 950,
-    boxShadow: highlighted
-      ? "0 16px 26px rgba(16,185,129,0.22)"
-      : "0 12px 20px rgba(37,99,235,0.14)",
-    transition: "transform 160ms ease, box-shadow 160ms ease",
-  };
-
+function PricingCard({ title, price, subtitle, features, highlighted, plan = "growth" }) {
   return (
     <div
       style={{
@@ -243,21 +216,48 @@ function PricingCard({
             fontWeight: 900,
           }}
         >
-          14 giorni gratis
+          Consigliato
         </div>
       )}
 
-      <h3 style={{ margin: 0, fontSize: 24, fontWeight: 950, letterSpacing: "-0.03em" }}>
+      <h3
+        style={{
+          margin: 0,
+          fontSize: 24,
+          fontWeight: 950,
+          letterSpacing: "-0.03em",
+        }}
+      >
         {title}
       </h3>
 
-      <div style={{ marginTop: 16, display: "flex", alignItems: "end", gap: 8, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 46, fontWeight: 950, letterSpacing: "-0.05em", lineHeight: 1 }}>
+      <div
+        style={{
+          marginTop: 16,
+          display: "flex",
+          alignItems: "end",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 46,
+            fontWeight: 950,
+            letterSpacing: "-0.05em",
+            lineHeight: 1,
+          }}
+        >
           {price}
         </div>
-        {highlighted && (
-          <div style={{ marginBottom: 6, opacity: 0.86, fontWeight: 800 }}>/ mese</div>
-        )}
+        <div
+          style={{
+            marginBottom: 6,
+            opacity: highlighted ? 0.86 : 0.68,
+            fontWeight: 800,
+          }}
+        >
+          / mese
+        </div>
       </div>
 
       <p
@@ -288,315 +288,27 @@ function PricingCard({
         ))}
       </div>
 
-      {ctaTo ? (
-        <Link to={ctaTo} className="em-lift" style={buttonStyle}>
-          {ctaLabel}
-        </Link>
-      ) : (
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
-          target="_blank"
-          rel="noreferrer"
-          className="em-lift"
-          style={buttonStyle}
-        >
-          {ctaLabel}
-        </a>
-      )}
-
-      {contactMode && (
-        <div
-          style={{
-            marginTop: 14,
-            display: "grid",
-            gap: 8,
-            color: "#42658f",
-            fontWeight: 850,
-            fontSize: 14,
-          }}
-        >
-          <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`} target="_blank" rel="noreferrer" className="em-lift" style={contactLinkStyle}>WhatsApp: +39 {WHATSAPP_NUMBER}</a>
-          <a href="mailto:info@easymenu.it" className="em-lift" style={contactLinkStyle}>Email: info@easymenu.it</a>
-          <a href={`tel:+39${WHATSAPP_NUMBER}`} className="em-lift" style={contactLinkStyle}>Chiamata: +39 {WHATSAPP_NUMBER}</a>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatusBadge({ children, tone = "blue" }) {
-  const tones = {
-    blue: { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-    amber: { bg: "#fffbeb", color: "#b45309", border: "#fde68a" },
-    green: { bg: "#ecfdf5", color: "#047857", border: "#bbf7d0" },
-    slate: { bg: "#f8fafc", color: "#475569", border: "#e2e8f0" },
-  };
-  const current = tones[tone] || tones.blue;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 999,
-        padding: "7px 10px",
-        background: current.bg,
-        color: current.color,
-        border: `1px solid ${current.border}`,
-        fontSize: 12,
-        fontWeight: 950,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function WorkstationCard({ icon, title, status, tone, lines }) {
-  return (
-    <div
-      style={{
-        background: "#ffffff",
-        border: "1px solid #dce8f6",
-        borderRadius: 20,
-        padding: 16,
-        boxShadow: "0 18px 34px rgba(18,59,107,0.11)",
-      }}
-    >
-      <div
+      <Link
+        to={`/login?next=/billing&plan=${encodeURIComponent(plan)}`}
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 14,
-              background: "#f4f9ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 21,
-            }}
-          >
-            {icon}
-          </div>
-          <div
-            style={{
-              fontWeight: 950,
-              color: "#0b2e59",
-              fontSize: 17,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {title}
-          </div>
-        </div>
-        <StatusBadge tone={tone}>{status}</StatusBadge>
-      </div>
-
-      <div style={{ display: "grid", gap: 8 }}>
-        {lines.map((line) => (
-          <div
-            key={line}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              color: "#42658f",
-              fontSize: 13,
-              fontWeight: 800,
-              lineHeight: 1.35,
-            }}
-          >
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: "#22c55e",
-                flex: "0 0 auto",
-              }}
-            />
-            {line}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function OperationalFlowDemo() {
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.96)",
-        borderRadius: 30,
-        padding: 24,
-        boxShadow: "0 24px 44px rgba(18,59,107,0.16)",
-        border: "1px solid rgba(255,255,255,0.8)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 14,
-          marginBottom: 18,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "#2563eb",
-              fontWeight: 950,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-            }}
-          >
-            Prova operativa reale
-          </div>
-          <div
-            style={{
-              fontSize: 27,
-              color: "#0b2e59",
-              fontWeight: 950,
-              marginTop: 7,
-              letterSpacing: "-0.04em",
-            }}
-          >
-            Tavolo 12 · Ordine #184
-          </div>
-        </div>
-        <StatusBadge tone="green">Live</StatusBadge>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: 8,
-          marginBottom: 18,
-        }}
-      >
-        {["QR", "Ordine", "Cucina", "Cassa"].map((step, index) => (
-          <div
-            key={step}
-            style={{
-              background: index === 0 ? "#ecfdf5" : index === 1 ? "#eff6ff" : index === 2 ? "#fffbeb" : "#f8fafc",
-              border: "1px solid #dce8f6",
-              borderRadius: 16,
-              padding: "11px 8px",
-              textAlign: "center",
-              color: "#123b6b",
-              fontWeight: 950,
-              fontSize: 12,
-            }}
-          >
-            {index + 1}. {step}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "grid", gap: 12 }}>
-        <div style={demoRowStyle}>
-          <div>
-            <div style={demoTitleStyle}>🍝 Carbonara</div>
-            <div style={demoSubStyle}>x2 · senza pepe su una porzione</div>
-          </div>
-          <StatusBadge tone="amber">Cucina</StatusBadge>
-        </div>
-
-        <div style={demoRowStyle}>
-          <div>
-            <div style={demoTitleStyle}>🍷 Calice rosso</div>
-            <div style={demoSubStyle}>x2 · reparto bar</div>
-          </div>
-          <StatusBadge tone="blue">Bar</StatusBadge>
-        </div>
-
-        <div style={demoRowStyle}>
-          <div>
-            <div style={demoTitleStyle}>🍰 Tiramisù</div>
-            <div style={demoSubStyle}>servire dopo i primi</div>
-          </div>
-          <StatusBadge tone="slate">In coda</StatusBadge>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: 12,
-          marginTop: 16,
-        }}
-      >
-        <WorkstationCard
-          icon="👨‍🍳"
-          title="Cucina"
-          status="Prepara"
-          tone="amber"
-          lines={["ordine grande e leggibile", "stato aggiornato in tempo reale"]}
-        />
-        <WorkstationCard
-          icon="💶"
-          title="Cassa"
-          status="Totale €46,50"
-          tone="green"
-          lines={["conto già pronto", "storico tavolo salvato"]}
-        />
-      </div>
-
-      <div
-        style={{
-          marginTop: 16,
+          display: "block",
+          textAlign: "center",
+          marginTop: 24,
+          textDecoration: "none",
           borderRadius: 18,
-          padding: "14px 16px",
-          background: "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
+          padding: "15px 18px",
+          background: highlighted
+            ? "linear-gradient(135deg, #22c55e 0%, #10b981 100%)"
+            : "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
           color: "white",
           fontWeight: 950,
-          boxShadow: "0 18px 28px rgba(37,99,235,0.18)",
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
+          boxShadow: highlighted
+            ? "0 16px 26px rgba(16,185,129,0.22)"
+            : "0 12px 20px rgba(37,99,235,0.14)",
         }}
       >
-        <span>Ordine ricevuto da tutti i reparti</span>
-        <span style={{ opacity: 0.86, fontSize: 13 }}>0 passaggi manuali</span>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: 12,
-          marginTop: 16,
-        }}
-      >
-        <Link to="/billing" className="em-lift" style={demoPrimaryButton}>
-          Prova 14 giorni
-        </Link>
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
-          target="_blank"
-          rel="noreferrer"
-          className="em-lift"
-          style={demoSecondaryButton}
-        >
-          Parla con noi
-        </a>
-      </div>
+        Vai al pagamento
+      </Link>
     </div>
   );
 }
@@ -701,28 +413,25 @@ function Landing() {
               alignItems: "center",
             }}
           >
-            <Link to="/dashboard" className="em-lift" style={navLinkStyle}>
-              Dashboard
+            <Link to="/login" style={navLinkStyle}>
+              Login
             </Link>
-            <Link to="/admin" className="em-lift" style={navLinkStyle}>
-              Area Admin
-            </Link>
-            <a href="#prezzi" className="em-lift" style={navLinkStyle}>
+            
+            <a href="#prezzi" style={navLinkStyle}>
               Prezzi
             </a>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
               target="_blank"
               rel="noreferrer"
-              className="em-lift"
               style={navLinkStyle}
             >
               WhatsApp
             </a>
-            <Link to="/menu/demo/demo-table-1?tavolo=1&demo=1" className="em-lift" style={navButtonSecondary}>
+            <Link to="/menu/demo/demo-table-1?tavolo=1&demo=1" style={navButtonSecondary}>
               Demo menu
             </Link>
-            <Link to="/admin" className="em-lift" style={navButtonPrimary}>
+            <Link to="/login" style={navButtonPrimary}>
               Inizia ora
             </Link>
           </div>
@@ -731,7 +440,6 @@ function Landing() {
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "34px 22px 90px" }}>
         <section
-          id="flusso-operativo"
           style={{
             position: "relative",
             overflow: "hidden",
@@ -888,13 +596,13 @@ function Landing() {
                   marginTop: 26,
                 }}
               >
-                <Link to="/admin" className="em-lift" style={heroPrimaryButton}>
+                <Link to="/login" style={heroPrimaryButton}>
                   Attiva il tuo ristorante
                 </Link>
-                <a href="#flusso-operativo" className="em-lift" style={heroSecondaryButton}>
-                  Vedi il flusso completo
-                </a>
 
+                <Link to="/menu/demo/demo-table-1?tavolo=1&demo=1" style={heroSecondaryButton}>
+                  Guarda la demo cliente
+                </Link>
               </div>
 
               <div
@@ -911,7 +619,139 @@ function Landing() {
               </div>
             </div>
 
-            <OperationalFlowDemo />
+            <div>
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.96)",
+                  borderRadius: 30,
+                  padding: 24,
+                  boxShadow: "0 24px 44px rgba(18,59,107,0.16)",
+                  border: "1px solid rgba(255,255,255,0.8)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    marginBottom: 18,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#6480a6",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      Customer Flow
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 26,
+                        color: "#0b2e59",
+                        fontWeight: 900,
+                        marginTop: 6,
+                      }}
+                    >
+                      Tavolo 12
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#dcfce7",
+                      color: "#166534",
+                      borderRadius: 999,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Ordine attivo
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={demoRowStyle}>
+                    <div>
+                      <div style={demoTitleStyle}>Tagliere della casa</div>
+                      <div style={demoSubStyle}>Porta subito · x1</div>
+                    </div>
+                    <div style={demoPriceStyle}>€ 12.00</div>
+                  </div>
+
+                  <div style={demoRowStyle}>
+                    <div>
+                      <div style={demoTitleStyle}>Carbonara</div>
+                      <div style={demoSubStyle}>Porta dopo · x2</div>
+                    </div>
+                    <div style={demoPriceStyle}>€ 24.00</div>
+                  </div>
+
+                  <div style={demoRowStyle}>
+                    <div>
+                      <div style={demoTitleStyle}>Acqua frizzante</div>
+                      <div style={demoSubStyle}>Pronta al bar · x2</div>
+                    </div>
+                    <div style={demoPriceStyle}>€ 4.00</div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 18,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#eff6ff",
+                      borderRadius: 18,
+                      padding: 16,
+                    }}
+                  >
+                    <div style={miniLabelStyle}>Stato ordine</div>
+                    <div style={miniValueStyle}>In preparazione</div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#ecfdf5",
+                      borderRadius: 18,
+                      padding: 16,
+                    }}
+                  >
+                    <div style={miniLabelStyle}>Totale</div>
+                    <div style={miniValueStyle}>€ 40.00</div>
+                  </div>
+                </div>
+
+                <button
+                  style={{
+                    width: "100%",
+                    marginTop: 18,
+                    border: "none",
+                    borderRadius: 18,
+                    padding: "16px 18px",
+                    background: "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
+                    color: "white",
+                    fontWeight: 900,
+                    fontSize: 16,
+                    boxShadow: "0 18px 28px rgba(37,99,235,0.18)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Ordine inviato correttamente
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1122,7 +962,7 @@ function Landing() {
                 color: "#0b2e59",
               }}
             >
-              Due opzioni chiare: un ristorante o più sedi.
+              Parti subito con EasyMenu e monetizza ogni tavolo.
             </h2>
 
             <p
@@ -1133,45 +973,54 @@ function Landing() {
                 lineHeight: 1.7,
               }}
             >
-              Il piano mensile porta direttamente al pagamento. Per catene e gruppi trovi un contatto diretto per configurare tutto su misura.
+              Una soluzione pensata per ristoranti, bar, pizzerie e locali che vogliono
+              ordinazioni più veloci senza complicare il lavoro dello staff.
             </p>
           </div>
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
               gap: 18,
-              maxWidth: 980,
-              margin: "0 auto",
             }}
           >
             <PricingCard
-              highlighted
-              title="Mensile"
-              price="€49,99"
-              subtitle="Per il singolo ristorante: 2 settimane di prova, poi abbonamento mensile. Attivi menu, QR, cucina, sala e cassa."
+              plan="starter"
+              title="Starter"
+              price="€29"
+              subtitle="Per piccoli locali che vogliono partire con menu digitale e QR."
               features={[
-                "2 settimane di prova incluse",
-                "QR tavoli e menu digitale",
-                "Ordini live verso cucina, bar e cassa",
-                "Dashboard, storico e supporto avvio",
+                "Menu digitale",
+                "QR per tavolo",
+                "Area admin",
+                "Demo cliente inclusa",
               ]}
-              ctaLabel="Vai al pagamento"
-              ctaTo="/billing"
             />
             <PricingCard
-              title="Catene"
-              price="Su misura"
-              subtitle="Per gruppi con più locali, esigenze operative diverse, supporto dedicato e configurazione personalizzata."
+              plan="growth"
+              highlighted
+              title="Pro"
+              price="€59"
+              subtitle="Per ristoranti che vogliono ordini live, reparti e dashboard owner."
               features={[
-                "Multi-ristorante e sedi multiple",
-                "Onboarding personalizzato",
-                "Flussi cucina/cassa su misura",
-                "Contatto diretto WhatsApp, email o chiamata",
+                "Ordini realtime",
+                "Cucina, bar e cassa",
+                "Dashboard KPI",
+                "Supporto onboarding",
               ]}
-              ctaLabel="Contattaci"
-              contactMode
+            />
+            <PricingCard
+              plan="enterprise"
+              title="Enterprise"
+              price="Custom"
+              subtitle="Per gruppi, catene e multi-ristorante con esigenze avanzate."
+              features={[
+                "Multi-ristorante",
+                "Stripe Connect",
+                "Commissioni SaaS",
+                "Setup personalizzato",
+              ]}
             />
           </div>
         </section>
@@ -1242,11 +1091,10 @@ function Landing() {
                   marginTop: 22,
                 }}
               >
-                <Link to="/billing" className="em-lift" style={navButtonPrimary}>
-                  Attiva il piano mensile
+                <Link to="/menu/demo/demo-table-1?tavolo=1&demo=1" style={navButtonPrimary}>
+                  Prova la demo live
                 </Link>
                 <a
-                  className="em-lift"
                   href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
                   target="_blank"
                   rel="noreferrer"
@@ -1335,17 +1183,16 @@ function Landing() {
                 justifyContent: "flex-end",
               }}
             >
-              <Link to="/admin" className="em-lift" style={heroPrimaryButton}>
-                Vai all’area admin
+              <Link to="/login" style={heroPrimaryButton}>
+                Accedi / attiva ora
               </Link>
-              <Link to="/dashboard" className="em-lift" style={heroSecondaryButton}>
-                Apri dashboard
+              <Link to="/login" style={heroSecondaryButton}>
+                Login
               </Link>
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="em-lift"
                 style={heroSecondaryButton}
               >
                 WhatsApp
@@ -1361,11 +1208,9 @@ function Landing() {
 const navLinkStyle = {
   textDecoration: "none",
   color: "#42658f",
-  fontWeight: 850,
+  fontWeight: 800,
   padding: "10px 12px",
   borderRadius: 12,
-  background: "rgba(255,255,255,0.52)",
-  boxShadow: "0 8px 16px rgba(18,59,107,0.06)",
 };
 
 const navButtonPrimary = {
@@ -1382,11 +1227,10 @@ const navButtonSecondary = {
   textDecoration: "none",
   borderRadius: 14,
   padding: "12px 16px",
-  background: "rgba(255,255,255,0.94)",
+  background: "rgba(255,255,255,0.88)",
   color: "#123b6b",
   fontWeight: 900,
   border: "1px solid #dce8f6",
-  boxShadow: "0 12px 22px rgba(18,59,107,0.10)",
 };
 
 const heroPrimaryButton = {
@@ -1404,13 +1248,11 @@ const heroSecondaryButton = {
   textDecoration: "none",
   borderRadius: 18,
   padding: "16px 20px",
-  background: "rgba(255,255,255,0.16)",
+  background: "rgba(255,255,255,0.12)",
   color: "white",
   fontWeight: 900,
   fontSize: 16,
-  border: "1px solid rgba(255,255,255,0.22)",
-  boxShadow: "0 16px 26px rgba(0,0,0,0.12)",
-  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255,255,255,0.18)",
 };
 
 const demoRowStyle = {
@@ -1422,7 +1264,6 @@ const demoRowStyle = {
   borderRadius: 16,
   padding: "14px 16px",
   border: "1px solid #dce8f6",
-  boxShadow: "0 10px 20px rgba(18,59,107,0.06)",
 };
 
 const demoTitleStyle = {
@@ -1459,40 +1300,6 @@ const miniValueStyle = {
   color: "#123b6b",
   fontWeight: 900,
   letterSpacing: "-0.03em",
-};
-
-const contactLinkStyle = {
-  textDecoration: "none",
-  color: "#123b6b",
-  background: "#f4f9ff",
-  border: "1px solid #dce8f6",
-  borderRadius: 14,
-  padding: "11px 12px",
-  fontWeight: 900,
-  boxShadow: "0 10px 18px rgba(18,59,107,0.07)",
-};
-
-const demoPrimaryButton = {
-  textDecoration: "none",
-  borderRadius: 16,
-  padding: "14px 16px",
-  background: "linear-gradient(135deg, #22c55e 0%, #10b981 100%)",
-  color: "white",
-  fontWeight: 950,
-  textAlign: "center",
-  boxShadow: "0 16px 26px rgba(16,185,129,0.22)",
-};
-
-const demoSecondaryButton = {
-  textDecoration: "none",
-  borderRadius: 16,
-  padding: "14px 16px",
-  background: "#ffffff",
-  color: "#123b6b",
-  fontWeight: 950,
-  textAlign: "center",
-  border: "1px solid #dce8f6",
-  boxShadow: "0 14px 24px rgba(18,59,107,0.10)",
 };
 
 export default Landing;
