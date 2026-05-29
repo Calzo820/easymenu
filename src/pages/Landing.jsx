@@ -2,150 +2,312 @@ import { Link } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
 const WHATSAPP_NUMBER = "3240467723";
-const WHATSAPP_MESSAGE = "Ciao, vorrei informazioni su EasyMenu per il mio ristorante.";
-
-const checkoutPath = (plan) => `/register?next=/billing&plan=${plan}`;
-
-function FlowStep({ number, title, text, tone = "blue" }) {
-  const colors = {
-    blue: ["#2563eb", "#eff6ff"],
-    green: ["#16a34a", "#ecfdf5"],
-    amber: ["#d97706", "#fffbeb"],
-    cyan: ["#0891b2", "#ecfeff"],
-  }[tone];
-
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "34px 1fr",
-        gap: 12,
-        alignItems: "start",
-        padding: "13px 14px",
-        borderRadius: 18,
-        background: colors[1],
-        border: "1px solid rgba(148,163,184,0.20)",
-      }}
-    >
-      <div
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: 12,
-          background: colors[0],
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: 950,
-          fontSize: 14,
-        }}
-      >
-        {number}
-      </div>
-      <div>
-        <div style={{ fontWeight: 950, color: "#0b2e59", fontSize: 15 }}>{title}</div>
-        <div style={{ color: "#526f95", fontSize: 13, lineHeight: 1.45, marginTop: 3 }}>{text}</div>
-      </div>
-    </div>
-  );
-}
-
-function WorkloadLane({ label, status, items, color }) {
-  return (
-    <div
-      style={{
-        background: "#f8fbff",
-        border: "1px solid #dce8f6",
-        borderRadius: 18,
-        padding: 14,
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-        <div style={{ fontWeight: 950, color: "#0b2e59" }}>{label}</div>
-        <div
-          style={{
-            background: color,
-            color: "white",
-            borderRadius: 999,
-            padding: "5px 9px",
-            fontSize: 11,
-            fontWeight: 900,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {status}
-        </div>
-      </div>
-      <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-        {items.map((item) => (
-          <div
-            key={item}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 8,
-              color: "#42658f",
-              fontSize: 13,
-              fontWeight: 800,
-            }}
-          >
-            <span>{item}</span>
-            <span>✓</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const WHATSAPP_MESSAGE =
+  "Ciao, vorrei provare EasyMenu per il mio ristorante.";
 
 function FeatureCard({ icon, title, text }) {
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.92)",
-        border: "1px solid #dce8f6",
+        background: "rgba(255,255,255,0.90)",
+        border: "1px solid rgba(255,255,255,0.72)",
         borderRadius: 24,
-        padding: 22,
-        boxShadow: "0 18px 34px rgba(18,59,107,0.06)",
+        padding: 24,
+        boxShadow: "0 18px 34px rgba(18,59,107,0.08)",
+        backdropFilter: "blur(10px)",
       }}
     >
       <div
         style={{
-          width: 50,
-          height: 50,
-          borderRadius: 16,
+          width: 58,
+          height: 58,
+          borderRadius: 18,
           background: "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 23,
+          fontSize: 26,
           color: "white",
-          marginBottom: 14,
+          boxShadow: "0 14px 24px rgba(37,99,235,0.18)",
+          marginBottom: 16,
         }}
       >
         {icon}
       </div>
-      <h3 style={{ margin: 0, fontSize: 21, fontWeight: 950, color: "#0b2e59", letterSpacing: "-0.03em" }}>
+
+      <h3
+        style={{
+          margin: 0,
+          fontSize: 22,
+          fontWeight: 900,
+          color: "#0b2e59",
+          letterSpacing: "-0.02em",
+        }}
+      >
         {title}
       </h3>
-      <p style={{ margin: "10px 0 0", color: "#5a7497", lineHeight: 1.62, fontSize: 15 }}>{text}</p>
+
+      <p
+        style={{
+          marginTop: 12,
+          marginBottom: 0,
+          color: "#5a7497",
+          lineHeight: 1.68,
+          fontSize: 15,
+        }}
+      >
+        {text}
+      </p>
     </div>
   );
 }
 
-function PricingCard({ title, price, subtitle, features, highlighted, cta, to }) {
+function StepCard({ number, title, text }) {
+  return (
+    <div
+      style={{
+        background: "rgba(255,255,255,0.94)",
+        borderRadius: 22,
+        padding: 22,
+        border: "1px solid #dce8f6",
+        boxShadow: "0 14px 28px rgba(18,59,107,0.06)",
+      }}
+    >
+      <div
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 900,
+          fontSize: 16,
+          marginBottom: 16,
+          boxShadow: "0 10px 18px rgba(37,99,235,0.18)",
+        }}
+      >
+        {number}
+      </div>
+
+      <h3
+        style={{
+          margin: 0,
+          fontSize: 20,
+          fontWeight: 900,
+          color: "#123b6b",
+        }}
+      >
+        {title}
+      </h3>
+
+      <p
+        style={{
+          marginTop: 10,
+          marginBottom: 0,
+          color: "#5a7497",
+          lineHeight: 1.68,
+        }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+function BenefitRow({ title, text }) {
+  return (
+    <div
+      style={{
+        padding: "16px 0",
+        borderBottom: "1px solid rgba(100,128,166,0.16)",
+      }}
+    >
+      <div
+        style={{
+          fontWeight: 900,
+          color: "#0b2e59",
+          fontSize: 18,
+          marginBottom: 6,
+        }}
+      >
+        {title}
+      </div>
+      <div
+        style={{
+          color: "#5a7497",
+          lineHeight: 1.68,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
+
+function RoiCalculator() {
+  const staffHourlyCost = 13;
+  const minutesSavedPerService = 45;
+  const servicesPerMonth = 52;
+  const estimatedSaving = Math.round((staffHourlyCost * minutesSavedPerService * servicesPerMonth) / 60);
+
+  return (
+    <div
+      style={{
+        background: "linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%)",
+        borderRadius: 28,
+        padding: 26,
+        border: "1px solid #bfdbfe",
+        boxShadow: "0 20px 38px rgba(18,59,107,0.08)",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          background: "#dcfce7",
+          color: "#166534",
+          borderRadius: 999,
+          padding: "8px 12px",
+          fontSize: 12,
+          fontWeight: 950,
+          marginBottom: 16,
+        }}
+      >
+        ROI stimato
+      </div>
+
+      <h3
+        style={{
+          margin: 0,
+          fontSize: 30,
+          lineHeight: 1.08,
+          letterSpacing: "-0.04em",
+          color: "#0b2e59",
+        }}
+      >
+        Anche pochi minuti risparmiati a servizio ripagano il software.
+      </h3>
+
+      <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
+        <div style={roiLineStyle}>
+          <span>Tempo evitato tra presa ordine, passaggi in cucina e correzioni</span>
+          <strong>{minutesSavedPerService} min / servizio</strong>
+        </div>
+        <div style={roiLineStyle}>
+          <span>Costo medio operativo considerato</span>
+          <strong>€{staffHourlyCost} / ora</strong>
+        </div>
+        <div style={roiLineStyle}>
+          <span>Servizi considerati al mese</span>
+          <strong>{servicesPerMonth}</strong>
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 20,
+          background: "white",
+          borderRadius: 22,
+          padding: 20,
+          border: "1px solid #dbeafe",
+        }}
+      >
+        <div style={{ color: "#6480a6", fontWeight: 850, fontSize: 13 }}>
+          Valore recuperabile stimato
+        </div>
+        <div
+          style={{
+            marginTop: 6,
+            fontSize: 44,
+            fontWeight: 950,
+            letterSpacing: "-0.05em",
+            color: "#0b2e59",
+            lineHeight: 1,
+          }}
+        >
+          ~€{estimatedSaving}/mese
+        </div>
+        <p style={{ margin: "12px 0 0", color: "#5a7497", lineHeight: 1.6 }}>
+          Stima prudente: non include più coperti serviti, meno errori sui piatti, upsell dal menu
+          digitale o clienti più soddisfatti.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonCard({ title, text, tone }) {
+  const positive = tone === "positive";
+  return (
+    <div
+      style={{
+        background: positive ? "#ecfdf5" : "#f8fafc",
+        border: positive ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+        borderRadius: 22,
+        padding: 22,
+      }}
+    >
+      <div style={{ fontSize: 24, marginBottom: 10 }}>{positive ? "✅" : "⚪"}</div>
+      <div style={{ fontWeight: 950, color: "#0b2e59", fontSize: 20 }}>{title}</div>
+      <p style={{ margin: "10px 0 0", color: "#5a7497", lineHeight: 1.65 }}>{text}</p>
+    </div>
+  );
+}
+
+function StatPill({ value, label }) {
+  return (
+    <div
+      style={{
+        background: "rgba(255,255,255,0.12)",
+        border: "1px solid rgba(255,255,255,0.16)",
+        color: "white",
+        borderRadius: 18,
+        padding: "16px 18px",
+        minWidth: 150,
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 28,
+          fontWeight: 900,
+          lineHeight: 1,
+          letterSpacing: "-0.03em",
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 13,
+          opacity: 0.92,
+          lineHeight: 1.35,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function PricingCard({ title, price, subtitle, features, highlighted }) {
   return (
     <div
       style={{
         background: highlighted
           ? "linear-gradient(135deg, rgba(18,59,107,0.98) 0%, rgba(37,99,235,0.94) 100%)"
-          : "rgba(255,255,255,0.96)",
+          : "rgba(255,255,255,0.94)",
         color: highlighted ? "white" : "#123b6b",
         borderRadius: 28,
-        padding: 28,
+        padding: 26,
         border: highlighted ? "1px solid rgba(255,255,255,0.16)" : "1px solid #dce8f6",
-        boxShadow: highlighted ? "0 24px 46px rgba(18,59,107,0.18)" : "0 18px 34px rgba(18,59,107,0.06)",
+        boxShadow: highlighted
+          ? "0 24px 46px rgba(18,59,107,0.18)"
+          : "0 18px 34px rgba(18,59,107,0.06)",
         position: "relative",
         overflow: "hidden",
       }}
@@ -161,49 +323,104 @@ function PricingCard({ title, price, subtitle, features, highlighted, cta, to })
             borderRadius: 999,
             padding: "8px 12px",
             fontSize: 12,
-            fontWeight: 950,
+            fontWeight: 900,
           }}
         >
-          Per ristoranti
+          Consigliato
         </div>
       )}
-      <h3 style={{ margin: 0, fontSize: 25, fontWeight: 950, letterSpacing: "-0.03em" }}>{title}</h3>
-      <div style={{ marginTop: 16, display: "flex", alignItems: "end", gap: 8 }}>
-        <div style={{ fontSize: price === "Su misura" ? 42 : 48, fontWeight: 950, letterSpacing: "-0.05em", lineHeight: 1 }}>
+
+      <h3
+        style={{
+          margin: 0,
+          fontSize: 24,
+          fontWeight: 950,
+          letterSpacing: "-0.03em",
+        }}
+      >
+        {title}
+      </h3>
+
+      <div
+        style={{
+          marginTop: 16,
+          display: "flex",
+          alignItems: "end",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 46,
+            fontWeight: 950,
+            letterSpacing: "-0.05em",
+            lineHeight: 1,
+          }}
+        >
           {price}
         </div>
-        {price !== "Su misura" && (
-          <div style={{ marginBottom: 6, opacity: highlighted ? 0.86 : 0.68, fontWeight: 900 }}>/ mese</div>
-        )}
+        <div
+          style={{
+            marginBottom: 6,
+            opacity: highlighted ? 0.86 : 0.68,
+            fontWeight: 800,
+          }}
+        >
+          / mese
+        </div>
       </div>
-      <p style={{ marginTop: 14, color: highlighted ? "rgba(255,255,255,0.84)" : "#5a7497", lineHeight: 1.65 }}>
+
+      <p
+        style={{
+          marginTop: 14,
+          color: highlighted ? "rgba(255,255,255,0.84)" : "#5a7497",
+          lineHeight: 1.65,
+        }}
+      >
         {subtitle}
       </p>
+
       <div style={{ display: "grid", gap: 11, marginTop: 20 }}>
         {features.map((feature) => (
           <div
             key={feature}
-            style={{ display: "flex", gap: 10, alignItems: "flex-start", fontWeight: 850, color: highlighted ? "rgba(255,255,255,0.92)" : "#42658f" }}
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+              fontWeight: 800,
+              color: highlighted ? "rgba(255,255,255,0.92)" : "#42658f",
+            }}
           >
             <span style={{ color: highlighted ? "#86efac" : "#16a34a" }}>✓</span>
             <span>{feature}</span>
           </div>
         ))}
       </div>
-      {to ? (
-        <Link to={to} style={{ ...pricingButtonStyle, background: highlighted ? "#22c55e" : "#123b6b" }}>
-          {cta}
-        </Link>
-      ) : (
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
-          target="_blank"
-          rel="noreferrer"
-          style={{ ...pricingButtonStyle, background: highlighted ? "#22c55e" : "#123b6b" }}
-        >
-          {cta}
-        </a>
-      )}
+
+      <a
+        href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          display: "block",
+          textAlign: "center",
+          marginTop: 24,
+          textDecoration: "none",
+          borderRadius: 18,
+          padding: "15px 18px",
+          background: highlighted
+            ? "linear-gradient(135deg, #22c55e 0%, #10b981 100%)"
+            : "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
+          color: "white",
+          fontWeight: 950,
+          boxShadow: highlighted
+            ? "0 16px 26px rgba(16,185,129,0.22)"
+            : "0 12px 20px rgba(37,99,235,0.14)",
+        }}
+      >
+        Contattaci su WhatsApp
+      </a>
     </div>
   );
 }
@@ -216,26 +433,27 @@ function Landing() {
         background: `
           radial-gradient(circle at 0% 0%, rgba(37,99,235,0.14), transparent 26%),
           radial-gradient(circle at 100% 0%, rgba(14,165,233,0.12), transparent 24%),
-          linear-gradient(180deg, #eef6ff 0%, #e3efff 42%, #f8fbff 100%)
+          radial-gradient(circle at 50% 100%, rgba(16,185,129,0.08), transparent 28%),
+          linear-gradient(180deg, #eef6ff 0%, #e3efff 34%, #eef6ff 70%, #f8fbff 100%)
         `,
         color: "#123b6b",
       }}
     >
-      <header
+      <div
         style={{
           position: "sticky",
           top: 0,
           zIndex: 100,
           backdropFilter: "blur(14px)",
-          background: "rgba(255,255,255,0.74)",
+          background: "rgba(255,255,255,0.72)",
           borderBottom: "1px solid rgba(148,163,184,0.14)",
         }}
       >
         <div
           style={{
-            maxWidth: 1320,
+            maxWidth: 1280,
             margin: "0 auto",
-            padding: "14px 22px",
+            padding: "16px 22px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -243,171 +461,993 @@ function Landing() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 15,
+                width: 52,
+                height: 52,
+                borderRadius: 16,
                 background: "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                boxShadow: "0 14px 24px rgba(37,99,235,0.18)",
                 overflow: "hidden",
                 padding: 7,
               }}
             >
-              <img src={logoEasyMenu} alt="EasyMenu" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              <img
+                src={logoEasyMenu}
+                alt="EasyMenu"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
             </div>
+
             <div>
-              <div style={{ fontSize: 20, fontWeight: 950, lineHeight: 1.05, letterSpacing: "-0.03em", color: "#0b2e59" }}>
+              <div
+                style={{
+                  fontSize: 20,
+                  fontWeight: 900,
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.03em",
+                  color: "#0b2e59",
+                }}
+              >
                 EasyMenu
               </div>
-              <div style={{ fontSize: 13, color: "#6480a6", marginTop: 4 }}>Ordini al tavolo, senza confusione</div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#6480a6",
+                  marginTop: 4,
+                }}
+              >
+                Ordini al tavolo, senza attese
+              </div>
             </div>
           </div>
 
-          <nav style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <a href="#funzioni" style={navLinkStyle}>Funzioni</a>
-            <a href="#flusso" style={navLinkStyle}>Flusso</a>
-            <a href="#prezzi" style={navLinkStyle}>Prezzi</a>
-            <Link to="/login" style={navButtonSecondary}>Login</Link>
-            <Link to="/login" style={navButtonPrimary}>Inizia ora</Link>
-          </nav>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <Link to="/dashboard" style={navLinkStyle}>
+              Dashboard
+            </Link>
+            <Link to="/admin" style={navLinkStyle}>
+              Area Admin
+            </Link>
+            <a href="#prezzi" style={navLinkStyle}>
+              Prezzi
+            </a>
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
+              target="_blank"
+              rel="noreferrer"
+              style={navLinkStyle}
+            >
+              WhatsApp
+            </a>
+            <Link to="/menu/demo/demo-table-1?tavolo=1&demo=1" style={navButtonSecondary}>
+              Demo menu
+            </Link>
+            <Link to="/admin" style={navButtonPrimary}>
+              Inizia ora
+            </Link>
+          </div>
         </div>
-      </header>
+      </div>
 
-      <main style={{ maxWidth: 1320, margin: "0 auto", padding: "28px 22px 82px" }}>
-        <section style={heroSectionStyle}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "34px 22px 90px" }}>
+        <section
+          style={{
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: 34,
+            padding: "42px 34px",
+            background:
+              "linear-gradient(135deg, rgba(18,59,107,0.97) 0%, rgba(29,78,216,0.92) 52%, rgba(8,145,178,0.84) 100%)",
+            boxShadow: "0 30px 64px rgba(18,59,107,0.18)",
+            marginBottom: 26,
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              right: -120,
+              top: -120,
+              width: 320,
+              height: 320,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.08)",
+              filter: "blur(10px)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: -90,
+              bottom: -90,
+              width: 260,
+              height: 260,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.06)",
+              filter: "blur(8px)",
+            }}
+          />
+
           <div
             style={{
               position: "relative",
               display: "grid",
-              gridTemplateColumns: "minmax(320px, 1.02fr) minmax(360px, 0.98fr)",
-              gap: 32,
+              gridTemplateColumns: "1.15fr 0.85fr",
+              gap: 28,
               alignItems: "center",
             }}
           >
             <div>
-              <div style={heroBadgeStyle}>Software semplice per ordinare dal tavolo</div>
-              <h1 style={heroTitleStyle}>Il cliente scansiona il QR, ordina e lo staff lavora meglio.</h1>
-              <p style={heroTextStyle}>
-                EasyMenu unisce menu digitale, ordini dal tavolo, cucina, bar, cassa e gestione tavoli.
-                Meno attese, meno errori, più velocità operativa.
-              </p>
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 28 }}>
-                <Link to="/login" style={heroPrimaryButton}>Attiva ora</Link>
-                <a href="#prezzi" style={heroSecondaryButton}>Vedi prezzi</a>
-              </div>
-            </div>
-
-            <div style={flowPanelStyle}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 16, marginBottom: 16 }}>
-                <div>
-                  <div style={panelLabelStyle}>Prova concreta del flusso</div>
-                  <div style={{ fontSize: 28, color: "#0b2e59", fontWeight: 950, marginTop: 4, letterSpacing: "-0.04em" }}>Tavolo 12</div>
-                </div>
-                <span style={livePillStyle}>Live</span>
-              </div>
-
-              <div style={{ display: "grid", gap: 10 }}>
-                <FlowStep number="1" title="QR sul tavolo" text="Il cliente apre il menu già collegato al tavolo 12." tone="blue" />
-                <FlowStep number="2" title="Ordine dal telefono" text="2 Carbonare, 1 acqua, nota: senza pepe." tone="cyan" />
-                <FlowStep number="3" title="Smistamento automatico" text="Cucina vede i piatti, bar vede le bevande." tone="amber" />
-                <FlowStep number="4" title="Cassa pronta" text="Totale tavolo aggiornato: €28,00, pronto per pagamento." tone="green" />
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                  color: "white",
+                  padding: "10px 14px",
+                  borderRadius: 999,
+                  fontWeight: 800,
+                  fontSize: 13,
+                  marginBottom: 18,
+                }}
+              >
+                <span
+                  style={{
+                    width: 9,
+                    height: 9,
+                    borderRadius: "50%",
+                    background: "#22c55e",
+                  }}
+                />
+                Per ristoranti che vogliono più margine, non altro software
               </div>
 
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                  gap: 10,
-                  marginTop: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  flexWrap: "wrap",
+                  marginBottom: 18,
                 }}
               >
-                <WorkloadLane label="Cucina" status="2 piatti" color="#d97706" items={["Carbonara x2", "Nota visibile"]} />
-                <WorkloadLane label="Bar" status="1 bevanda" color="#0891b2" items={["Acqua x1", "Pronta"]} />
-                <WorkloadLane label="Cassa" status="€28,00" color="#16a34a" items={["Tavolo 12", "Conto aggiornato"]} />
+                <div
+                  style={{
+                    width: 68,
+                    height: 68,
+                    borderRadius: 20,
+                    background: "rgba(255,255,255,0.14)",
+                    border: "1px solid rgba(255,255,255,0.16)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    padding: 10,
+                    backdropFilter: "blur(10px)",
+                  }}
+                >
+                  <img
+                    src={logoEasyMenu}
+                    alt="EasyMenu"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    color: "white",
+                    fontSize: 28,
+                    fontWeight: 900,
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  EasyMenu
+                </div>
+              </div>
+
+              <h1
+                style={{
+                  margin: 0,
+                  color: "white",
+                  fontSize: 58,
+                  lineHeight: 1.03,
+                  letterSpacing: "-0.05em",
+                  fontWeight: 950,
+                  maxWidth: 760,
+                }}
+              >
+                Servi più tavoli con lo stesso personale e riduci gli errori di sala.
+              </h1>
+
+              <p
+                style={{
+                  marginTop: 20,
+                  marginBottom: 0,
+                  color: "rgba(255,255,255,0.88)",
+                  fontSize: 19,
+                  lineHeight: 1.7,
+                  maxWidth: 720,
+                }}
+              >
+                EasyMenu trasforma il QR in un flusso operativo completo: il cliente ordina, cucina e bar ricevono subito, la cassa chiude più veloce. Il risultato è meno lavoro ripetitivo, meno errori e più coperti gestiti nei momenti di punta.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 14,
+                  flexWrap: "wrap",
+                  marginTop: 26,
+                }}
+              >
+                <Link to="/admin" style={heroPrimaryButton}>
+                  Attiva il tuo ristorante
+                </Link>
+
+                <Link to="/menu/demo/demo-table-1?tavolo=1&demo=1" style={heroSecondaryButton}>
+                  Guarda la demo cliente
+                </Link>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginTop: 28,
+                }}
+              >
+                <StatPill value="+Coperti" label="Più tavoli gestiti nei picchi" />
+                <StatPill value="-Errori" label="Ordini più chiari per cucina e bar" />
+                <StatPill value="+Margine" label="Meno tempo perso in attività ripetitive" />
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.96)",
+                  borderRadius: 30,
+                  padding: 24,
+                  boxShadow: "0 24px 44px rgba(18,59,107,0.16)",
+                  border: "1px solid rgba(255,255,255,0.8)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    marginBottom: 18,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#6480a6",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      Customer Flow
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 26,
+                        color: "#0b2e59",
+                        fontWeight: 900,
+                        marginTop: 6,
+                      }}
+                    >
+                      Tavolo 12
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#dcfce7",
+                      color: "#166534",
+                      borderRadius: 999,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Ordine attivo
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={demoRowStyle}>
+                    <div>
+                      <div style={demoTitleStyle}>Tagliere della casa</div>
+                      <div style={demoSubStyle}>Porta subito · x1</div>
+                    </div>
+                    <div style={demoPriceStyle}>€ 12.00</div>
+                  </div>
+
+                  <div style={demoRowStyle}>
+                    <div>
+                      <div style={demoTitleStyle}>Carbonara</div>
+                      <div style={demoSubStyle}>Porta dopo · x2</div>
+                    </div>
+                    <div style={demoPriceStyle}>€ 24.00</div>
+                  </div>
+
+                  <div style={demoRowStyle}>
+                    <div>
+                      <div style={demoTitleStyle}>Acqua frizzante</div>
+                      <div style={demoSubStyle}>Pronta al bar · x2</div>
+                    </div>
+                    <div style={demoPriceStyle}>€ 4.00</div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 18,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#eff6ff",
+                      borderRadius: 18,
+                      padding: 16,
+                    }}
+                  >
+                    <div style={miniLabelStyle}>Stato ordine</div>
+                    <div style={miniValueStyle}>In preparazione</div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#ecfdf5",
+                      borderRadius: 18,
+                      padding: 16,
+                    }}
+                  >
+                    <div style={miniLabelStyle}>Totale</div>
+                    <div style={miniValueStyle}>€ 40.00</div>
+                  </div>
+                </div>
+
+                <button
+                  style={{
+                    width: "100%",
+                    marginTop: 18,
+                    border: "none",
+                    borderRadius: 18,
+                    padding: "16px 18px",
+                    background: "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
+                    color: "white",
+                    fontWeight: 900,
+                    fontSize: 16,
+                    boxShadow: "0 18px 28px rgba(37,99,235,0.18)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Ordine inviato correttamente
+                </button>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="funzioni" style={compactSectionStyle}>
-          <FeatureCard icon="📱" title="Menu e ordine dal QR" text="Il cliente vede il menu responsive, sceglie prodotti e invia l’ordine dal tavolo corretto." />
-          <FeatureCard icon="👨‍🍳" title="Cucina e bar separati" text="Ogni reparto riceve solo ciò che deve preparare, con stati chiari e aggiornamenti live." />
-          <FeatureCard icon="💳" title="Cassa e tavoli più veloci" text="Il conto è già ordinato per tavolo. Meno passaggi manuali e meno errori di comunicazione." />
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 18,
+            marginBottom: 26,
+          }}
+        >
+          <FeatureCard
+            icon="📱"
+            title="Ordini dal tavolo"
+            text="Il cliente inquadra il QR, apre il menu e ordina senza aspettare il cameriere. Più rapidità e meno attrito."
+          />
+          <FeatureCard
+            icon="👨‍🍳"
+            title="Cucina e bar sincronizzati"
+            text="Gli ordini arrivano subito ai reparti giusti con stato aggiornato in tempo reale. Più controllo e meno confusione."
+          />
+          <FeatureCard
+            icon="💳"
+            title="Cassa più semplice"
+            text="Il tavolo arriva in cassa già ordinato, con totale, extra, coperti e storico. Meno errori e più velocità in chiusura."
+          />
         </section>
 
-        <section id="flusso" style={explainSectionStyle}>
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "0.9fr 1.1fr",
+            gap: 22,
+            alignItems: "center",
+            marginBottom: 26,
+          }}
+        >
           <div>
-            <div style={smallPillStyle}>Perché serve davvero</div>
-            <h2 style={sectionTitleStyle}>Un solo flusso operativo: tavolo, ordine, reparto, cassa.</h2>
-            <p style={sectionTextStyle}>
-              Non è una demo estetica: è il percorso reale che riduce lavoro ripetitivo in sala e rende ogni ordine tracciabile.
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#dcfce7",
+                color: "#166534",
+                borderRadius: 999,
+                padding: "8px 12px",
+                fontSize: 12,
+                fontWeight: 950,
+                marginBottom: 14,
+              }}
+            >
+              Risultato economico
+            </div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 42,
+                lineHeight: 1.06,
+                letterSpacing: "-0.05em",
+                color: "#0b2e59",
+              }}
+            >
+              Non vendiamo “un menu QR”: vendiamo minuti recuperati a ogni servizio.
+            </h2>
+            <p
+              style={{
+                marginTop: 16,
+                color: "#5a7497",
+                fontSize: 17,
+                lineHeight: 1.72,
+              }}
+            >
+              Il ristoratore non deve cambiare abitudini per avere un’altra dashboard. Deve vedere
+              subito dove recupera tempo: meno giri a vuoto, meno comande riscritte, meno errori e
+              conto più rapido.
             </p>
           </div>
-          <div style={{ display: "grid", gap: 12 }}>
-            <FlowStep number="1" title="Crei i tavoli" text="Solo numero tavolo e QR: niente campi inutili come posti o zone obbligatorie." tone="blue" />
-            <FlowStep number="2" title="Carichi il menu" text="Nome, prezzo, descrizione, ingredienti e area preparazione: cucina o bar." tone="cyan" />
-            <FlowStep number="3" title="Lo staff lavora dalle pagine operative" text="Cucina, bar e cassa hanno schermate separate, semplici e veloci." tone="green" />
+          <RoiCalculator />
+        </section>
+
+        <section
+          style={{
+            background: "rgba(255,255,255,0.92)",
+            borderRadius: 30,
+            padding: "30px 28px",
+            border: "1px solid #dce8f6",
+            boxShadow: "0 18px 34px rgba(18,59,107,0.06)",
+            marginBottom: 26,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "0.95fr 1.05fr",
+              gap: 26,
+              alignItems: "start",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  borderRadius: 999,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  marginBottom: 14,
+                }}
+              >
+                Perché vende meglio
+              </div>
+
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 40,
+                  lineHeight: 1.08,
+                  letterSpacing: "-0.04em",
+                  color: "#0b2e59",
+                }}
+              >
+                Non è solo un menu digitale. È un flusso operativo più efficiente.
+              </h2>
+
+              <p
+                style={{
+                  marginTop: 16,
+                  color: "#5a7497",
+                  fontSize: 17,
+                  lineHeight: 1.72,
+                  maxWidth: 620,
+                }}
+              >
+                Un ristoratore non compra “una pagina web”. Compra velocità, ordine, meno
+                errori, più tavoli gestiti e una migliore esperienza cliente.
+              </p>
+            </div>
+
+            <div>
+              <BenefitRow
+                title="Meno attese al tavolo"
+                text="Il cliente non deve aspettare per chiedere il menu o ordinare. Questo migliora subito la percezione del servizio."
+              />
+              <BenefitRow
+                title="Meno carico sulla sala"
+                text="I camerieri non perdono tempo su passaggi ripetitivi e possono concentrarsi su servizio, upsell e gestione della sala."
+              />
+              <BenefitRow
+                title="Ordini più ordinati"
+                text="Cucina, bar e cassa vedono lo stesso flusso operativo. Ogni reparto sa cosa fare e in che stato si trova il tavolo."
+              />
+              <BenefitRow
+                title="Più controllo per il titolare"
+                text="Storico, statistiche e incassi rendono il prodotto più percepito come gestionale operativo, non solo come menu QR."
+              />
+            </div>
           </div>
         </section>
 
-        <section id="prezzi" style={{ marginBottom: 28 }}>
-          <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 22px" }}>
-            <div style={{ ...smallPillStyle, background: "#fff7ed", color: "#c2410c" }}>Prezzi semplici</div>
-            <h2 style={sectionTitleStyle}>Due opzioni, senza confusione.</h2>
-            <p style={sectionTextStyle}>
-              Un piano chiaro per il singolo ristorante e una soluzione su misura per catene o gruppi multi-sede.
+        <section
+          style={{
+            marginBottom: 26,
+          }}
+        >
+          <div style={{ marginBottom: 18 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#ecfdf5",
+                color: "#047857",
+                borderRadius: 999,
+                padding: "8px 12px",
+                fontSize: 12,
+                fontWeight: 900,
+                marginBottom: 14,
+              }}
+            >
+              Come funziona
+            </div>
+
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 38,
+                lineHeight: 1.08,
+                letterSpacing: "-0.04em",
+                color: "#0b2e59",
+              }}
+            >
+              Un flusso semplice per il cliente. Un grande alleggerimento per il ristorante.
+            </h2>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+              gap: 18,
+            }}
+          >
+            <StepCard
+              number="1"
+              title="Il cliente scansiona il QR"
+              text="Ogni tavolo apre direttamente il menu corretto, senza errori e senza passaggi manuali."
+            />
+            <StepCard
+              number="2"
+              title="Ordina dal telefono"
+              text="Piatti, bevande, note e tempi di servizio vengono inviati in modo chiaro e immediato."
+            />
+            <StepCard
+              number="3"
+              title="Cucina e bar ricevono tutto"
+              text="Ogni reparto vede solo ciò che gli serve, con priorità e stato aggiornato in tempo reale."
+            />
+            <StepCard
+              number="4"
+              title="La cassa chiude più velocemente"
+              text="Il conto è già organizzato e lo storico resta disponibile per analisi e controllo."
+            />
+          </div>
+        </section>
+
+        <section
+          style={{
+            background: "rgba(255,255,255,0.94)",
+            borderRadius: 30,
+            padding: "30px 28px",
+            border: "1px solid #dce8f6",
+            boxShadow: "0 18px 34px rgba(18,59,107,0.06)",
+            marginBottom: 26,
+          }}
+        >
+          <div style={{ maxWidth: 780, marginBottom: 22 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#eef2ff",
+                color: "#3730a3",
+                borderRadius: 999,
+                padding: "8px 12px",
+                fontSize: 12,
+                fontWeight: 950,
+                marginBottom: 14,
+              }}
+            >
+              Perché cambiare
+            </div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 40,
+                lineHeight: 1.08,
+                letterSpacing: "-0.04em",
+                color: "#0b2e59",
+              }}
+            >
+              Se hai già un menu digitale, EasyMenu deve vincere sul flusso operativo.
+            </h2>
+            <p style={{ marginTop: 14, color: "#5a7497", fontSize: 17, lineHeight: 1.7 }}>
+              GloriaFood, MenuDino, Dishup, Menoo, Orderando e molti POS coprono parti del problema.
+              La differenza da comunicare è questa: EasyMenu non è solo esposizione del menu, ma sala,
+              cucina, bar e cassa nello stesso percorso.
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 16,
+            }}
+          >
+            <ComparisonCard
+              title="Contro i menu QR economici"
+              text="Non competere sul prezzo del QR. Il vantaggio è ricevere ordini utilizzabili da cucina, bar e cassa, non solo mostrare piatti online."
+            />
+            <ComparisonCard
+              title="Contro i POS complessi"
+              text="Non chiedere al ristoratore una migrazione pesante. Parti dal tavolo e migliori il servizio quotidiano senza stravolgere tutto."
+            />
+            <ComparisonCard
+              tone="positive"
+              title="Posizionamento consigliato"
+              text="Sistema operativo leggero per ristoranti indipendenti: meno errori, più velocità, più controllo nei momenti di punta."
+            />
+          </div>
+        </section>
+
+        <section
+          id="prezzi"
+          style={{
+            marginBottom: 26,
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              maxWidth: 760,
+              margin: "0 auto 22px",
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                background: "#fff7ed",
+                color: "#c2410c",
+                borderRadius: 999,
+                padding: "8px 12px",
+                fontSize: 12,
+                fontWeight: 900,
+                marginBottom: 14,
+              }}
+            >
+              Prezzi semplici
+            </div>
+
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 40,
+                lineHeight: 1.08,
+                letterSpacing: "-0.04em",
+                color: "#0b2e59",
+              }}
+            >
+              Parti subito con EasyMenu e monetizza ogni tavolo.
+            </h2>
+
+            <p
+              style={{
+                marginTop: 14,
+                color: "#5a7497",
+                fontSize: 17,
+                lineHeight: 1.7,
+              }}
+            >
+              Una soluzione pensata per ristoranti, bar, pizzerie e locali che vogliono
+              ordinazioni più veloci senza complicare il lavoro dello staff.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 18,
+            }}
+          >
+            <PricingCard
+              title="Starter"
+              price="€29"
+              subtitle="Per piccoli locali che vogliono partire con menu digitale e QR."
+              features={[
+                "Menu digitale",
+                "QR per tavolo",
+                "Area admin",
+                "Demo cliente inclusa",
+              ]}
+            />
             <PricingCard
               highlighted
-              title="Ristorante"
-              price="€49,99"
-              subtitle="Per ristoranti, bar, pizzerie e locali che vogliono gestire menu, QR e ordini in un unico flusso."
-              features={["Menu digitale responsive", "QR per tavolo", "Cucina, bar e cassa", "Dashboard e statistiche essenziali", "Supporto onboarding"]}
-              cta="Vai al pagamento"
-              to={checkoutPath("restaurant")}
+              title="Pro"
+              price="€59"
+              subtitle="Per ristoranti che vogliono ordini live, reparti e dashboard owner."
+              features={[
+                "Ordini realtime",
+                "Cucina, bar e cassa",
+                "Dashboard KPI",
+                "Supporto onboarding",
+              ]}
             />
             <PricingCard
-              title="Catene e gruppi"
-              price="Su misura"
-              subtitle="Per più locali, gestione multi-ristorante, permessi avanzati, setup guidato e condizioni dedicate."
-              features={["Multi sede", "Ruoli e accessi avanzati", "Setup personalizzato", "Supporto prioritario", "Roadmap dedicata"]}
-              cta="Parla con noi"
+              title="Enterprise"
+              price="Custom"
+              subtitle="Per gruppi, catene e multi-ristorante con esigenze avanzate."
+              features={[
+                "Multi-ristorante",
+                "Stripe Connect",
+                "Commissioni SaaS",
+                "Setup personalizzato",
+              ]}
             />
           </div>
         </section>
 
-        <section style={finalCtaStyle}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 36, lineHeight: 1.08, letterSpacing: "-0.04em" }}>
-              Pronto per semplificare il lavoro del tuo ristorante?
-            </h2>
-            <p style={{ margin: "12px 0 0", color: "rgba(255,255,255,0.88)", lineHeight: 1.65, fontSize: 17 }}>
-              Accedi, configura tavoli e menu, genera i QR e prova il flusso operativo reale.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <Link to="/login" style={heroPrimaryButton}>Accedi</Link>
-            <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`} target="_blank" rel="noreferrer" style={heroSecondaryButton}>
-              WhatsApp
-            </a>
+        <section
+          style={{
+            background: "rgba(255,255,255,0.92)",
+            borderRadius: 30,
+            padding: "30px 28px",
+            border: "1px solid #dce8f6",
+            boxShadow: "0 18px 34px rgba(18,59,107,0.06)",
+            marginBottom: 26,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "0.95fr 1.05fr",
+              gap: 26,
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  borderRadius: 999,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  marginBottom: 14,
+                }}
+              >
+                Onboarding semplice
+              </div>
+
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 38,
+                  lineHeight: 1.08,
+                  letterSpacing: "-0.04em",
+                  color: "#0b2e59",
+                }}
+              >
+                Dal menu ai QR: il ristorante può essere operativo in poco tempo.
+              </h2>
+
+              <p
+                style={{
+                  marginTop: 16,
+                  color: "#5a7497",
+                  fontSize: 17,
+                  lineHeight: 1.72,
+                }}
+              >
+                Inserisci categorie e prodotti, genera i QR dei tavoli, collega cucina,
+                bar e cassa. Il cliente prova la demo, poi passa all’attivazione reale.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginTop: 22,
+                }}
+              >
+                <Link to="/menu/demo/demo-table-1?tavolo=1&demo=1" style={navButtonPrimary}>
+                  Prova la demo live
+                </Link>
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={navButtonSecondary}
+                >
+                  Scrivici su WhatsApp
+                </a>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <StepCard
+                number="1"
+                title="Carichi il menu"
+                text="Categorie, prodotti, prezzi, immagini e varianti vengono organizzati in area admin."
+              />
+              <StepCard
+                number="2"
+                title="Generi i QR"
+                text="Ogni tavolo riceve il suo QR e apre il menu con il numero tavolo già impostato."
+              />
+              <StepCard
+                number="3"
+                title="Ricevi ordini live"
+                text="Cucina, bar e cassa vedono gli ordini in tempo reale e lavorano senza confusione."
+              />
+            </div>
           </div>
         </section>
-      </main>
+
+        <section
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(18,59,107,0.98) 0%, rgba(29,78,216,0.92) 100%)",
+            borderRadius: 30,
+            padding: "34px 30px",
+            color: "white",
+            boxShadow: "0 24px 46px rgba(18,59,107,0.16)",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: 22,
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 40,
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                Vuoi capire se EasyMenu si ripaga nel tuo ristorante?
+              </h2>
+
+              <p
+                style={{
+                  marginTop: 14,
+                  marginBottom: 0,
+                  fontSize: 17,
+                  lineHeight: 1.7,
+                  color: "rgba(255,255,255,0.88)",
+                  maxWidth: 760,
+                }}
+              >
+                Partiamo dal tuo flusso reale: numero tavoli, personale in sala, picchi di servizio ed errori più frequenti. Da lì stimiamo quanto tempo puoi recuperare ogni mese.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+              }}
+            >
+              <Link to="/admin" style={heroPrimaryButton}>
+                Vai all’area admin
+              </Link>
+              <Link to="/dashboard" style={heroSecondaryButton}>
+                Apri dashboard
+              </Link>
+              <a
+                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={heroSecondaryButton}
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
+const roiLineStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 16,
+  alignItems: "center",
+  background: "rgba(255,255,255,0.74)",
+  border: "1px solid #dbeafe",
+  borderRadius: 16,
+  padding: "13px 15px",
+  color: "#42658f",
+  fontWeight: 800,
+};
+
 const navLinkStyle = {
   textDecoration: "none",
   color: "#42658f",
-  fontWeight: 850,
+  fontWeight: 800,
   padding: "10px 12px",
   borderRadius: 12,
 };
@@ -418,7 +1458,8 @@ const navButtonPrimary = {
   padding: "12px 16px",
   background: "linear-gradient(135deg, #123b6b 0%, #2563eb 100%)",
   color: "white",
-  fontWeight: 950,
+  fontWeight: 900,
+  boxShadow: "0 12px 20px rgba(37,99,235,0.14)",
 };
 
 const navButtonSecondary = {
@@ -427,61 +1468,17 @@ const navButtonSecondary = {
   padding: "12px 16px",
   background: "rgba(255,255,255,0.88)",
   color: "#123b6b",
-  fontWeight: 950,
-  border: "1px solid #dce8f6",
-};
-
-const heroSectionStyle = {
-  position: "relative",
-  overflow: "hidden",
-  borderRadius: 34,
-  padding: "46px 34px",
-  background: "linear-gradient(135deg, rgba(18,59,107,0.97) 0%, rgba(29,78,216,0.92) 52%, rgba(8,145,178,0.84) 100%)",
-  boxShadow: "0 30px 64px rgba(18,59,107,0.18)",
-  marginBottom: 24,
-  border: "1px solid rgba(255,255,255,0.10)",
-};
-
-const heroBadgeStyle = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  background: "rgba(255,255,255,0.14)",
-  border: "1px solid rgba(255,255,255,0.18)",
-  color: "white",
-  padding: "10px 14px",
-  borderRadius: 999,
   fontWeight: 900,
-  fontSize: 14,
-  marginBottom: 18,
-};
-
-const heroTitleStyle = {
-  margin: 0,
-  color: "white",
-  fontSize: "clamp(42px, 5vw, 76px)",
-  lineHeight: 1.03,
-  letterSpacing: "-0.06em",
-  fontWeight: 950,
-  maxWidth: 740,
-};
-
-const heroTextStyle = {
-  marginTop: 18,
-  marginBottom: 0,
-  color: "rgba(255,255,255,0.90)",
-  fontSize: 20,
-  lineHeight: 1.55,
-  maxWidth: 720,
+  border: "1px solid #dce8f6",
 };
 
 const heroPrimaryButton = {
   textDecoration: "none",
   borderRadius: 18,
-  padding: "16px 21px",
+  padding: "16px 20px",
   background: "linear-gradient(135deg, #22c55e 0%, #10b981 100%)",
   color: "white",
-  fontWeight: 950,
+  fontWeight: 900,
   fontSize: 16,
   boxShadow: "0 16px 26px rgba(16,185,129,0.20)",
 };
@@ -489,106 +1486,59 @@ const heroPrimaryButton = {
 const heroSecondaryButton = {
   textDecoration: "none",
   borderRadius: 18,
-  padding: "16px 21px",
-  background: "rgba(255,255,255,0.13)",
+  padding: "16px 20px",
+  background: "rgba(255,255,255,0.12)",
   color: "white",
-  fontWeight: 950,
-  fontSize: 16,
-  border: "1px solid rgba(255,255,255,0.20)",
-};
-
-const flowPanelStyle = {
-  background: "rgba(255,255,255,0.96)",
-  borderRadius: 30,
-  padding: 24,
-  boxShadow: "0 24px 44px rgba(18,59,107,0.16)",
-  border: "1px solid rgba(255,255,255,0.82)",
-};
-
-const panelLabelStyle = {
-  fontSize: 13,
-  color: "#6480a6",
   fontWeight: 900,
-  textTransform: "uppercase",
-  letterSpacing: "0.12em",
+  fontSize: 16,
+  border: "1px solid rgba(255,255,255,0.18)",
 };
 
-const livePillStyle = {
-  background: "#dcfce7",
-  color: "#166534",
-  borderRadius: 999,
-  padding: "9px 13px",
-  fontSize: 12,
-  fontWeight: 950,
-};
-
-const compactSectionStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-  gap: 18,
-  marginBottom: 24,
-};
-
-const explainSectionStyle = {
-  background: "rgba(255,255,255,0.92)",
-  borderRadius: 30,
-  padding: "30px 28px",
-  border: "1px solid #dce8f6",
-  boxShadow: "0 18px 34px rgba(18,59,107,0.06)",
-  marginBottom: 24,
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-  gap: 24,
-  alignItems: "start",
-};
-
-const smallPillStyle = {
-  display: "inline-flex",
-  background: "#eff6ff",
-  color: "#1d4ed8",
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 950,
-  marginBottom: 13,
-};
-
-const sectionTitleStyle = {
-  margin: 0,
-  fontSize: "clamp(30px, 3vw, 42px)",
-  lineHeight: 1.08,
-  letterSpacing: "-0.04em",
-  color: "#0b2e59",
-};
-
-const sectionTextStyle = {
-  marginTop: 14,
-  color: "#5a7497",
-  fontSize: 17,
-  lineHeight: 1.7,
-};
-
-const pricingButtonStyle = {
-  display: "block",
-  textAlign: "center",
-  marginTop: 24,
-  textDecoration: "none",
-  borderRadius: 18,
-  padding: "15px 18px",
-  color: "white",
-  fontWeight: 950,
-};
-
-const finalCtaStyle = {
-  background: "linear-gradient(135deg, rgba(18,59,107,0.98) 0%, rgba(29,78,216,0.92) 100%)",
-  borderRadius: 30,
-  padding: "32px 30px",
-  color: "white",
-  boxShadow: "0 24px 46px rgba(18,59,107,0.16)",
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-  gap: 22,
+const demoRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
   alignItems: "center",
+  gap: 12,
+  background: "#f4f9ff",
+  borderRadius: 16,
+  padding: "14px 16px",
+  border: "1px solid #dce8f6",
+};
+
+const demoTitleStyle = {
+  fontWeight: 900,
+  color: "#123b6b",
+  fontSize: 16,
+};
+
+const demoSubStyle = {
+  marginTop: 5,
+  color: "#6480a6",
+  fontSize: 13,
+  fontWeight: 700,
+};
+
+const demoPriceStyle = {
+  fontWeight: 900,
+  color: "#0b2e59",
+  whiteSpace: "nowrap",
+  fontSize: 16,
+};
+
+const miniLabelStyle = {
+  fontSize: 12,
+  color: "#6480a6",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+const miniValueStyle = {
+  marginTop: 6,
+  fontSize: 22,
+  color: "#123b6b",
+  fontWeight: 900,
+  letterSpacing: "-0.03em",
 };
 
 export default Landing;
