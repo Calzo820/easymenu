@@ -1,70 +1,73 @@
-# Roadmap competitiva EasyMenu — ROI, integrazioni, sicurezza
+# Roadmap competitiva EasyMenu — da QR menu a Restaurant Growth OS
 
-## Posizionamento
-EasyMenu non deve essere venduto come “software per menu digitale”, ma come sistema operativo leggero per aumentare la resa del turno.
+## Obiettivo
+EasyMenu deve vendere un risultato economico, non un software: più coperti, meno errori, meno passaggi manuali, più margine per tavolo.
 
-Promessa principale:
+## Criticità risolte in questa patch
 
-> Riduci gli errori di sala e servi più tavoli con lo stesso personale.
+### 1. Landing orientata al ROI
+La home ora comunica risultati concreti:
+- riduzione errori sala/cucina/cassa;
+- più tavoli serviti con lo stesso personale;
+- aumento scontrino medio tramite upsell;
+- controllo margine e tempi di servizio.
 
-## KPI da mettere in dashboard owner
-- Tavoli serviti per turno
-- Tempo medio da apertura tavolo a ordine inviato
-- Tempo medio ordine → cucina/bar
-- Ordini con note/varianti
-- Errori segnalati o ordini rifatti
-- Incasso per tavolo e per fascia oraria
-- Prodotti più ordinati e margine stimato
+### 2. Differenziazione competitiva
+Il posizionamento passa da “menu digitale / dashboard” a “Restaurant Growth OS”.
+La promessa non è avere QR e statistiche, ma collegare ordine, sala, cucina, cassa, analytics e integrazioni.
 
-## Differenziazione rispetto a Menu QR/POS
-- Non solo QR: flusso sala → cucina/bar → cassa
-- ROI dashboard per il titolare
-- Setup assistito e migrazione menu
-- Stati ordine e reparti separati
-- Roadmap integrazioni con strumenti già usati dal ristoratore
+### 3. Integrazioni strategiche
+Aggiunta pagina `/integrazioni` e API backend `/integrations` con stato e priorità per:
+- SumUp;
+- Nexi;
+- Fatture in Cloud;
+- Tilby;
+- Cassa in Cloud;
+- TheFork;
+- Deliveroo;
+- Glovo.
 
-## Integrazioni prioritarie
-### Pagamenti
-- Stripe già presente come base tecnica
-- SumUp
-- Nexi
+Nota: le integrazioni sono marcate come `planned` o `discovery` finché non sono disponibili credenziali, accessi API e webhook reali.
 
-### Fatturazione e cassa
-- Fatture in Cloud
-- Tilby
-- Cassa in Cloud
+### 4. Mobile-first
+La landing è stata riscritta con CSS responsive centralizzato, breakpoints e CTA full-width su schermi piccoli.
 
-### Delivery e prenotazioni
-- Deliveroo
-- Glovo
-- TheFork
+### 5. Repository hygiene
+Non distribuire mai:
+- `node_modules/`;
+- `backend/node_modules/`;
+- `dist/`;
+- `.env` reali;
+- log, cache, coverage.
 
-## Sicurezza repository
-Non condividere mai file `.env` reali. Nel repository devono restare solo file `.env.example` senza segreti reali.
+## Prossime funzionalità ad alto impatto
 
-Da escludere sempre:
+### Fase 1 — ROI dashboard
+- tempo medio da ordine a presa in carico;
+- tempo medio da ordine a pronto;
+- tavoli lenti;
+- categorie ad alto margine;
+- errori/annullamenti per turno;
+- coperti per ora.
 
-```gitignore
-node_modules/
-dist/
-.env
-.env.*
-backend/.env
-backend/.env.*
-```
+### Fase 2 — Upsell engine
+- suggerimenti dessert/bevande;
+- extra automatici su piatti compatibili;
+- evidenza piatti ad alto margine;
+- bundle pranzo/cena;
+- test A/B menu.
 
-Eccezioni ammesse:
+### Fase 3 — Integrazioni reali
+Priorità consigliata:
+1. SumUp/Nexi per pagamenti;
+2. Fatture in Cloud per amministrazione;
+3. Tilby/Cassa in Cloud per POS;
+4. TheFork per prenotazioni;
+5. Deliveroo/Glovo per delivery.
 
-```gitignore
-!.env.example
-!.env.production.example
-!backend/.env.example
-!backend/.env.postgres.example
-```
+## Criterio di vendita
+Un ristoratore dovrebbe cambiare software solo se EasyMenu può rispondere a questa domanda:
 
-## Prossime evoluzioni prodotto
-1. Calcolatore ROI in landing: coperti/turno, costo cameriere, errori medi, incremento stimato.
-2. Pannello integrazioni con stato: attiva, in configurazione, roadmap.
-3. Design system centralizzato: token colore, spacing, card, badge, button.
-4. Code splitting React per ridurre bundle iniziale.
-5. Audit mobile completo su menu cliente, dashboard, cucina, bar e cassa.
+> Quanto margine in più mi porta entro 30 giorni?
+
+Ogni nuova feature deve quindi essere collegata a un KPI economico.

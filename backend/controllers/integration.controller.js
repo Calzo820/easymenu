@@ -1,0 +1,82 @@
+const INTEGRATIONS = [
+  {
+    id: "sumup",
+    name: "SumUp",
+    category: "pagamenti",
+    priority: "alta",
+    status: "planned",
+    businessImpact: "Incasso al tavolo e riconciliazione pagamenti senza doppio inserimento.",
+    requirements: ["account merchant", "OAuth/API key", "webhook pagamento"],
+  },
+  {
+    id: "nexi",
+    name: "Nexi",
+    category: "pagamenti",
+    priority: "alta",
+    status: "planned",
+    businessImpact: "Pagamento carta e online integrato con stato ordine e cassa.",
+    requirements: ["contratto Nexi", "credenziali gateway", "webhook esito pagamento"],
+  },
+  {
+    id: "fatture-in-cloud",
+    name: "Fatture in Cloud",
+    category: "fiscale",
+    priority: "alta",
+    status: "planned",
+    businessImpact: "Export corrispettivi, fatture e report contabili per ridurre lavoro amministrativo.",
+    requirements: ["OAuth", "mappatura aliquote IVA", "sincronizzazione clienti/documenti"],
+  },
+  {
+    id: "tilby",
+    name: "Tilby",
+    category: "pos",
+    priority: "media",
+    status: "discovery",
+    businessImpact: "Sincronizzazione articoli, ordini e chiusure con il POS già usato dal locale.",
+    requirements: ["accesso API partner", "mapping menu", "mapping reparti"],
+  },
+  {
+    id: "cassa-in-cloud",
+    name: "Cassa in Cloud",
+    category: "pos",
+    priority: "media",
+    status: "discovery",
+    businessImpact: "Evita cambio forzato di gestionale: EasyMenu si innesta nel flusso esistente.",
+    requirements: ["accesso API", "mapping prodotti", "sincronizzazione scontrini"],
+  },
+  {
+    id: "thefork",
+    name: "TheFork",
+    category: "prenotazioni",
+    priority: "media",
+    status: "discovery",
+    businessImpact: "Prenotazioni e tavoli collegati alla sala per ridurre no-show e attese.",
+    requirements: ["accesso partner", "sync prenotazioni", "gestione stato tavolo"],
+  },
+  {
+    id: "deliveroo",
+    name: "Deliveroo",
+    category: "delivery",
+    priority: "bassa",
+    status: "discovery",
+    businessImpact: "Ordini delivery visibili nella stessa cucina, senza tablet separati.",
+    requirements: ["accesso partner", "webhook ordini", "mapping menu delivery"],
+  },
+  {
+    id: "glovo",
+    name: "Glovo",
+    category: "delivery",
+    priority: "bassa",
+    status: "discovery",
+    businessImpact: "Riduce frammentazione operativa nelle fasce di alto volume.",
+    requirements: ["accesso partner", "webhook ordini", "mapping menu delivery"],
+  },
+];
+
+export function listIntegrations(_req, res) {
+  res.json({
+    positioning: "EasyMenu Growth OS: integrazioni orientate a ROI, velocità e riduzione errori.",
+    disclaimer: "planned/discovery non significa integrazione attiva: servono credenziali e accessi API ufficiali.",
+    integrations: INTEGRATIONS,
+  });
+}

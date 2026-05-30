@@ -1,0 +1,22 @@
+# Delta EasyMenu — criticità complete
+
+## Modificati
+- .gitignore
+- backend/server.js
+- src/App.jsx
+- src/index.css
+- src/components/Navbar.jsx
+- src/pages/Landing.jsx
+
+## Aggiunti
+- SECURITY.md
+- docs/ROADMAP_COMPETITIVA_ROI.md
+- src/pages/Integrazioni.jsx
+- backend/controllers/integration.controller.js
+- backend/routes/integration.routes.js
+
+## Eliminati / esclusi dalla consegna
+- .env
+- node_modules/
+- backend/node_modules/
+- dist/

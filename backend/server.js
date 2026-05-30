@@ -16,7 +16,7 @@ import userRoutes from "./routes/user.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import logRoutes from "./routes/log.routes.js";
-import superAdminRoutes from "./routes/superAdmin.routes.js";
+import integrationRoutes from "./routes/integration.routes.js";
 import { handleStripeWebhook } from "./controllers/payment.controller.js";
 import prisma from "./lib/prisma.js";
 import { validateEnvironment } from "./lib/env.js";
@@ -161,7 +161,7 @@ app.use("/subscriptions", subscriptionRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/users", userRoutes);
 app.use("/logs", logRoutes);
-app.use("/super-admin", superAdminRoutes);
+app.use("/integrations", integrationRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Rotta non trovata" });
