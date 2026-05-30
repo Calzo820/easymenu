@@ -1,11 +1,43 @@
 import { Link } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
-const WHATSAPP_NUMBER = "393240467723";
-const CONTACT_PHONE = "+39 324 046 7723";
-const CONTACT_EMAIL = "easy.menu.service@gmail.com";
+const WHATSAPP_NUMBER = "3240467723";
 const WHATSAPP_MESSAGE =
-  "Ciao, vorrei provare EasyMenu per il mio ristorante.";
+  "Ciao, voglio capire quanto EasyMenu può ridurre errori e tempi di servizio nel mio ristorante.";
+
+function ROICard({ value, label, text }) {
+  return (
+    <div className="landing-roi-card">
+      <div className="landing-roi-value">{value}</div>
+      <div className="landing-roi-label">{label}</div>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+function IntegrationPill({ name, status = "ready" }) {
+  const label = status === "ready" ? "pronta" : status === "roadmap" ? "roadmap" : "API";
+  return (
+    <div className="landing-integration-pill">
+      <span>{name}</span>
+      <small>{label}</small>
+    </div>
+  );
+}
+
+function DifferentiatorCard({ title, text, bullets }) {
+  return (
+    <div className="landing-diff-card">
+      <h3>{title}</h3>
+      <p>{text}</p>
+      <div>
+        {bullets.map((bullet) => (
+          <span key={bullet}>✓ {bullet}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function FeatureCard({ icon, title, text }) {
   return (
@@ -186,7 +218,7 @@ function StatPill({ value, label }) {
   );
 }
 
-function PricingCard({ title, price, subtitle, features, highlighted, isCustom }) {
+function PricingCard({ title, price, subtitle, features, highlighted }) {
   return (
     <div
       style={{
@@ -251,17 +283,15 @@ function PricingCard({ title, price, subtitle, features, highlighted, isCustom }
         >
           {price}
         </div>
-        {!isCustom && (
-          <div
-            style={{
-              marginBottom: 6,
-              opacity: highlighted ? 0.86 : 0.68,
-              fontWeight: 800,
-            }}
-          >
-            / mese
-          </div>
-        )}
+        <div
+          style={{
+            marginBottom: 6,
+            opacity: highlighted ? 0.86 : 0.68,
+            fontWeight: 800,
+          }}
+        >
+          / mese
+        </div>
       </div>
 
       <p
@@ -486,6 +516,7 @@ function Landing() {
           />
 
           <div
+            className="landing-hero-grid"
             style={{
               position: "relative",
               display: "grid",
@@ -569,6 +600,7 @@ function Landing() {
               </div>
 
               <h1
+                className="landing-hero-title"
                 style={{
                   margin: 0,
                   color: "white",
@@ -576,10 +608,10 @@ function Landing() {
                   lineHeight: 1.03,
                   letterSpacing: "-0.05em",
                   fontWeight: 950,
-                  maxWidth: 760,
+                  maxWidth: 820,
                 }}
               >
-                Il menu digitale che fa ordinare il cliente direttamente dal tavolo.
+                Riduci gli errori di sala e servi più tavoli con lo stesso personale.
               </h1>
 
               <p
@@ -592,8 +624,9 @@ function Landing() {
                   maxWidth: 720,
                 }}
               >
-                EasyMenu riduce attese, alleggerisce il lavoro della sala e invia gli ordini
-                in tempo reale a cucina, bar e cassa. Più ordine, meno errori, più velocità.
+                EasyMenu non vende “un QR code”: vende un flusso operativo che taglia passaggi inutili,
+                accelera gli ordini e aumenta il margine per turno. Il cliente ordina, cucina e bar ricevono,
+                la cassa chiude più veloce.
               </p>
 
               <div
@@ -621,9 +654,9 @@ function Landing() {
                   marginTop: 28,
                 }}
               >
-                <StatPill value="QR" label="Ogni tavolo apre il menu corretto" />
-                <StatPill value="Live" label="Ordini aggiornati in tempo reale" />
-                <StatPill value="Sala" label="Meno passaggi inutili per i camerieri" />
+                <StatPill value="+coperti" label="Più tavoli serviti nelle ore di punta" />
+                <StatPill value="-errori" label="Ordini chiari per sala, cucina e bar" />
+                <StatPill value="+margine" label="Meno tempo perso e più controllo operativo" />
               </div>
             </div>
 
@@ -656,7 +689,7 @@ function Landing() {
                         letterSpacing: "0.08em",
                       }}
                     >
-                      Simulazione live
+                      Customer Flow
                     </div>
                     <div
                       style={{
@@ -666,7 +699,7 @@ function Landing() {
                         marginTop: 6,
                       }}
                     >
-                      Tavolo 12 → cucina, bar, cassa
+                      Tavolo 12
                     </div>
                   </div>
 
@@ -687,34 +720,26 @@ function Landing() {
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={demoRowStyle}>
                     <div>
-                      <div style={demoTitleStyle}>Cliente · Tavolo 12</div>
-                      <div style={demoSubStyle}>2 carbonare, 1 tagliere, 2 spritz, 1 acqua · note: senza pepe</div>
+                      <div style={demoTitleStyle}>Tagliere della casa</div>
+                      <div style={demoSubStyle}>Porta subito · x1</div>
                     </div>
-                    <div style={demoStatusGreen}>Inviato</div>
+                    <div style={demoPriceStyle}>€ 12.00</div>
                   </div>
 
                   <div style={demoRowStyle}>
                     <div>
-                      <div style={demoTitleStyle}>👨‍🍳 Cucina</div>
-                      <div style={demoSubStyle}>Tagliere in uscita · Carbonare in preparazione · nota visibile allo chef</div>
+                      <div style={demoTitleStyle}>Carbonara</div>
+                      <div style={demoSubStyle}>Porta dopo · x2</div>
                     </div>
-                    <div style={demoStatusBlue}>7 min</div>
+                    <div style={demoPriceStyle}>€ 24.00</div>
                   </div>
 
                   <div style={demoRowStyle}>
                     <div>
-                      <div style={demoTitleStyle}>🍹 Bar</div>
-                      <div style={demoSubStyle}>2 spritz pronti · 1 acqua assegnata al runner</div>
+                      <div style={demoTitleStyle}>Acqua frizzante</div>
+                      <div style={demoSubStyle}>Pronta al bar · x2</div>
                     </div>
-                    <div style={demoStatusGreen}>Pronto</div>
-                  </div>
-
-                  <div style={demoRowStyle}>
-                    <div>
-                      <div style={demoTitleStyle}>💳 Cassa</div>
-                      <div style={demoSubStyle}>Tavolo 12 aggiornato automaticamente · coperti 2 · totale parziale</div>
-                    </div>
-                    <div style={demoPriceStyle}>€ 48.00</div>
+                    <div style={demoPriceStyle}>€ 4.00</div>
                   </div>
                 </div>
 
@@ -722,7 +747,7 @@ function Landing() {
                   style={{
                     marginTop: 18,
                     display: "grid",
-                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gridTemplateColumns: "1fr 1fr",
                     gap: 12,
                   }}
                 >
@@ -733,8 +758,8 @@ function Landing() {
                       padding: 16,
                     }}
                   >
-                    <div style={miniLabelStyle}>Sala</div>
-                    <div style={miniValueStyle}>Avvisata</div>
+                    <div style={miniLabelStyle}>Stato ordine</div>
+                    <div style={miniValueStyle}>In preparazione</div>
                   </div>
 
                   <div
@@ -744,19 +769,8 @@ function Landing() {
                       padding: 16,
                     }}
                   >
-                    <div style={miniLabelStyle}>Reparti</div>
-                    <div style={miniValueStyle}>3 live</div>
-                  </div>
-
-                  <div
-                    style={{
-                      background: "#fff7ed",
-                      borderRadius: 18,
-                      padding: 16,
-                    }}
-                  >
                     <div style={miniLabelStyle}>Totale</div>
-                    <div style={miniValueStyle}>€ 48</div>
+                    <div style={miniValueStyle}>€ 40.00</div>
                   </div>
                 </div>
 
@@ -775,7 +789,7 @@ function Landing() {
                     cursor: "pointer",
                   }}
                 >
-                  Un ordine, tre reparti sincronizzati, cassa già pronta
+                  Ordine inviato correttamente
                 </button>
               </div>
             </div>
@@ -783,6 +797,7 @@ function Landing() {
         </section>
 
         <section
+          className="landing-card-grid landing-card-grid-3"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
@@ -796,15 +811,29 @@ function Landing() {
             text="Il cliente inquadra il QR, apre il menu e ordina senza aspettare il cameriere. Più rapidità e meno attrito."
           />
           <FeatureCard
-            icon="👨‍🍳"
-            title="Cucina e bar sincronizzati"
-            text="Gli ordini arrivano subito ai reparti giusti con stato aggiornato in tempo reale. Più controllo e meno confusione."
+            icon="🎯"
+            title="Meno errori e rifacimenti"
+            text="Note, varianti, quantità e tempi di uscita sono scritti dal cliente e visibili ai reparti: meno incomprensioni, meno piatti sbagliati."
           />
           <FeatureCard
-            icon="💳"
-            title="Cassa più semplice"
-            text="Il tavolo arriva in cassa già ordinato, con totale, extra, coperti e storico. Meno errori e più velocità in chiusura."
+            icon="⚡"
+            title="Servizio più veloce"
+            text="Ordini live a cucina, bar e cassa: il tavolo non resta fermo e il cameriere non deve fare avanti e indietro per ogni richiesta."
           />
+        </section>
+
+        <section className="landing-roi-section">
+          <div>
+            <span className="landing-eyebrow">ROI prima del software</span>
+            <h2>La promessa commerciale è misurabile: meno sprechi operativi, più resa per turno.</h2>
+            <p>Ogni funzione deve rispondere a una domanda semplice del titolare: mi fa servire meglio, più veloce o con meno personale sotto pressione?</p>
+          </div>
+          <div className="landing-roi-grid">
+            <ROICard value="1" label="Ordine chiaro" text="Cliente, sala, cucina e bar leggono lo stesso ordine, senza trascrizioni manuali." />
+            <ROICard value="0" label="Passaggi inutili" text="Il cameriere non deve raccogliere ogni ordine base: può concentrarsi su ospitalità e upsell." />
+            <ROICard value="live" label="Controllo reparto" text="Stati, priorità e tavoli restano sincronizzati in tempo reale." />
+            <ROICard value="€" label="Margine protetto" text="Meno errori, meno rifacimenti e più velocità nelle fasce ad alta domanda." />
+          </div>
         </section>
 
         <section
@@ -923,6 +952,7 @@ function Landing() {
           </div>
 
           <div
+            className="landing-card-grid landing-card-grid-4"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -949,6 +979,50 @@ function Landing() {
               title="La cassa chiude più velocemente"
               text="Il conto è già organizzato e lo storico resta disponibile per analisi e controllo."
             />
+          </div>
+        </section>
+
+        <section className="landing-diff-section">
+          <div className="landing-section-heading">
+            <span className="landing-eyebrow blue">Differenziazione competitiva</span>
+            <h2>Perché cambiare da un altro menu digitale o POS?</h2>
+            <p>EasyMenu deve posizionarsi come sistema operativo leggero per aumentare produttività di sala, non come ennesimo catalogo online.</p>
+          </div>
+          <div className="landing-diff-grid">
+            <DifferentiatorCard
+              title="ROI dashboard per titolare"
+              text="Dashboard focalizzata su tavoli serviti, tempi, errori evitati, reparti e incasso per turno."
+              bullets={["KPI operativi", "Storico tavoli", "Decisioni rapide"]}
+            />
+            <DifferentiatorCard
+              title="Flusso sala-cucina-cassa"
+              text="Non solo menu: ogni ordine ha stati, reparti, priorità e chiusura conto per ridurre caos interno."
+              bullets={["Stati live", "Bar/cucina separati", "Cassa pronta"]}
+            />
+            <DifferentiatorCard
+              title="Onboarding guidato"
+              text="Il ristoratore non deve configurare tutto da solo: setup menu, QR tavoli e prova operativa assistita."
+              bullets={["Setup veloce", "Demo reale", "Supporto migrazione"]}
+            />
+          </div>
+        </section>
+
+        <section className="landing-integrations-section">
+          <div className="landing-section-heading">
+            <span className="landing-eyebrow green">Integrazioni strategiche</span>
+            <h2>Costruito per collegarsi agli strumenti che i ristoranti usano già.</h2>
+            <p>Le integrazioni diventano parte della proposta: riducono il rischio di cambio e rendono EasyMenu più facile da adottare.</p>
+          </div>
+          <div className="landing-integrations-grid">
+            <IntegrationPill name="Stripe" />
+            <IntegrationPill name="SumUp" status="roadmap" />
+            <IntegrationPill name="Nexi" status="roadmap" />
+            <IntegrationPill name="Fatture in Cloud" status="roadmap" />
+            <IntegrationPill name="Tilby" status="roadmap" />
+            <IntegrationPill name="Cassa in Cloud" status="roadmap" />
+            <IntegrationPill name="TheFork" status="roadmap" />
+            <IntegrationPill name="Deliveroo" status="roadmap" />
+            <IntegrationPill name="Glovo" status="roadmap" />
           </div>
         </section>
 
@@ -989,7 +1063,7 @@ function Landing() {
                 color: "#0b2e59",
               }}
             >
-              Un prezzo chiaro per il singolo ristorante. Una soluzione dedicata per le catene.
+              Parti subito con EasyMenu e monetizza ogni tavolo.
             </h2>
 
             <p
@@ -1000,44 +1074,51 @@ function Landing() {
                 lineHeight: 1.7,
               }}
             >
-              Nessuna confusione tra pacchetti: EasyMenu ha un piano completo per il locale singolo
-              e una proposta su misura per gruppi e multi-sede.
+              Una soluzione pensata per ristoranti, bar, pizzerie e locali che vogliono
+              ordinazioni più veloci senza complicare il lavoro dello staff.
             </p>
           </div>
 
           <div
+            className="landing-card-grid landing-card-grid-3"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
               gap: 18,
-              maxWidth: 920,
-              margin: "0 auto",
             }}
           >
             <PricingCard
-              highlighted
-              title="EasyMenu Completo"
-              price="€49,99"
-              subtitle="Per ristoranti, bar e pizzerie che vogliono menu digitale, ordini live e reparti operativi in un unico sistema."
+              title="Starter"
+              price="€29"
+              subtitle="Per piccoli locali che vogliono partire con menu digitale e QR."
               features={[
-                "Menu digitale e QR per tavolo",
-                "Ordini realtime",
-                "Cucina, bar e cassa sincronizzati",
-                "Dashboard, storico e statistiche",
-                "Supporto per configurazione iniziale",
+                "Menu digitale",
+                "QR per tavolo",
+                "Area admin",
+                "Demo cliente inclusa",
               ]}
             />
             <PricingCard
-              title="Catene e multi-sede"
-              price="Su misura"
-              isCustom
-              subtitle="Per gruppi con più locali, gestione multi-ristorante, configurazioni dedicate e supporto personalizzato."
+              highlighted
+              title="Pro"
+              price="€59"
+              subtitle="Per ristoranti che vogliono ordini live, reparti e dashboard owner."
               features={[
-                "Gestione multi-sede",
-                "Permessi e ruoli avanzati",
-                "Report per singolo locale e gruppo",
-                "Onboarding personalizzato",
-                "Prezzo definito in base alle sedi",
+                "Ordini realtime",
+                "Cucina, bar e cassa",
+                "Dashboard KPI",
+                "Supporto onboarding",
+              ]}
+            />
+            <PricingCard
+              title="Enterprise"
+              price="Custom"
+              subtitle="Per gruppi, catene e multi-ristorante con esigenze avanzate."
+              features={[
+                "Multi-ristorante",
+                "Integrazioni POS/API",
+                "Commissioni SaaS",
+                "Setup personalizzato",
               ]}
             />
           </div>
@@ -1120,12 +1201,6 @@ function Landing() {
                 >
                   Scrivici su WhatsApp
                 </a>
-                <a href={`mailto:${CONTACT_EMAIL}`} style={navButtonSecondary}>
-                  Email
-                </a>
-                <a href={`tel:${CONTACT_PHONE.replace(/\s/g, "")}`} style={navButtonSecondary}>
-                  Telefono
-                </a>
               </div>
             </div>
 
@@ -1194,8 +1269,8 @@ function Landing() {
                   maxWidth: 760,
                 }}
               >
-                Attiva il menu, genera i QR dei tavoli, ricevi ordini in tempo reale e gestisci
-                cucina, bar, cassa, storico e statistiche in un unico flusso.
+                Parti da un audit operativo: tempi di presa ordine, colli di bottiglia, errori e picchi.
+                Poi attiva QR, ordini live, reparti e cassa con una proposta centrata sul risultato.
               </p>
             </div>
 
@@ -1208,7 +1283,7 @@ function Landing() {
               }}
             >
               <Link to="/admin" style={heroPrimaryButton}>
-                Vai all’area admin
+Calcola il ROI operativo
               </Link>
               <Link to="/dashboard" style={heroSecondaryButton}>
                 Apri dashboard
@@ -1220,12 +1295,6 @@ function Landing() {
                 style={heroSecondaryButton}
               >
                 WhatsApp
-              </a>
-              <a href={`mailto:${CONTACT_EMAIL}`} style={heroSecondaryButton}>
-                {CONTACT_EMAIL}
-              </a>
-              <a href={`tel:${CONTACT_PHONE.replace(/\s/g, "")}`} style={heroSecondaryButton}>
-                {CONTACT_PHONE}
               </a>
             </div>
           </div>
@@ -1314,26 +1383,6 @@ const demoPriceStyle = {
   color: "#0b2e59",
   whiteSpace: "nowrap",
   fontSize: 16,
-};
-
-const demoStatusGreen = {
-  fontWeight: 900,
-  color: "#166534",
-  background: "#dcfce7",
-  borderRadius: 999,
-  padding: "8px 10px",
-  whiteSpace: "nowrap",
-  fontSize: 12,
-};
-
-const demoStatusBlue = {
-  fontWeight: 900,
-  color: "#1d4ed8",
-  background: "#dbeafe",
-  borderRadius: 999,
-  padding: "8px 10px",
-  whiteSpace: "nowrap",
-  fontSize: 12,
 };
 
 const miniLabelStyle = {
