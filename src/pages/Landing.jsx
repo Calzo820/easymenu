@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
-const WHATSAPP_NUMBER = "3240467723";
+const WHATSAPP_NUMBER = "393240467723";
+const CONTACT_PHONE = "+39 324 046 7723";
+const CONTACT_EMAIL = "easy.menu.service@gmail.com";
 const WHATSAPP_MESSAGE =
   "Ciao, vorrei provare EasyMenu per il mio ristorante.";
 
@@ -147,116 +149,6 @@ function BenefitRow({ title, text }) {
   );
 }
 
-
-function RoiCalculator() {
-  const staffHourlyCost = 13;
-  const minutesSavedPerService = 45;
-  const servicesPerMonth = 52;
-  const estimatedSaving = Math.round((staffHourlyCost * minutesSavedPerService * servicesPerMonth) / 60);
-
-  return (
-    <div
-      style={{
-        background: "linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%)",
-        borderRadius: 28,
-        padding: 26,
-        border: "1px solid #bfdbfe",
-        boxShadow: "0 20px 38px rgba(18,59,107,0.08)",
-      }}
-    >
-      <div
-        style={{
-          display: "inline-flex",
-          background: "#dcfce7",
-          color: "#166534",
-          borderRadius: 999,
-          padding: "8px 12px",
-          fontSize: 12,
-          fontWeight: 950,
-          marginBottom: 16,
-        }}
-      >
-        ROI stimato
-      </div>
-
-      <h3
-        style={{
-          margin: 0,
-          fontSize: 30,
-          lineHeight: 1.08,
-          letterSpacing: "-0.04em",
-          color: "#0b2e59",
-        }}
-      >
-        Anche pochi minuti risparmiati a servizio ripagano il software.
-      </h3>
-
-      <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
-        <div style={roiLineStyle}>
-          <span>Tempo evitato tra presa ordine, passaggi in cucina e correzioni</span>
-          <strong>{minutesSavedPerService} min / servizio</strong>
-        </div>
-        <div style={roiLineStyle}>
-          <span>Costo medio operativo considerato</span>
-          <strong>€{staffHourlyCost} / ora</strong>
-        </div>
-        <div style={roiLineStyle}>
-          <span>Servizi considerati al mese</span>
-          <strong>{servicesPerMonth}</strong>
-        </div>
-      </div>
-
-      <div
-        style={{
-          marginTop: 20,
-          background: "white",
-          borderRadius: 22,
-          padding: 20,
-          border: "1px solid #dbeafe",
-        }}
-      >
-        <div style={{ color: "#6480a6", fontWeight: 850, fontSize: 13 }}>
-          Valore recuperabile stimato
-        </div>
-        <div
-          style={{
-            marginTop: 6,
-            fontSize: 44,
-            fontWeight: 950,
-            letterSpacing: "-0.05em",
-            color: "#0b2e59",
-            lineHeight: 1,
-          }}
-        >
-          ~€{estimatedSaving}/mese
-        </div>
-        <p style={{ margin: "12px 0 0", color: "#5a7497", lineHeight: 1.6 }}>
-          Stima prudente: non include più coperti serviti, meno errori sui piatti, upsell dal menu
-          digitale o clienti più soddisfatti.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function ComparisonCard({ title, text, tone }) {
-  const positive = tone === "positive";
-  return (
-    <div
-      style={{
-        background: positive ? "#ecfdf5" : "#f8fafc",
-        border: positive ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
-        borderRadius: 22,
-        padding: 22,
-      }}
-    >
-      <div style={{ fontSize: 24, marginBottom: 10 }}>{positive ? "✅" : "⚪"}</div>
-      <div style={{ fontWeight: 950, color: "#0b2e59", fontSize: 20 }}>{title}</div>
-      <p style={{ margin: "10px 0 0", color: "#5a7497", lineHeight: 1.65 }}>{text}</p>
-    </div>
-  );
-}
-
 function StatPill({ value, label }) {
   return (
     <div
@@ -294,7 +186,7 @@ function StatPill({ value, label }) {
   );
 }
 
-function PricingCard({ title, price, subtitle, features, highlighted }) {
+function PricingCard({ title, price, subtitle, features, highlighted, isCustom }) {
   return (
     <div
       style={{
@@ -359,15 +251,17 @@ function PricingCard({ title, price, subtitle, features, highlighted }) {
         >
           {price}
         </div>
-        <div
-          style={{
-            marginBottom: 6,
-            opacity: highlighted ? 0.86 : 0.68,
-            fontWeight: 800,
-          }}
-        >
-          / mese
-        </div>
+        {!isCustom && (
+          <div
+            style={{
+              marginBottom: 6,
+              opacity: highlighted ? 0.86 : 0.68,
+              fontWeight: 800,
+            }}
+          >
+            / mese
+          </div>
+        )}
       </div>
 
       <p
@@ -624,7 +518,7 @@ function Landing() {
                     background: "#22c55e",
                   }}
                 />
-                Per ristoranti che vogliono più margine, non altro software
+                SaaS per ristoranti pronto da usare
               </div>
 
               <div
@@ -685,7 +579,7 @@ function Landing() {
                   maxWidth: 760,
                 }}
               >
-                Servi più tavoli con lo stesso personale e riduci gli errori di sala.
+                Il menu digitale che fa ordinare il cliente direttamente dal tavolo.
               </h1>
 
               <p
@@ -698,7 +592,8 @@ function Landing() {
                   maxWidth: 720,
                 }}
               >
-                EasyMenu trasforma il QR in un flusso operativo completo: il cliente ordina, cucina e bar ricevono subito, la cassa chiude più veloce. Il risultato è meno lavoro ripetitivo, meno errori e più coperti gestiti nei momenti di punta.
+                EasyMenu riduce attese, alleggerisce il lavoro della sala e invia gli ordini
+                in tempo reale a cucina, bar e cassa. Più ordine, meno errori, più velocità.
               </p>
 
               <div
@@ -726,9 +621,9 @@ function Landing() {
                   marginTop: 28,
                 }}
               >
-                <StatPill value="+Coperti" label="Più tavoli gestiti nei picchi" />
-                <StatPill value="-Errori" label="Ordini più chiari per cucina e bar" />
-                <StatPill value="+Margine" label="Meno tempo perso in attività ripetitive" />
+                <StatPill value="QR" label="Ogni tavolo apre il menu corretto" />
+                <StatPill value="Live" label="Ordini aggiornati in tempo reale" />
+                <StatPill value="Sala" label="Meno passaggi inutili per i camerieri" />
               </div>
             </div>
 
@@ -761,7 +656,7 @@ function Landing() {
                         letterSpacing: "0.08em",
                       }}
                     >
-                      Customer Flow
+                      Simulazione live
                     </div>
                     <div
                       style={{
@@ -771,7 +666,7 @@ function Landing() {
                         marginTop: 6,
                       }}
                     >
-                      Tavolo 12
+                      Tavolo 12 → cucina, bar, cassa
                     </div>
                   </div>
 
@@ -792,26 +687,34 @@ function Landing() {
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={demoRowStyle}>
                     <div>
-                      <div style={demoTitleStyle}>Tagliere della casa</div>
-                      <div style={demoSubStyle}>Porta subito · x1</div>
+                      <div style={demoTitleStyle}>Cliente · Tavolo 12</div>
+                      <div style={demoSubStyle}>2 carbonare, 1 tagliere, 2 spritz, 1 acqua · note: senza pepe</div>
                     </div>
-                    <div style={demoPriceStyle}>€ 12.00</div>
+                    <div style={demoStatusGreen}>Inviato</div>
                   </div>
 
                   <div style={demoRowStyle}>
                     <div>
-                      <div style={demoTitleStyle}>Carbonara</div>
-                      <div style={demoSubStyle}>Porta dopo · x2</div>
+                      <div style={demoTitleStyle}>👨‍🍳 Cucina</div>
+                      <div style={demoSubStyle}>Tagliere in uscita · Carbonare in preparazione · nota visibile allo chef</div>
                     </div>
-                    <div style={demoPriceStyle}>€ 24.00</div>
+                    <div style={demoStatusBlue}>7 min</div>
                   </div>
 
                   <div style={demoRowStyle}>
                     <div>
-                      <div style={demoTitleStyle}>Acqua frizzante</div>
-                      <div style={demoSubStyle}>Pronta al bar · x2</div>
+                      <div style={demoTitleStyle}>🍹 Bar</div>
+                      <div style={demoSubStyle}>2 spritz pronti · 1 acqua assegnata al runner</div>
                     </div>
-                    <div style={demoPriceStyle}>€ 4.00</div>
+                    <div style={demoStatusGreen}>Pronto</div>
+                  </div>
+
+                  <div style={demoRowStyle}>
+                    <div>
+                      <div style={demoTitleStyle}>💳 Cassa</div>
+                      <div style={demoSubStyle}>Tavolo 12 aggiornato automaticamente · coperti 2 · totale parziale</div>
+                    </div>
+                    <div style={demoPriceStyle}>€ 48.00</div>
                   </div>
                 </div>
 
@@ -819,7 +722,7 @@ function Landing() {
                   style={{
                     marginTop: 18,
                     display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                     gap: 12,
                   }}
                 >
@@ -830,8 +733,8 @@ function Landing() {
                       padding: 16,
                     }}
                   >
-                    <div style={miniLabelStyle}>Stato ordine</div>
-                    <div style={miniValueStyle}>In preparazione</div>
+                    <div style={miniLabelStyle}>Sala</div>
+                    <div style={miniValueStyle}>Avvisata</div>
                   </div>
 
                   <div
@@ -841,8 +744,19 @@ function Landing() {
                       padding: 16,
                     }}
                   >
+                    <div style={miniLabelStyle}>Reparti</div>
+                    <div style={miniValueStyle}>3 live</div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#fff7ed",
+                      borderRadius: 18,
+                      padding: 16,
+                    }}
+                  >
                     <div style={miniLabelStyle}>Totale</div>
-                    <div style={miniValueStyle}>€ 40.00</div>
+                    <div style={miniValueStyle}>€ 48</div>
                   </div>
                 </div>
 
@@ -861,7 +775,7 @@ function Landing() {
                     cursor: "pointer",
                   }}
                 >
-                  Ordine inviato correttamente
+                  Un ordine, tre reparti sincronizzati, cassa già pronta
                 </button>
               </div>
             </div>
@@ -891,57 +805,6 @@ function Landing() {
             title="Cassa più semplice"
             text="Il tavolo arriva in cassa già ordinato, con totale, extra, coperti e storico. Meno errori e più velocità in chiusura."
           />
-        </section>
-
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "0.9fr 1.1fr",
-            gap: 22,
-            alignItems: "center",
-            marginBottom: 26,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: "inline-flex",
-                background: "#dcfce7",
-                color: "#166534",
-                borderRadius: 999,
-                padding: "8px 12px",
-                fontSize: 12,
-                fontWeight: 950,
-                marginBottom: 14,
-              }}
-            >
-              Risultato economico
-            </div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 42,
-                lineHeight: 1.06,
-                letterSpacing: "-0.05em",
-                color: "#0b2e59",
-              }}
-            >
-              Non vendiamo “un menu QR”: vendiamo minuti recuperati a ogni servizio.
-            </h2>
-            <p
-              style={{
-                marginTop: 16,
-                color: "#5a7497",
-                fontSize: 17,
-                lineHeight: 1.72,
-              }}
-            >
-              Il ristoratore non deve cambiare abitudini per avere un’altra dashboard. Deve vedere
-              subito dove recupera tempo: meno giri a vuoto, meno comande riscritte, meno errori e
-              conto più rapido.
-            </p>
-          </div>
-          <RoiCalculator />
         </section>
 
         <section
@@ -1090,72 +953,6 @@ function Landing() {
         </section>
 
         <section
-          style={{
-            background: "rgba(255,255,255,0.94)",
-            borderRadius: 30,
-            padding: "30px 28px",
-            border: "1px solid #dce8f6",
-            boxShadow: "0 18px 34px rgba(18,59,107,0.06)",
-            marginBottom: 26,
-          }}
-        >
-          <div style={{ maxWidth: 780, marginBottom: 22 }}>
-            <div
-              style={{
-                display: "inline-flex",
-                background: "#eef2ff",
-                color: "#3730a3",
-                borderRadius: 999,
-                padding: "8px 12px",
-                fontSize: 12,
-                fontWeight: 950,
-                marginBottom: 14,
-              }}
-            >
-              Perché cambiare
-            </div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 40,
-                lineHeight: 1.08,
-                letterSpacing: "-0.04em",
-                color: "#0b2e59",
-              }}
-            >
-              Se hai già un menu digitale, EasyMenu deve vincere sul flusso operativo.
-            </h2>
-            <p style={{ marginTop: 14, color: "#5a7497", fontSize: 17, lineHeight: 1.7 }}>
-              GloriaFood, MenuDino, Dishup, Menoo, Orderando e molti POS coprono parti del problema.
-              La differenza da comunicare è questa: EasyMenu non è solo esposizione del menu, ma sala,
-              cucina, bar e cassa nello stesso percorso.
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: 16,
-            }}
-          >
-            <ComparisonCard
-              title="Contro i menu QR economici"
-              text="Non competere sul prezzo del QR. Il vantaggio è ricevere ordini utilizzabili da cucina, bar e cassa, non solo mostrare piatti online."
-            />
-            <ComparisonCard
-              title="Contro i POS complessi"
-              text="Non chiedere al ristoratore una migrazione pesante. Parti dal tavolo e migliori il servizio quotidiano senza stravolgere tutto."
-            />
-            <ComparisonCard
-              tone="positive"
-              title="Posizionamento consigliato"
-              text="Sistema operativo leggero per ristoranti indipendenti: meno errori, più velocità, più controllo nei momenti di punta."
-            />
-          </div>
-        </section>
-
-        <section
           id="prezzi"
           style={{
             marginBottom: 26,
@@ -1192,7 +989,7 @@ function Landing() {
                 color: "#0b2e59",
               }}
             >
-              Parti subito con EasyMenu e monetizza ogni tavolo.
+              Un prezzo chiaro per il singolo ristorante. Una soluzione dedicata per le catene.
             </h2>
 
             <p
@@ -1203,50 +1000,44 @@ function Landing() {
                 lineHeight: 1.7,
               }}
             >
-              Una soluzione pensata per ristoranti, bar, pizzerie e locali che vogliono
-              ordinazioni più veloci senza complicare il lavoro dello staff.
+              Nessuna confusione tra pacchetti: EasyMenu ha un piano completo per il locale singolo
+              e una proposta su misura per gruppi e multi-sede.
             </p>
           </div>
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
               gap: 18,
+              maxWidth: 920,
+              margin: "0 auto",
             }}
           >
             <PricingCard
-              title="Starter"
-              price="€29"
-              subtitle="Per piccoli locali che vogliono partire con menu digitale e QR."
-              features={[
-                "Menu digitale",
-                "QR per tavolo",
-                "Area admin",
-                "Demo cliente inclusa",
-              ]}
-            />
-            <PricingCard
               highlighted
-              title="Pro"
-              price="€59"
-              subtitle="Per ristoranti che vogliono ordini live, reparti e dashboard owner."
+              title="EasyMenu Completo"
+              price="€49,99"
+              subtitle="Per ristoranti, bar e pizzerie che vogliono menu digitale, ordini live e reparti operativi in un unico sistema."
               features={[
+                "Menu digitale e QR per tavolo",
                 "Ordini realtime",
-                "Cucina, bar e cassa",
-                "Dashboard KPI",
-                "Supporto onboarding",
+                "Cucina, bar e cassa sincronizzati",
+                "Dashboard, storico e statistiche",
+                "Supporto per configurazione iniziale",
               ]}
             />
             <PricingCard
-              title="Enterprise"
-              price="Custom"
-              subtitle="Per gruppi, catene e multi-ristorante con esigenze avanzate."
+              title="Catene e multi-sede"
+              price="Su misura"
+              isCustom
+              subtitle="Per gruppi con più locali, gestione multi-ristorante, configurazioni dedicate e supporto personalizzato."
               features={[
-                "Multi-ristorante",
-                "Stripe Connect",
-                "Commissioni SaaS",
-                "Setup personalizzato",
+                "Gestione multi-sede",
+                "Permessi e ruoli avanzati",
+                "Report per singolo locale e gruppo",
+                "Onboarding personalizzato",
+                "Prezzo definito in base alle sedi",
               ]}
             />
           </div>
@@ -1329,6 +1120,12 @@ function Landing() {
                 >
                   Scrivici su WhatsApp
                 </a>
+                <a href={`mailto:${CONTACT_EMAIL}`} style={navButtonSecondary}>
+                  Email
+                </a>
+                <a href={`tel:${CONTACT_PHONE.replace(/\s/g, "")}`} style={navButtonSecondary}>
+                  Telefono
+                </a>
               </div>
             </div>
 
@@ -1384,7 +1181,7 @@ function Landing() {
                   letterSpacing: "-0.04em",
                 }}
               >
-                Vuoi capire se EasyMenu si ripaga nel tuo ristorante?
+                Pronto per essere usato nel tuo ristorante.
               </h2>
 
               <p
@@ -1397,7 +1194,8 @@ function Landing() {
                   maxWidth: 760,
                 }}
               >
-                Partiamo dal tuo flusso reale: numero tavoli, personale in sala, picchi di servizio ed errori più frequenti. Da lì stimiamo quanto tempo puoi recuperare ogni mese.
+                Attiva il menu, genera i QR dei tavoli, ricevi ordini in tempo reale e gestisci
+                cucina, bar, cassa, storico e statistiche in un unico flusso.
               </p>
             </div>
 
@@ -1423,6 +1221,12 @@ function Landing() {
               >
                 WhatsApp
               </a>
+              <a href={`mailto:${CONTACT_EMAIL}`} style={heroSecondaryButton}>
+                {CONTACT_EMAIL}
+              </a>
+              <a href={`tel:${CONTACT_PHONE.replace(/\s/g, "")}`} style={heroSecondaryButton}>
+                {CONTACT_PHONE}
+              </a>
             </div>
           </div>
         </section>
@@ -1430,19 +1234,6 @@ function Landing() {
     </div>
   );
 }
-
-const roiLineStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 16,
-  alignItems: "center",
-  background: "rgba(255,255,255,0.74)",
-  border: "1px solid #dbeafe",
-  borderRadius: 16,
-  padding: "13px 15px",
-  color: "#42658f",
-  fontWeight: 800,
-};
 
 const navLinkStyle = {
   textDecoration: "none",
@@ -1523,6 +1314,26 @@ const demoPriceStyle = {
   color: "#0b2e59",
   whiteSpace: "nowrap",
   fontSize: 16,
+};
+
+const demoStatusGreen = {
+  fontWeight: 900,
+  color: "#166534",
+  background: "#dcfce7",
+  borderRadius: 999,
+  padding: "8px 10px",
+  whiteSpace: "nowrap",
+  fontSize: 12,
+};
+
+const demoStatusBlue = {
+  fontWeight: 900,
+  color: "#1d4ed8",
+  background: "#dbeafe",
+  borderRadius: 999,
+  padding: "8px 10px",
+  whiteSpace: "nowrap",
+  fontSize: 12,
 };
 
 const miniLabelStyle = {
