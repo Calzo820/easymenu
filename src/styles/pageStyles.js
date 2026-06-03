@@ -11,5 +11,5 @@ export const glowPageStyle = {
 export const appShellStyle = {
   maxWidth: 1440,
   margin: "0 auto",
-  padding: "14px 12px 28px",
+  padding: "10px 12px 24px",
 };

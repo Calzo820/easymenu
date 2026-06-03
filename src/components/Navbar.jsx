@@ -45,8 +45,6 @@ function Navbar() {
     }
 
     return [
-      { to: "/", label: "Landing", match: ["/"] },
-
       {
         to:
           role === "kitchen"
@@ -56,26 +54,21 @@ function Navbar() {
             : role === "cashier"
             ? "/cassa"
             : "/dashboard",
-        label: "Dashboard",
+        label: "Home",
         match: ["/dashboard"],
       },
-
-      isAdmin && { to: "/admin", label: "Admin", match: ["/admin"] },
-
-      { to: "/menu/demo/demo-table-1", label: "Menu", match: ["/menu", "/cliente/menu"] },
-      { to: "/demo-ristorante", label: "Demo Ristorante", match: ["/demo-ristorante"] },
 
       canKitchen && { to: "/cucina", label: "Cucina", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
 
-      isAdmin && { to: "/tavoli", label: "Tavoli", match: ["/tavoli"] },
+      isAdmin && { to: "/tavoli", label: "Sala", match: ["/tavoli"] },
+      isAdmin && { to: "/admin", label: "Menu/Admin", match: ["/admin"] },
       isAdmin && { to: "/qr", label: "QR", match: ["/qr"] },
       isAdmin && { to: "/storico", label: "Storico", match: ["/storico"] },
       isAdmin && { to: "/statistiche", label: "Statistiche", match: ["/statistiche"] },
-      isAdmin && { to: "/billing", label: "Billing", match: ["/billing"] },
-      isAdmin && { to: "/errori", label: "Log errori", match: ["/errori"] },
-      isAdmin && { to: "/integrazioni", label: "Integrazioni", match: ["/integrazioni"] },
+      isAdmin && { to: "/billing", label: "Abbonamento", match: ["/billing"] },
+      isAdmin && { to: "/errori", label: "Errori", match: ["/errori"] },
     ].filter(Boolean);
   }, [logged, role, isAdmin, canKitchen, canBar, canCashier]);
 
@@ -105,7 +98,7 @@ function Navbar() {
         position: "sticky",
         top: 0,
         zIndex: 1000,
-        padding: "12px 18px",
+        padding: "8px 12px",
         background:
           "linear-gradient(135deg, rgba(18,59,107,0.90) 0%, rgba(29,78,216,0.84) 55%, rgba(8,145,178,0.78) 100%)",
         backdropFilter: "blur(16px)",
@@ -119,7 +112,7 @@ function Navbar() {
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          gap: 12,
+          gap: 8,
         }}
       >
         <div
@@ -134,8 +127,8 @@ function Navbar() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 48,
-                height: 48,
+                width: 38,
+                height: 38,
                 borderRadius: 15,
                 background: "linear-gradient(135deg, #ffffff 0%, #dbeafe 100%)",
                 display: "flex",
@@ -153,7 +146,7 @@ function Navbar() {
             </div>
 
             <div style={{ color: "white" }}>
-              <div style={{ fontWeight: 900, fontSize: 20 }}>EasyMenu</div>
+              <div style={{ fontWeight: 900, fontSize: 17 }}>EasyMenu</div>
 
               <div style={{ fontSize: 13, display: "flex", gap: 8 }}>
                 <span
@@ -205,7 +198,7 @@ function Navbar() {
               style={{
                 border: "1px solid rgba(255,255,255,0.16)",
                 borderRadius: 15,
-                padding: "10px 14px",
+                padding: "8px 11px",
                 background: "rgba(255,255,255,0.12)",
                 color: "white",
                 fontWeight: 900,
@@ -235,8 +228,8 @@ function Navbar() {
                 style={{
                   color: "white",
                   fontWeight: 800,
-                  fontSize: 14,
-                  padding: "10px 14px",
+                  fontSize: 13,
+                  padding: "8px 11px",
                   borderRadius: 14,
                   textDecoration: "none",
                   background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",

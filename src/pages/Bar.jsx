@@ -3,12 +3,15 @@ import Navbar from "../components/Navbar";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
-import { differenzaMinuti, formatoOra, pillButtonStyle } from "../lib/utils";
 
 function isBevanda(preparationArea) {
   return (preparationArea || "").toLowerCase().trim() === "bar";
 }
 
+function differenzaMinuti(timestamp) {
+  if (!timestamp) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000));
+}
 
 function getPiattiBar(ordine) {
   return (ordine?.items || []).filter((p) => isBevanda(p.preparationArea));
@@ -132,6 +135,18 @@ function testoProssimoStep(stato) {
   return "Nessuna azione";
 }
 
+function pillButton(active) {
+  return {
+    border: "none",
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: active ? "#111827" : "#e5e7eb",
+    color: active ? "white" : "#111827",
+    fontWeight: 800,
+    cursor: "pointer",
+    fontSize: 13,
+  };
+}
 
 function getGridConfig(total) {
   if (total <= 4) return { cols: 2, gap: 14 };
@@ -142,6 +157,13 @@ function getGridConfig(total) {
   return { cols: 7, gap: 8 };
 }
 
+function formatoOra(timestamp) {
+  if (!timestamp) return "-";
+  return new Date(timestamp).toLocaleTimeString("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function quantitaTotale(lista) {
   return (lista || []).reduce((acc, item) => acc + Number(item.quantity || 0), 0);
@@ -217,7 +239,7 @@ function Bar() {
 
   useEffect(() => {
     syncOrdini();
-    const timer = setInterval(() => syncOrdini(), 15000);
+    const timer = setInterval(() => syncOrdini(), 8000);
     const socket = createRestaurantSocket();
 
     const refreshLive = async () => {
@@ -511,13 +533,13 @@ function Bar() {
             >
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button
-                  style={pillButtonStyle(modalitaVista === "tavoli")}
+                  style={pillButton(modalitaVista === "tavoli")}
                   onClick={() => setModalitaVista("tavoli")}
                 >
                   Vista tavoli
                 </button>
                 <button
-                  style={pillButtonStyle(modalitaVista === "bevande")}
+                  style={pillButton(modalitaVista === "bevande")}
                   onClick={() => setModalitaVista("bevande")}
                 >
                   Vista bevande
@@ -525,19 +547,19 @@ function Bar() {
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button style={pillButtonStyle(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}> 
+                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>
                   Tutte
                 </button>
-                <button style={pillButtonStyle(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}> 
+                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>
                   Nuove
                 </button>
                 <button
-                  style={pillButtonStyle(filtroVista === "preparazione")}
+                  style={pillButton(filtroVista === "preparazione")}
                   onClick={() => setFiltroVista("preparazione")}
                 >
                   Prep
                 </button>
-                <button style={pillButtonStyle(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}> 
+                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>
                   Pronte
                 </button>
               </div>
@@ -756,15 +778,14 @@ function Bar() {
                                   <button
                                     onClick={() => riportaIndietro(ordine.id, ordine.status)}
                                     disabled={updating}
-                                    aria-label="Torna allo stato precedente"
                                     style={{
-                                      border: 'none',
+                                      border: "none",
                                       borderRadius: 10,
-                                      padding: '8px 10px',
-                                      background: '#e5e7eb',
-                                      color: '#111827',
+                                      padding: "8px 10px",
+                                      background: "#e5e7eb",
+                                      color: "#111827",
                                       fontWeight: 800,
-                                      cursor: 'pointer',
+                                      cursor: "pointer",
                                       fontSize: 12,
                                       opacity: updating ? 0.7 : 1,
                                     }}
@@ -773,19 +794,18 @@ function Bar() {
                                   </button>
                                 ) : null}
 
-                                {ordine.status !== 'ready' && ordine.status !== 'served' && ordine.status !== 'cancelled' ? (
+                                {ordine.status !== "ready" && ordine.status !== "served" && ordine.status !== "cancelled" ? (
                                   <button
                                     onClick={() => cambiaStato(ordine.id, ordine.status)}
                                     disabled={updating}
-                                    aria-label={testoProssimoStep(ordine.status)}
                                     style={{
-                                      border: 'none',
+                                      border: "none",
                                       borderRadius: 10,
-                                      padding: '8px 10px',
-                                      background: '#111827',
-                                      color: 'white',
+                                      padding: "8px 10px",
+                                      background: "#111827",
+                                      color: "white",
                                       fontWeight: 800,
-                                      cursor: 'pointer',
+                                      cursor: "pointer",
                                       fontSize: 12,
                                       opacity: updating ? 0.7 : 1,
                                     }}
@@ -821,20 +841,19 @@ function Bar() {
                             marginTop: "auto",
                           }}
                         >
-                          {ordine.status !== 'in_progress' && ordine.status !== 'ready' && ordine.status !== 'served' && ordine.status !== 'cancelled' ? (
+                          {ordine.status !== "in_progress" && ordine.status !== "ready" && ordine.status !== "served" && ordine.status !== "cancelled" ? (
                             <button
                               onClick={() => segnaTuttoPreparazione(ordine.id)}
                               disabled={updating}
-                              aria-label="Segna tutte le bevande come in preparazione"
                               style={{
                                 flex: 1,
-                                border: 'none',
+                                border: "none",
                                 borderRadius: 12,
-                                padding: '10px 12px',
-                                background: '#f59e0b',
-                                color: 'white',
+                                padding: "10px 12px",
+                                background: "#f59e0b",
+                                color: "white",
                                 fontWeight: 900,
-                                cursor: 'pointer',
+                                cursor: "pointer",
                                 opacity: updating ? 0.7 : 1,
                               }}
                             >
@@ -842,20 +861,19 @@ function Bar() {
                             </button>
                           ) : null}
 
-                          {ordine.status !== 'ready' && ordine.status !== 'served' && ordine.status !== 'cancelled' ? (
+                          {ordine.status !== "ready" && ordine.status !== "served" && ordine.status !== "cancelled" ? (
                             <button
                               onClick={() => segnaTuttoPronto(ordine.id)}
                               disabled={updating}
-                              aria-label="Segna tutte le bevande come pronte"
                               style={{
                                 flex: 1,
-                                border: 'none',
+                                border: "none",
                                 borderRadius: 12,
-                                padding: '10px 12px',
-                                background: '#16a34a',
-                                color: 'white',
+                                padding: "10px 12px",
+                                background: "#16a34a",
+                                color: "white",
                                 fontWeight: 900,
-                                cursor: 'pointer',
+                                cursor: "pointer",
                                 opacity: updating ? 0.7 : 1,
                               }}
                             >
@@ -863,20 +881,19 @@ function Bar() {
                             </button>
                           ) : null}
 
-                          {ordine.status === 'ready' ? (
+                          {ordine.status === "ready" ? (
                             <button
                               onClick={() => segnaServito(ordine.id)}
                               disabled={updating}
-                              aria-label="Segna ordine servito"
                               style={{
                                 flex: 1,
-                                border: 'none',
+                                border: "none",
                                 borderRadius: 12,
-                                padding: '10px 12px',
-                                background: '#0891b2',
-                                color: 'white',
+                                padding: "10px 12px",
+                                background: "#0891b2",
+                                color: "white",
                                 fontWeight: 900,
-                                cursor: 'pointer',
+                                cursor: "pointer",
                                 opacity: updating ? 0.7 : 1,
                               }}
                             >
@@ -884,20 +901,19 @@ function Bar() {
                             </button>
                           ) : null}
 
-                          {ordine.status !== 'served' && ordine.status !== 'cancelled' ? (
+                          {ordine.status !== "served" && ordine.status !== "cancelled" ? (
                             <button
                               onClick={() => annullaOrdine(ordine.id)}
                               disabled={updating}
-                              aria-label="Annulla ordine"
                               style={{
                                 flex: 1,
-                                border: 'none',
+                                border: "none",
                                 borderRadius: 12,
-                                padding: '10px 12px',
-                                background: '#ef4444',
-                                color: 'white',
+                                padding: "10px 12px",
+                                background: "#ef4444",
+                                color: "white",
                                 fontWeight: 900,
-                                cursor: 'pointer',
+                                cursor: "pointer",
                                 opacity: updating ? 0.7 : 1,
                               }}
                             >
@@ -1064,20 +1080,19 @@ function Bar() {
                       ) : null}
 
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: "auto" }}>
-                        {piatto.stato !== 'pending' && piatto.stato !== 'served' && piatto.stato !== 'cancelled' ? (
+                        {piatto.stato !== "pending" && piatto.stato !== "served" && piatto.stato !== "cancelled" ? (
                           <button
                             onClick={() => riportaIndietro(piatto.orderId, piatto.stato)}
                             disabled={updating}
-                            aria-label="Torna allo stato precedente"
                             style={{
                               flex: 1,
-                              border: 'none',
+                              border: "none",
                               borderRadius: 12,
-                              padding: '11px 12px',
-                              background: '#e5e7eb',
-                              color: '#111827',
+                              padding: "11px 12px",
+                              background: "#e5e7eb",
+                              color: "#111827",
                               fontWeight: 900,
-                              cursor: 'pointer',
+                              cursor: "pointer",
                               opacity: updating ? 0.7 : 1,
                             }}
                           >
@@ -1085,20 +1100,19 @@ function Bar() {
                           </button>
                         ) : null}
 
-                        {piatto.stato !== 'ready' && piatto.stato !== 'served' && piatto.stato !== 'cancelled' ? (
+                        {piatto.stato !== "ready" && piatto.stato !== "served" && piatto.stato !== "cancelled" ? (
                           <button
                             onClick={() => cambiaStato(piatto.orderId, piatto.stato)}
                             disabled={updating}
-                            aria-label={testoProssimoStep(piatto.stato)}
                             style={{
                               flex: 1,
-                              border: 'none',
+                              border: "none",
                               borderRadius: 12,
-                              padding: '11px 12px',
-                              background: '#111827',
-                              color: 'white',
+                              padding: "11px 12px",
+                              background: "#111827",
+                              color: "white",
                               fontWeight: 900,
-                              cursor: 'pointer',
+                              cursor: "pointer",
                               opacity: updating ? 0.7 : 1,
                             }}
                           >
@@ -1106,20 +1120,19 @@ function Bar() {
                           </button>
                         ) : null}
 
-                        {piatto.stato === 'ready' ? (
+                        {piatto.stato === "ready" ? (
                           <button
                             onClick={() => segnaServito(piatto.orderId)}
                             disabled={updating}
-                            aria-label="Segna bevanda servita"
                             style={{
                               flex: 1,
-                              border: 'none',
+                              border: "none",
                               borderRadius: 12,
-                              padding: '11px 12px',
-                              background: '#0891b2',
-                              color: 'white',
+                              padding: "11px 12px",
+                              background: "#0891b2",
+                              color: "white",
                               fontWeight: 900,
-                              cursor: 'pointer',
+                              cursor: "pointer",
                               opacity: updating ? 0.7 : 1,
                             }}
                           >

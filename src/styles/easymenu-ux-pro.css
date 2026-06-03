@@ -155,3 +155,64 @@ button {
   button, a[role="button"], input, select, textarea { min-height: 46px; }
   .section-card { border-radius: 22px !important; }
 }
+
+/* Patch operativa vendita: più spazio per ordini, meno hero estetici */
+.glass-hero {
+  padding: 12px 16px !important;
+  border-radius: 18px !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12) !important;
+}
+.glass-hero h1 {
+  font-size: clamp(22px, 2.2vw, 28px) !important;
+  line-height: 1.05 !important;
+}
+.glass-hero p {
+  margin-top: 5px !important;
+  margin-bottom: 0 !important;
+  font-size: 13px !important;
+}
+.topbar-chip {
+  padding: 7px 10px !important;
+  font-size: 11px !important;
+}
+.metric-card {
+  padding: 12px !important;
+  border-radius: 16px !important;
+}
+.metric-value {
+  font-size: 26px !important;
+  margin-top: 4px !important;
+}
+.metric-badge { margin-top: 6px !important; }
+.section-card {
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+.os-grid { gap: 10px !important; }
+
+/* postazioni operative: pulsanti leggibili e card dense */
+button {
+  min-height: 40px;
+}
+.em-op-fastbar {
+  position: sticky;
+  top: 64px;
+  z-index: 50;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+.em-op-button-danger { background: #fee2e2 !important; color: #991b1b !important; }
+.em-op-button-ok { background: #dcfce7 !important; color: #166534 !important; }
+.em-op-button-work { background: #fef3c7 !important; color: #92400e !important; }
+
+@media (max-width: 760px) {
+  .glass-hero { padding: 10px 12px !important; margin-bottom: 10px !important; }
+  .topbar-chip { padding: 6px 8px !important; }
+  .metric-card { padding: 10px !important; }
+  .metric-value { font-size: 23px !important; }
+  .section-card { padding: 12px !important; }
+}

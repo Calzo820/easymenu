@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
-import { differenzaMinuti, formatoOra, pillButtonStyle } from "../lib/utils";
 
 function isBevanda(preparationArea) {
   return (preparationArea || "").toLowerCase().trim() === "bar";
 }
 
+function differenzaMinuti(timestamp) {
+  if (!timestamp) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000));
+}
 
 function getPiattiCucina(ordine) {
   return (ordine?.items || []).filter((p) => !isBevanda(p.preparationArea));
@@ -131,6 +134,18 @@ function testoProssimoStep(statoOrdine) {
   return "Completato";
 }
 
+function pillButton(active) {
+  return {
+    border: "none",
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: active ? "#111827" : "#e5e7eb",
+    color: active ? "white" : "#111827",
+    fontWeight: 800,
+    cursor: "pointer",
+    fontSize: 13,
+  };
+}
 
 function getGridConfig(total) {
   if (total <= 4) return { cols: 2, gap: 14 };
@@ -141,6 +156,13 @@ function getGridConfig(total) {
   return { cols: 7, gap: 8 };
 }
 
+function formatoOra(timestamp) {
+  if (!timestamp) return "-";
+  return new Date(timestamp).toLocaleTimeString("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function quantitaTotale(lista) {
   return (lista || []).reduce((acc, item) => acc + Number(item.quantity || 0), 0);
@@ -165,7 +187,7 @@ function mapItemNoteToServizio(item) {
 
 function Cucina() {
   const [ordini, setOrdini] = useState([]);
-  const ultimoConteggioCucinaRef = useRef(0);
+  const [ultimoConteggioCucina, setUltimoConteggioCucina] = useState(0);
   const [filtroVista, setFiltroVista] = useState("tutti");
   const [soloUrgenti, setSoloUrgenti] = useState(false);
   const [modalitaVista, setModalitaVista] = useState("tavoli");
@@ -184,7 +206,7 @@ function Cucina() {
     return () => window.removeEventListener("click", abilitaAudio);
   }, []);
 
-  const syncOrdini = useCallback(async () => {
+  async function syncOrdini() {
     try {
       const response = await fetch(`${API_URL}/orders/kitchen/list`, {
         headers: getAuthHeaders(),
@@ -206,24 +228,25 @@ function Cucina() {
 
       if (
         audioAbilitato.current &&
-        ultimoConteggioCucinaRef.current > 0 &&
-        totalePiattiCucina > ultimoConteggioCucinaRef.current
+        ultimoConteggioCucina > 0 &&
+        totalePiattiCucina > ultimoConteggioCucina
       ) {
-        playOrderSound();
+        const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+        audio.play().catch(() => {});
       }
 
-      ultimoConteggioCucinaRef.current = totalePiattiCucina;
+      setUltimoConteggioCucina(totalePiattiCucina);
       setErrore("");
     } catch (error) {
       setErrore(error.message || "Errore nel caricamento cucina");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }
 
   useEffect(() => {
     syncOrdini();
-    const timer = setInterval(syncOrdini, 15000);
+    const timer = setInterval(syncOrdini, 8000);
     const socket = createRestaurantSocket();
 
     const refreshLive = async () => {
@@ -239,7 +262,7 @@ function Cucina() {
       clearInterval(timer);
       socket.disconnect();
     };
-  }, [syncOrdini]);
+  }, [ultimoConteggioCucina]);
 
   async function cambiaStatoOrdine(orderId, nuovoStato) {
     try {
@@ -334,7 +357,7 @@ function Cucina() {
           tavolo: ordine.table?.code || ordine.table?.name || "-",
           tavoloNome: ordine.table?.name || "Tavolo",
           piattiCucina: piattiFiltrati.sort((a, b) => {
-            const byStato = statoRank(a.stato) - statoRank(b.stato);
+            const byStato = statoRank(ordine.status) - statoRank(ordine.status);
             if (byStato !== 0) return byStato;
             return servizioRank(a.servizio) - servizioRank(b.servizio);
           }),
@@ -507,13 +530,13 @@ function Cucina() {
             >
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button
-                  style={pillButtonStyle(modalitaVista === "tavoli")}
+                  style={pillButton(modalitaVista === "tavoli")}
                   onClick={() => setModalitaVista("tavoli")}
                 >
                   Vista tavoli
                 </button>
                 <button
-                  style={pillButtonStyle(modalitaVista === "piatti")}
+                  style={pillButton(modalitaVista === "piatti")}
                   onClick={() => setModalitaVista("piatti")}
                 >
                   Vista piatti
@@ -521,25 +544,25 @@ function Cucina() {
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button style={pillButtonStyle(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>
+                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>
                   Tutti
                 </button>
-                <button style={pillButtonStyle(filtroVista === "subito")} onClick={() => setFiltroVista("subito")}>
+                <button style={pillButton(filtroVista === "subito")} onClick={() => setFiltroVista("subito")}>
                   Solo subito
                 </button>
-                <button style={pillButtonStyle(filtroVista === "dopo")} onClick={() => setFiltroVista("dopo")}>
+                <button style={pillButton(filtroVista === "dopo")} onClick={() => setFiltroVista("dopo")}>
                   Solo dopo
                 </button>
-                <button style={pillButtonStyle(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>
+                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>
                   Nuovi
                 </button>
                 <button
-                  style={pillButtonStyle(filtroVista === "preparazione")}
+                  style={pillButton(filtroVista === "preparazione")}
                   onClick={() => setFiltroVista("preparazione")}
                 >
                   Prep
                 </button>
-                <button style={pillButtonStyle(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>
+                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>
                   Pronti
                 </button>
               </div>
@@ -831,7 +854,6 @@ function Cucina() {
                               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                 {ordine.status !== "pending" ? (
                                   <button
-                                    aria-label="Torna allo stato precedente"
                                     onClick={() => riportaIndietro(ordine.id, ordine.status)}
                                     disabled={updating}
                                     style={{
@@ -851,7 +873,6 @@ function Cucina() {
                                 ) : null}
 
                                 <button
-                                  aria-label={testoProssimoStep(ordine.status)}
                                   onClick={() => cambiaStato(ordine.id, ordine.status)}
                                   disabled={updating || ordine.status === "ready"}
                                   style={{
@@ -897,7 +918,6 @@ function Cucina() {
                           }}
                         >
                           <button
-                            aria-label="Segna tutti gli articoli come in preparazione"
                             onClick={() => segnaTuttoPreparazione(ordine.id)}
                             disabled={updating}
                             style={{
@@ -916,7 +936,6 @@ function Cucina() {
                           </button>
 
                           <button
-                            aria-label="Segna tutti gli articoli come pronti"
                             onClick={() => segnaTuttoPronto(ordine.id)}
                             disabled={updating}
                             style={{
@@ -1106,7 +1125,6 @@ function Cucina() {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: "auto" }}>
                         {piatto.stato !== "pending" ? (
                           <button
-                            aria-label="Torna allo stato precedente"
                             onClick={() => riportaIndietro(piatto.orderId, piatto.stato)}
                             disabled={updating}
                             style={{
@@ -1126,7 +1144,6 @@ function Cucina() {
                         ) : null}
 
                         <button
-                          aria-label={testoProssimoStep(piatto.stato)}
                           onClick={() => cambiaStato(piatto.orderId, piatto.stato)}
                           disabled={updating || piatto.stato === "ready"}
                           style={{
