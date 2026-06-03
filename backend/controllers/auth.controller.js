@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
+import { createRefreshToken, getRefreshCookieOptions, getSessionExpiry, hashToken, readCookie } from "../lib/session.js";
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
 
@@ -16,7 +17,7 @@ const buildSlug = (value) => {
     .replace(/^-|-$/g, "");
 };
 
-const signToken = (user) =>
+export const signToken = (user) =>
   jwt.sign(
     {
       userId: user.id,
@@ -48,6 +49,24 @@ function sanitizeRestaurant(restaurant) {
     isActive: restaurant.isActive,
     plan: restaurant.plan,
   };
+}
+
+async function issueSession(res, req, user) {
+  const refreshToken = createRefreshToken();
+  await prisma.userSession.create({
+    data: {
+      userId: user.id,
+      tokenHash: hashToken(refreshToken),
+      userAgent: req.get("user-agent") || null,
+      ipAddress: req.ip || null,
+      expiresAt: getSessionExpiry(),
+    },
+  });
+  res.cookie("refresh_token", refreshToken, getRefreshCookieOptions());
+}
+
+function clearRefreshCookie(res) {
+  res.clearCookie("refresh_token", { ...getRefreshCookieOptions(), maxAge: 0 });
 }
 
 export const registerOwner = async (req, res) => {
@@ -116,6 +135,7 @@ export const registerOwner = async (req, res) => {
     });
 
     const token = signToken(result.user);
+    await issueSession(res, req, result.user);
 
     return res.status(201).json({
       message: "Registrazione completata",
@@ -151,7 +171,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Credenziali non valide" });
     }
 
-    if (user.role !== "superadmin" && (!user.restaurant || user.restaurant.isActive === false)) {
+    if (!user.restaurant || user.restaurant.isActive === false) {
       return res.status(403).json({ message: "Ristorante non attivo" });
     }
 
@@ -168,12 +188,13 @@ export const login = async (req, res) => {
     }
 
     const token = signToken(user);
+    await issueSession(res, req, user);
 
     return res.json({
       message: "Login effettuato",
       token,
       user: sanitizeUser(user),
-      restaurant: user.restaurant ? sanitizeRestaurant(user.restaurant) : null,
+      restaurant: sanitizeRestaurant(user.restaurant),
     });
   } catch (error) {
     console.error("login error:", error);
@@ -191,20 +212,66 @@ export const me = async (req, res) => {
       include: { restaurant: true },
     });
 
-    const activeRestaurant = req.user.restaurantId
-      ? await prisma.restaurant.findUnique({ where: { id: req.user.restaurantId } })
-      : user?.restaurant;
-
     if (!user || !user.isActive) {
       return res.status(404).json({ message: "Utente non trovato" });
     }
 
     return res.json({
       user: sanitizeUser(user),
-      restaurant: user.restaurant ? sanitizeRestaurant(user.restaurant) : null,
+      restaurant: sanitizeRestaurant(user.restaurant),
     });
   } catch (error) {
     console.error("me error:", error);
     return res.status(500).json({ message: "Errore server" });
+  }
+};
+
+
+export const refreshToken = async (req, res) => {
+  try {
+    const refreshTokenValue = readCookie(req, "refresh_token");
+    if (!refreshTokenValue) return res.status(401).json({ message: "Sessione mancante" });
+
+    const session = await prisma.userSession.findUnique({
+      where: { tokenHash: hashToken(refreshTokenValue) },
+      include: { user: { include: { restaurant: true } } },
+    });
+
+    if (!session || session.revokedAt || session.expiresAt < new Date()) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ message: "Sessione non valida o scaduta" });
+    }
+
+    if (!session.user?.isActive || !session.user.restaurant?.isActive) {
+      clearRefreshCookie(res);
+      return res.status(403).json({ message: "Account non attivo" });
+    }
+
+    const accessToken = signToken(session.user);
+    return res.json({
+      token: accessToken,
+      user: sanitizeUser(session.user),
+      restaurant: sanitizeRestaurant(session.user.restaurant),
+    });
+  } catch (error) {
+    console.error("refreshToken error:", error);
+    return res.status(500).json({ message: "Errore server durante il refresh sessione" });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const refreshTokenValue = readCookie(req, "refresh_token");
+    if (refreshTokenValue) {
+      await prisma.userSession.updateMany({
+        where: { tokenHash: hashToken(refreshTokenValue), revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+    clearRefreshCookie(res);
+    return res.json({ message: "Logout effettuato" });
+  } catch (error) {
+    console.error("logout error:", error);
+    return res.status(500).json({ message: "Errore server durante il logout" });
   }
 };

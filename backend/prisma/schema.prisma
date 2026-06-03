@@ -44,6 +44,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sessions     UserSession[]
 }
 
 model MenuItem {
@@ -51,7 +52,6 @@ model MenuItem {
   restaurantId     String
   name             String
   description      String?
-  ingredients      String?
   shortDescription String?
   price            Decimal          @db.Decimal(10, 2)
   category         String?
@@ -210,6 +210,7 @@ model SaaSSubscription {
   updatedAt            DateTime           @updatedAt
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sessions     UserSession[]
 }
 
 model OrderCounter {
@@ -219,6 +220,7 @@ model OrderCounter {
   updatedAt    DateTime @updatedAt
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sessions     UserSession[]
 }
 
 enum RestaurantPlan {
@@ -237,7 +239,6 @@ enum SubscriptionStatus {
 }
 
 enum UserRole {
-  superadmin
   owner
   admin
   kitchen
@@ -300,4 +301,21 @@ model ErrorLog {
 
   @@index([restaurantId, createdAt])
   @@index([level, createdAt])
+}
+
+
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String
+  tokenHash    String    @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([tokenHash])
 }

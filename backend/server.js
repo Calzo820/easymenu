@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import http from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -16,13 +18,15 @@ import userRoutes from "./routes/user.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import logRoutes from "./routes/log.routes.js";
-import integrationRoutes from "./routes/integration.routes.js";
 import { handleStripeWebhook } from "./controllers/payment.controller.js";
 import prisma from "./lib/prisma.js";
 import { validateEnvironment } from "./lib/env.js";
 import { logError } from "./lib/logger.js";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const envStatus = validateEnvironment();
 
@@ -161,7 +165,15 @@ app.use("/subscriptions", subscriptionRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/users", userRoutes);
 app.use("/logs", logRoutes);
-app.use("/integrations", integrationRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  const staticDir = path.resolve(__dirname, "../dist");
+  app.use(express.static(staticDir, { index: false, maxAge: "1d" }));
+  app.get(/.*/, (req, res, next) => {
+    if (req.path.startsWith("/auth") || req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(staticDir, "index.html"));
+  });
+}
 
 app.use((req, res) => {
   res.status(404).json({ message: "Rotta non trovata" });
@@ -175,7 +187,7 @@ app.use(async (error, req, res, next) => {
     source: `${req.method} ${req.path}`,
     message: error?.message || "Unhandled backend error",
     error,
-    metadata: { requestId: res.getHeader("X-Request-Id"), body: req.body, query: req.query },
+    metadata: { requestId: res.getHeader("X-Request-Id"), query: req.query },
   });
 
   if (error?.message === "Origin non consentita") {
@@ -187,6 +199,10 @@ app.use(async (error, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`Server attivo su http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  server.listen(PORT, () => {
+    console.log(`Server attivo su http://localhost:${PORT}`);
+  });
+}
+
+export { app, server, io };

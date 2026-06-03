@@ -4,30 +4,45 @@ backend/node_modules/
 
 # build output
 dist/
-build/
-coverage/
+dist-ssr/
+backend/dist/
 
 # env/secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production
-.env.production.local
+.env.*
+!.env.example
+!.env.production.example
 backend/.env
-backend/.env.local
-backend/.env.production
+backend/.env.*
+!backend/.env.example
+!backend/.env.postgres.example
 
-# logs/cache
+# logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
-.cache/
-.vite/
-.DS_Store
+pnpm-debug.log*
 
-# local databases
-*.sqlite
-*.sqlite3
+# local db/temp
+*.db
+backend/prisma/dev.db
+.cache/
+.tmp/
+
+# editor/system
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Runtime secrets and local builds
+!backend/.env.production.example
+coverage/
+.vite/

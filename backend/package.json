@@ -15,8 +15,8 @@
     "demo:check": "node scripts/check-login-demo.js",
     "env:fix": "node scripts/fix-env-duplicates.js",
     "test:final": "node scripts/final-smoke-test.js",
-    "start:prod": "prisma migrate deploy --schema=./prisma/schema.prisma && prisma generate --schema=./prisma/schema.prisma && node server.js",
-    "superadmin:create": "node scripts/create-superadmin.js"
+    "start:prod": "prisma migrate deploy --schema=./prisma/schema.prisma && prisma generate --schema=./prisma/schema.prisma && NODE_ENV=production node server.js",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -30,6 +30,10 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "supertest": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
