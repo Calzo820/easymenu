@@ -12,7 +12,6 @@ import Errori from "./pages/Errori.jsx";
 import DemoCommerciale from "./pages/DemoCommerciale.jsx";
 import DemoRestaurantGuide from "./components/DemoRestaurantGuide.jsx";
 import Landing from "./pages/Landing.jsx";
-import Integrazioni from "./pages/Integrazioni.jsx";
 import Login from "./pages/Login.jsx";
 import QRCodeTavoli from "./pages/QRCodeTavoli.jsx";
 import Register from "./pages/Register.jsx";
@@ -40,6 +39,7 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/billing" element={<ProtectedRoute roles={["owner", "admin"]}><Billing /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute roles={["owner", "admin"]}><AdminPanel /></ProtectedRoute>} />
+        <Route path="/super-admin" element={<ProtectedRoute roles={["owner", "admin"]}><AdminPanel /></ProtectedRoute>} />
         <Route path="/cucina" element={<ProtectedRoute roles={["owner", "admin", "kitchen"]}><Cucina /></ProtectedRoute>} />
         <Route path="/bar" element={<ProtectedRoute roles={["owner", "admin", "bar"]}><Bar /></ProtectedRoute>} />
         <Route path="/cassa" element={<ProtectedRoute roles={["owner", "admin", "cashier"]}><Cassa /></ProtectedRoute>} />
@@ -48,7 +48,6 @@ export default function App() {
         <Route path="/storico" element={<ProtectedRoute roles={["owner", "admin"]}><Storico /></ProtectedRoute>} />
         <Route path="/statistiche" element={<ProtectedRoute roles={["owner", "admin"]}><Statistiche /></ProtectedRoute>} />
         <Route path="/errori" element={<ProtectedRoute roles={["owner", "admin"]}><Errori /></ProtectedRoute>} />
-        <Route path="/integrazioni" element={<ProtectedRoute roles={["owner", "admin"]}><Integrazioni /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
