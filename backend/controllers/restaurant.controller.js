@@ -97,29 +97,40 @@ export const updateMyRestaurant = async (req, res) => {
   }
 };
 
-function parseSuperAdminEmails() {
+
+function getAllowedSuperAdminEmails() {
   return String(process.env.SUPER_ADMIN_EMAILS || "easy.menu.service@gmail.com,calzo820@gmail.com")
     .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 }
 
-async function assertSuperAdmin(req, res) {
-  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
-  const allowedEmails = parseSuperAdminEmails();
+async function requireSuperAdminUser(req, res) {
+  const currentUser = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+    select: { id: true, email: true, role: true, isActive: true },
+  });
 
-  if (!user || !user.isActive || !["owner", "admin"].includes(user.role) || !allowedEmails.includes(String(user.email || "").toLowerCase())) {
+  if (!currentUser || !currentUser.isActive) {
+    res.status(401).json({ message: "Utente non valido" });
+    return null;
+  }
+
+  const allowedEmails = getAllowedSuperAdminEmails();
+  const email = String(currentUser.email || "").toLowerCase();
+
+  if (!allowedEmails.includes(email)) {
     res.status(403).json({ message: "Accesso super admin non autorizzato" });
     return null;
   }
 
-  return user;
+  return currentUser;
 }
 
 export const listRestaurantsForSuperAdmin = async (req, res) => {
   try {
-    const user = await assertSuperAdmin(req, res);
-    if (!user) return;
+    const superAdmin = await requireSuperAdminUser(req, res);
+    if (!superAdmin) return;
 
     const restaurants = await prisma.restaurant.findMany({
       orderBy: { createdAt: "desc" },
@@ -132,32 +143,19 @@ export const listRestaurantsForSuperAdmin = async (req, res) => {
         },
         _count: {
           select: {
-            users: true,
-            menuItems: true,
-            tables: true,
             orders: true,
+            tables: true,
+            menuItems: true,
+            users: true,
           },
         },
       },
     });
 
-    const summary = restaurants.reduce(
-      (acc, restaurant) => {
-        acc.total += 1;
-        if (restaurant.isActive) acc.active += 1;
-        else acc.suspended += 1;
-        acc.orders += restaurant._count?.orders || 0;
-        acc.menuItems += restaurant._count?.menuItems || 0;
-        acc.tables += restaurant._count?.tables || 0;
-        acc.plans[restaurant.plan] = (acc.plans[restaurant.plan] || 0) + 1;
-        return acc;
-      },
-      { total: 0, active: 0, suspended: 0, orders: 0, menuItems: 0, tables: 0, plans: {} }
-    );
+    const mapped = restaurants.map((restaurant) => {
+      const owner = restaurant.users?.[0] || null;
 
-    return res.json({
-      summary,
-      restaurants: restaurants.map((restaurant) => ({
+      return {
         id: restaurant.id,
         name: restaurant.name,
         slug: restaurant.slug,
@@ -166,54 +164,47 @@ export const listRestaurantsForSuperAdmin = async (req, res) => {
         currency: restaurant.currency,
         isActive: restaurant.isActive,
         plan: restaurant.plan,
-        stripeCustomerId: restaurant.stripeCustomerId,
         createdAt: restaurant.createdAt,
         updatedAt: restaurant.updatedAt,
         subscription: restaurant.subscription
           ? {
+              plan: restaurant.subscription.plan,
               status: restaurant.subscription.status,
               currentPeriodEnd: restaurant.subscription.currentPeriodEnd,
+              trialEndsAt: restaurant.subscription.trialEndsAt,
               cancelAtPeriodEnd: restaurant.subscription.cancelAtPeriodEnd,
             }
           : null,
-        owner: restaurant.users?.[0] || null,
-        counts: restaurant._count,
-      })),
+        owner: owner
+          ? {
+              id: owner.id,
+              name: owner.name,
+              email: owner.email,
+              isActive: owner.isActive,
+            }
+          : null,
+        counts: {
+          orders: restaurant._count.orders,
+          tables: restaurant._count.tables,
+          menuItems: restaurant._count.menuItems,
+          users: restaurant._count.users,
+        },
+      };
+    });
+
+    return res.json({
+      restaurants: mapped,
+      stats: {
+        totalRestaurants: mapped.length,
+        activeRestaurants: mapped.filter((restaurant) => restaurant.isActive).length,
+        suspendedRestaurants: mapped.filter((restaurant) => !restaurant.isActive).length,
+        totalOrders: mapped.reduce((sum, restaurant) => sum + restaurant.counts.orders, 0),
+        totalTables: mapped.reduce((sum, restaurant) => sum + restaurant.counts.tables, 0),
+        totalMenuItems: mapped.reduce((sum, restaurant) => sum + restaurant.counts.menuItems, 0),
+      },
     });
   } catch (error) {
     console.error("listRestaurantsForSuperAdmin error:", error);
-    return res.status(500).json({ message: "Errore caricamento ristoranti" });
+    return res.status(500).json({ message: "Errore server super admin" });
   }
 };
-
-export const updateRestaurantForSuperAdmin = async (req, res) => {
-  try {
-    const user = await assertSuperAdmin(req, res);
-    if (!user) return;
-
-    const data = {};
-    if (req.body.isActive !== undefined) data.isActive = Boolean(req.body.isActive);
-    if (req.body.plan !== undefined) {
-      const plan = String(req.body.plan || "").trim();
-      if (!["starter", "growth", "enterprise"].includes(plan)) {
-        return res.status(400).json({ message: "Piano non valido" });
-      }
-      data.plan = plan;
-    }
-
-    if (Object.keys(data).length === 0) {
-      return res.status(400).json({ message: "Nessuna modifica valida" });
-    }
-
-    const restaurant = await prisma.restaurant.update({
-      where: { id: req.params.id },
-      data,
-    });
-
-    return res.json({ message: "Ristorante aggiornato", restaurant });
-  } catch (error) {
-    console.error("updateRestaurantForSuperAdmin error:", error);
-    return res.status(500).json({ message: "Errore aggiornamento ristorante" });
-  }
-};
-
