@@ -9,8 +9,6 @@ import Cliente from "./pages/Cliente.jsx";
 import Cucina from "./pages/Cucina.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Errori from "./pages/Errori.jsx";
-import DemoCommerciale from "./pages/DemoCommerciale.jsx";
-import DemoRestaurantGuide from "./components/DemoRestaurantGuide.jsx";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import QRCodeTavoli from "./pages/QRCodeTavoli.jsx";
@@ -27,8 +25,6 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        <Route path="/demo-ristorante" element={<DemoRestaurantGuide />} />
-        <Route path="/demo-commerciale" element={<DemoCommerciale />} />
 
         <Route path="/menu" element={<Cliente />} />
         <Route path="/menu/:tavolo" element={<Cliente />} />
