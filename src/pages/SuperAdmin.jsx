@@ -1,13 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
 
-const statusLabels = {
-  true: "Attivo",
-  false: "Sospeso",
-};
-
-function formatDate(value) {
-  if (!value) return "-";
+const formatDate = (value) => {
+  if (!value) return "—";
   try {
     return new Intl.DateTimeFormat("it-IT", {
       day: "2-digit",
@@ -15,201 +11,284 @@ function formatDate(value) {
       year: "numeric",
     }).format(new Date(value));
   } catch {
-    return "-";
+    return "—";
   }
-}
+};
+
+const planLabel = {
+  starter: "Starter",
+  growth: "Growth",
+  enterprise: "Enterprise",
+};
 
 export default function SuperAdmin() {
   const [restaurants, setRestaurants] = useState([]);
-  const [summary, setSummary] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    starter: 0,
+    growth: 0,
+    enterprise: 0,
+  });
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
+  const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  const loadRestaurants = async () => {
-    setLoading(true);
-    setError("");
+  async function loadRestaurants() {
     try {
+      setErrore("");
+      setLoading(true);
       const data = await apiGet("/restaurants/super-admin");
       setRestaurants(Array.isArray(data?.restaurants) ? data.restaurants : []);
-      setSummary(data?.summary || null);
-    } catch (err) {
-      setError(err?.message || "Impossibile caricare i ristoranti");
-      setRestaurants([]);
-      setSummary(null);
+      setStats(data?.stats || {});
+    } catch (error) {
+      setErrore(error.message || "Errore durante il caricamento dei ristoranti.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
     loadRestaurants();
   }, []);
 
   const filteredRestaurants = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const value = query.trim().toLowerCase();
+    if (!value) return restaurants;
 
     return restaurants.filter((restaurant) => {
-      const matchesStatus =
-        status === "all" ||
-        (status === "active" && restaurant.isActive) ||
-        (status === "suspended" && !restaurant.isActive);
-
-      const haystack = [
+      return [
         restaurant.name,
         restaurant.slug,
-        restaurant.owner?.name,
-        restaurant.owner?.email,
         restaurant.plan,
+        restaurant.ownerEmail,
+        restaurant.subscriptionStatus,
       ]
         .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
+        .some((field) => String(field).toLowerCase().includes(value));
     });
-  }, [restaurants, query, status]);
-
-  const cards = [
-    {
-      label: "Ristoranti",
-      value: summary?.restaurants ?? restaurants.length,
-      help: "Totali in piattaforma",
-    },
-    {
-      label: "Attivi",
-      value: summary?.activeRestaurants ?? restaurants.filter((item) => item.isActive).length,
-      help: "Utilizzabili dai clienti",
-    },
-    {
-      label: "Sospesi",
-      value: summary?.suspendedRestaurants ?? restaurants.filter((item) => !item.isActive).length,
-      help: "Disattivati",
-    },
-    {
-      label: "Ordini",
-      value: summary?.orders ?? "-",
-      help: "Storico complessivo",
-    },
-    {
-      label: "Tavoli",
-      value: summary?.tables ?? "-",
-      help: "QR configurati",
-    },
-  ];
+  }, [restaurants, query]);
 
   return (
-    <main className="page-shell">
-      <section className="page-hero compact-hero">
-        <p className="eyebrow">Super admin SaaS</p>
-        <h1>Ristoranti, piani e stato servizio</h1>
-        <p>Vista operativa per controllare clienti EasyMenu, account attivi, piani e dati principali.</p>
-      </section>
-
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      <section className="kpi-grid">
-        {cards.map((card) => (
-          <article key={card.label} className="kpi-card">
-            <span>{card.label}</span>
-            <strong>{loading ? "..." : card.value}</strong>
-            <small>{card.help}</small>
-          </article>
-        ))}
-      </section>
-
-      <section className="panel-card">
-        <div className="panel-header">
-          <div>
-            <h2>Lista ristoranti</h2>
-            <p>Cerca, verifica owner, piano, stato e numeri principali.</p>
+    <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a" }}>
+      <header
+        style={{
+          background: "#0f172a",
+          color: "white",
+          padding: "18px 22px",
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 16,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, opacity: 0.75, fontWeight: 800, letterSpacing: 1 }}>
+            EASYMENU SAAS
           </div>
-          <button type="button" className="btn btn-secondary" onClick={loadRestaurants} disabled={loading}>
-            {loading ? "Carico..." : "Aggiorna"}
-          </button>
+          <h1 style={{ margin: "4px 0 0", fontSize: 24 }}>Super Admin</h1>
         </div>
-
-        <div className="filters-row">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cerca nome, slug, owner o email"
-            aria-label="Cerca ristoranti"
-          />
-          <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Filtra stato">
-            <option value="all">Tutti</option>
-            <option value="active">Attivi</option>
-            <option value="suspended">Sospesi</option>
-          </select>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link to="/dashboard" style={buttonStyle("dark")}>Dashboard</Link>
+          <Link to="/admin" style={buttonStyle("dark")}>Admin ristorante</Link>
         </div>
+      </header>
 
-        <div className="table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Ristorante</th>
-                <th>Owner</th>
-                <th>Piano</th>
-                <th>Stato</th>
-                <th>Numeri</th>
-                <th>Creato</th>
-                <th>Azioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="7">Caricamento ristoranti...</td>
-                </tr>
-              ) : filteredRestaurants.length ? (
-                filteredRestaurants.map((restaurant) => (
-                  <tr key={restaurant.id}>
-                    <td>
-                      <strong>{restaurant.name || "Senza nome"}</strong>
-                      <small>{restaurant.slug || "-"}</small>
-                    </td>
-                    <td>
-                      <strong>{restaurant.owner?.name || "-"}</strong>
-                      <small>{restaurant.owner?.email || "-"}</small>
-                    </td>
-                    <td>{restaurant.plan || "starter"}</td>
-                    <td>
-                      <span className={restaurant.isActive ? "status-pill success" : "status-pill danger"}>
-                        {statusLabels[String(Boolean(restaurant.isActive))]}
-                      </span>
-                    </td>
-                    <td>
-                      <small>
-                        Menu: {restaurant.counts?.menuItems ?? 0} · Tavoli: {restaurant.counts?.tables ?? 0} · Ordini:{" "}
-                        {restaurant.counts?.orders ?? 0}
-                      </small>
-                    </td>
-                    <td>{formatDate(restaurant.createdAt)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          localStorage.setItem("restaurant_id", restaurant.id);
-                          localStorage.setItem("restaurant_slug", restaurant.slug || "");
-                          window.location.href = "/admin";
-                        }}
-                      >
-                        Apri
-                      </button>
-                    </td>
+      <main style={{ maxWidth: 1240, margin: "0 auto", padding: 22 }}>
+        {errore ? (
+          <div style={alertStyle}>
+            <strong>Errore:</strong> {errore}
+          </div>
+        ) : null}
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
+          <StatCard label="Ristoranti" value={stats.total || 0} />
+          <StatCard label="Attivi" value={stats.active || 0} />
+          <StatCard label="Disattivi" value={stats.inactive || 0} />
+          <StatCard label="Starter" value={stats.starter || 0} />
+          <StatCard label="Growth" value={stats.growth || 0} />
+          <StatCard label="Enterprise" value={stats.enterprise || 0} />
+        </section>
+
+        <section style={panelStyle}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginBottom: 14,
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: 18 }}>Ristoranti registrati</h2>
+              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>
+                Vista SaaS riservata alle email presenti in SUPER_ADMIN_EMAILS.
+              </p>
+            </div>
+
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Cerca nome, slug, piano, owner..."
+              style={{
+                minWidth: 280,
+                maxWidth: "100%",
+                border: "1px solid #cbd5e1",
+                borderRadius: 12,
+                padding: "11px 12px",
+                fontWeight: 700,
+              }}
+            />
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 24, fontWeight: 800, color: "#334155" }}>
+              Caricamento ristoranti...
+            </div>
+          ) : filteredRestaurants.length === 0 ? (
+            <div style={{ padding: 24, color: "#64748b" }}>
+              Nessun ristorante trovato.
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
+                <thead>
+                  <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+                    <Th>Ristorante</Th>
+                    <Th>Stato</Th>
+                    <Th>Piano</Th>
+                    <Th>Owner</Th>
+                    <Th>Utenti</Th>
+                    <Th>Ordini</Th>
+                    <Th>Creato</Th>
+                    <Th>Azioni</Th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7">Nessun ristorante trovato.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+                </thead>
+                <tbody>
+                  {filteredRestaurants.map((restaurant) => (
+                    <tr key={restaurant.id} style={{ borderTop: "1px solid #e2e8f0" }}>
+                      <Td>
+                        <strong>{restaurant.name}</strong>
+                        <div style={{ color: "#64748b", fontSize: 12 }}>{restaurant.slug}</div>
+                      </Td>
+                      <Td>
+                        <span style={pillStyle(restaurant.isActive ? "green" : "red")}>
+                          {restaurant.isActive ? "Attivo" : "Disattivo"}
+                        </span>
+                      </Td>
+                      <Td>
+                        <span style={pillStyle("blue")}>
+                          {planLabel[restaurant.plan] || restaurant.plan || "—"}
+                        </span>
+                        {restaurant.subscriptionStatus ? (
+                          <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>
+                            {restaurant.subscriptionStatus}
+                          </div>
+                        ) : null}
+                      </Td>
+                      <Td>
+                        <div>{restaurant.ownerName || "—"}</div>
+                        <div style={{ color: "#64748b", fontSize: 12 }}>{restaurant.ownerEmail || "—"}</div>
+                      </Td>
+                      <Td>{restaurant.usersCount ?? 0}</Td>
+                      <Td>{restaurant.ordersCount ?? 0}</Td>
+                      <Td>{formatDate(restaurant.createdAt)}</Td>
+                      <Td>
+                        <a
+                          href={`/admin?restaurantId=${encodeURIComponent(restaurant.id)}`}
+                          style={buttonStyle()}
+                        >
+                          Apri
+                        </a>
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
   );
 }
+
+function StatCard({ label, value }) {
+  return (
+    <div style={panelStyle}>
+      <div style={{ color: "#64748b", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
+        {label}
+      </div>
+      <div style={{ marginTop: 6, fontSize: 28, fontWeight: 950 }}>{value}</div>
+    </div>
+  );
+}
+
+function Th({ children }) {
+  return <th style={{ padding: "12px 10px", fontSize: 12, color: "#475569" }}>{children}</th>;
+}
+
+function Td({ children }) {
+  return <td style={{ padding: "12px 10px", verticalAlign: "top" }}>{children}</td>;
+}
+
+function pillStyle(kind) {
+  const styles = {
+    green: { background: "#dcfce7", color: "#166534" },
+    red: { background: "#fee2e2", color: "#991b1b" },
+    blue: { background: "#dbeafe", color: "#1d4ed8" },
+  };
+
+  return {
+    display: "inline-flex",
+    borderRadius: 999,
+    padding: "5px 9px",
+    fontSize: 12,
+    fontWeight: 900,
+    ...(styles[kind] || styles.blue),
+  };
+}
+
+function buttonStyle(kind) {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    padding: "9px 12px",
+    background: kind === "dark" ? "rgba(255,255,255,0.12)" : "#2563eb",
+    color: "white",
+    textDecoration: "none",
+    fontWeight: 900,
+    border: kind === "dark" ? "1px solid rgba(255,255,255,0.2)" : "none",
+  };
+}
+
+const panelStyle = {
+  background: "white",
+  border: "1px solid #e2e8f0",
+  borderRadius: 18,
+  padding: 16,
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.06)",
+};
+
+const alertStyle = {
+  background: "#fef2f2",
+  border: "1px solid #fecaca",
+  color: "#991b1b",
+  borderRadius: 14,
+  padding: 14,
+  marginBottom: 14,
+  fontWeight: 800,
+};
