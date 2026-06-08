@@ -18,8 +18,10 @@ export const requireAuth = (req, res, next) => {
 
     req.user = {
       userId: decoded.userId,
-      restaurantId: decoded.restaurantId,
+      email: decoded.email,
+      restaurantId: decoded.restaurantId || null,
       role: decoded.role,
+      isSuperAdmin: Boolean(decoded.isSuperAdmin),
     };
 
     next();
@@ -30,11 +32,13 @@ export const requireAuth = (req, res, next) => {
 
 export const requireRole = (roles = []) => {
   return (req, res, next) => {
+    if (req.user?.isSuperAdmin) {
+      return next();
+    }
+
     if (!req.user?.role) {
       return res.status(401).json({ message: "Utente non autenticato" });
     }
-
-    if (req.user.role === "superadmin") return next();
 
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ message: "Permessi insufficienti" });

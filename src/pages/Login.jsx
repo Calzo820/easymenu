@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import {
   apiPost,
@@ -10,7 +10,6 @@ import {
 function getDashboardPathByRole(role) {
   const normalized = String(role || "").toLowerCase();
 
-  if (normalized === "superadmin") return "/super-admin";
   if (normalized === "owner" || normalized === "admin") return "/dashboard";
   if (normalized === "kitchen") return "/cucina";
   if (normalized === "bar") return "/bar";
@@ -30,7 +29,6 @@ const DEMO_USERS = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [form, setForm] = useState({
     email: "",
@@ -121,15 +119,18 @@ export default function Login() {
         localStorage.setItem("ristorante_attivo", data.restaurant.name || "");
         localStorage.setItem("restaurant_slug", data.restaurant.slug || "");
         localStorage.setItem("restaurant_id", data.restaurant.id || "");
+      } else {
+        localStorage.removeItem("auth_restaurant");
+        localStorage.removeItem("ristorante_attivo");
+        localStorage.removeItem("restaurant_slug");
+        localStorage.removeItem("restaurant_id");
       }
 
       setSuccesso("Login effettuato con successo.");
 
-      const params = new URLSearchParams(location.search);
-      const next = params.get("next");
-      const plan = params.get("plan");
-      const role = data?.user?.role || "owner";
-      const redirectPath = next ? `${next}${plan ? `?plan=${encodeURIComponent(plan)}` : ""}` : getDashboardPathByRole(role);
+      const redirectPath = data?.user?.isSuperAdmin
+        ? "/super-admin"
+        : getDashboardPathByRole(data?.user?.role || "owner");
 
       setTimeout(() => {
         navigate(redirectPath);

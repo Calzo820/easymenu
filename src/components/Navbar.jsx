@@ -22,13 +22,13 @@ function Navbar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  const ristorante = getRistoranteAttivo() || "Nessun ristorante";
   const user = getUser();
+  const role = (user?.role || "").toLowerCase();
+  const isSuperAdmin = Boolean(user?.isSuperAdmin) || role === "superadmin";
+  const ristorante = isSuperAdmin ? "Piattaforma SaaS" : getRistoranteAttivo() || "Nessun ristorante";
   const logged = isLoggedIn();
 
-  const role = (user?.role || "").toLowerCase();
-
-  const isAdmin = role === "admin" || role === "owner";
+  const isAdmin = !isSuperAdmin && (role === "admin" || role === "owner");
   const canKitchen = isAdmin || role === "kitchen";
   const canBar = isAdmin || role === "bar";
   const canCashier = isAdmin || role === "cashier";
@@ -40,11 +40,18 @@ function Navbar() {
         { to: "/login", label: "Login", match: ["/login"] },
         { to: "/register", label: "Register", match: ["/register"] },
         { to: "/menu/demo/demo-table-1", label: "Demo Menu", match: ["/menu"] },
-        { to: "/demo-ristorante", label: "Demo Ristorante", match: ["/demo-ristorante"] },
+      ];
+    }
+
+    if (isSuperAdmin) {
+      return [
+        { to: "/super-admin", label: "Super Admin", match: ["/super-admin"] },
       ];
     }
 
     return [
+      { to: "/", label: "Landing", match: ["/"] },
+
       {
         to:
           role === "kitchen"
@@ -54,23 +61,26 @@ function Navbar() {
             : role === "cashier"
             ? "/cassa"
             : "/dashboard",
-        label: "Home",
+        label: "Dashboard",
         match: ["/dashboard"],
       },
+
+      isAdmin && { to: "/admin", label: "Admin", match: ["/admin"] },
+
+      { to: "/menu/demo/demo-table-1", label: "Menu", match: ["/menu", "/cliente/menu"] },
 
       canKitchen && { to: "/cucina", label: "Cucina", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
 
-      isAdmin && { to: "/tavoli", label: "Sala", match: ["/tavoli"] },
-      isAdmin && { to: "/admin", label: "Menu/Admin", match: ["/admin"] },
+      isAdmin && { to: "/tavoli", label: "Tavoli", match: ["/tavoli"] },
       isAdmin && { to: "/qr", label: "QR", match: ["/qr"] },
       isAdmin && { to: "/storico", label: "Storico", match: ["/storico"] },
       isAdmin && { to: "/statistiche", label: "Statistiche", match: ["/statistiche"] },
-      isAdmin && { to: "/billing", label: "Abbonamento", match: ["/billing"] },
-      isAdmin && { to: "/errori", label: "Errori", match: ["/errori"] },
+      isAdmin && { to: "/billing", label: "Billing", match: ["/billing"] },
+      isAdmin && { to: "/errori", label: "Log errori", match: ["/errori"] },
     ].filter(Boolean);
-  }, [logged, role, isAdmin, canKitchen, canBar, canCashier]);
+  }, [logged, role, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 
   function isActive(link) {
     return (link.match || [link.to]).some((path) => {
@@ -98,7 +108,7 @@ function Navbar() {
         position: "sticky",
         top: 0,
         zIndex: 1000,
-        padding: "8px 12px",
+        padding: "12px 18px",
         background:
           "linear-gradient(135deg, rgba(18,59,107,0.90) 0%, rgba(29,78,216,0.84) 55%, rgba(8,145,178,0.78) 100%)",
         backdropFilter: "blur(16px)",
@@ -112,7 +122,7 @@ function Navbar() {
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          gap: 8,
+          gap: 12,
         }}
       >
         <div
@@ -127,8 +137,8 @@ function Navbar() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 38,
-                height: 38,
+                width: 48,
+                height: 48,
                 borderRadius: 15,
                 background: "linear-gradient(135deg, #ffffff 0%, #dbeafe 100%)",
                 display: "flex",
@@ -146,7 +156,7 @@ function Navbar() {
             </div>
 
             <div style={{ color: "white" }}>
-              <div style={{ fontWeight: 900, fontSize: 17 }}>EasyMenu</div>
+              <div style={{ fontWeight: 900, fontSize: 20 }}>EasyMenu</div>
 
               <div style={{ fontSize: 13, display: "flex", gap: 8 }}>
                 <span
@@ -198,7 +208,7 @@ function Navbar() {
               style={{
                 border: "1px solid rgba(255,255,255,0.16)",
                 borderRadius: 15,
-                padding: "8px 11px",
+                padding: "10px 14px",
                 background: "rgba(255,255,255,0.12)",
                 color: "white",
                 fontWeight: 900,
@@ -228,8 +238,8 @@ function Navbar() {
                 style={{
                   color: "white",
                   fontWeight: 800,
-                  fontSize: 13,
-                  padding: "8px 11px",
+                  fontSize: 14,
+                  padding: "10px 14px",
                   borderRadius: 14,
                   textDecoration: "none",
                   background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",

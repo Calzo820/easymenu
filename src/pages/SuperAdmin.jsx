@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
-import { apiGet } from "../lib/api.js";
+import { apiGet } from "../lib/api";
 
-function fmtDate(value) {
+const cardStyle = {
+  background: "rgba(255,255,255,0.86)",
+  border: "1px solid rgba(148,163,184,0.22)",
+  borderRadius: 18,
+  padding: 18,
+  boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
+};
+
+function formatDate(value) {
   if (!value) return "-";
   try {
     return new Intl.DateTimeFormat("it-IT", {
@@ -15,33 +23,29 @@ function fmtDate(value) {
   }
 }
 
-function StatCard({ label, value, hint }) {
-  return (
-    <div className="em-card" style={{ padding: 18 }}>
-      <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: "#64748b", textTransform: "uppercase" }}>{label}</p>
-      <strong style={{ display: "block", marginTop: 16, fontSize: 28, color: "#0f172a" }}>{value ?? "-"}</strong>
-      <span style={{ display: "block", marginTop: 10, color: "#64748b", fontSize: 14 }}>{hint}</span>
-    </div>
-  );
+function getStatusLabel(restaurant) {
+  if (!restaurant?.isActive) return "Sospeso";
+  const status = restaurant?.subscription?.status;
+  if (status === "past_due" || status === "unpaid") return "Pagamento richiesto";
+  if (status === "canceled") return "Disdetto";
+  return "Attivo";
 }
 
 export default function SuperAdmin() {
   const [restaurants, setRestaurants] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [errore, setErrore] = useState("");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   async function loadRestaurants() {
-    setLoading(true);
-    setError("");
     try {
+      setLoading(true);
+      setErrore("");
       const data = await apiGet("/restaurants/super-admin");
       setRestaurants(Array.isArray(data?.restaurants) ? data.restaurants : []);
-      setStats(data?.stats || null);
-    } catch (err) {
-      setError(err?.message || "Errore durante il caricamento dei ristoranti");
+    } catch (error) {
+      setErrore(error.message || "Errore durante il recupero ristoranti");
     } finally {
       setLoading(false);
     }
@@ -51,127 +55,175 @@ export default function SuperAdmin() {
     loadRestaurants();
   }, []);
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return restaurants.filter((item) => {
-      const matchesQuery =
-        !needle ||
-        item.name?.toLowerCase().includes(needle) ||
-        item.slug?.toLowerCase().includes(needle) ||
-        item.ownerEmail?.toLowerCase().includes(needle) ||
-        item.ownerName?.toLowerCase().includes(needle);
+  const stats = useMemo(() => {
+    return restaurants.reduce(
+      (acc, restaurant) => {
+        acc.total += 1;
+        if (restaurant.isActive) acc.active += 1;
+        else acc.suspended += 1;
+        acc.orders += restaurant.counts?.orders || 0;
+        acc.tables += restaurant.counts?.tables || 0;
+        return acc;
+      },
+      { total: 0, active: 0, suspended: 0, orders: 0, tables: 0 }
+    );
+  }, [restaurants]);
 
-      const matchesStatus =
-        status === "all" ||
-        (status === "active" && item.isActive) ||
-        (status === "inactive" && !item.isActive);
+  const filteredRestaurants = useMemo(() => {
+    const q = query.trim().toLowerCase();
 
-      return matchesQuery && matchesStatus;
+    return restaurants.filter((restaurant) => {
+      const status = getStatusLabel(restaurant).toLowerCase();
+      const owner = restaurant.owner?.email || restaurant.owner?.name || "";
+      const haystack = `${restaurant.name} ${restaurant.slug} ${owner}`.toLowerCase();
+
+      if (statusFilter !== "all") {
+        if (statusFilter === "active" && !restaurant.isActive) return false;
+        if (statusFilter === "suspended" && restaurant.isActive) return false;
+      }
+
+      return !q || haystack.includes(q);
     });
-  }, [restaurants, query, status]);
+  }, [restaurants, query, statusFilter]);
 
   return (
-    <div>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg,#eef6ff,#f8fbff)" }}>
       <Navbar />
-      <main className="em-page">
-        <section className="em-hero" style={{ padding: "26px 32px" }}>
-          <p style={{ margin: 0, color: "#0f172a" }}>Super admin SaaS</p>
-          <h1 style={{ margin: "10px 0 6px", color: "#0f172a" }}>Ristoranti, piani e stato servizio</h1>
-          <p style={{ margin: 0 }}>Vista operativa per controllare clienti EasyMenu, account attivi, piani e dati principali.</p>
+
+      <main style={{ maxWidth: 1440, margin: "0 auto", padding: "32px 24px 72px" }}>
+        <section style={{ marginBottom: 24 }}>
+          <div style={{ color: "#0f172a", fontSize: 16, marginBottom: 8 }}>Super admin SaaS</div>
+          <h1 style={{ margin: 0, fontSize: 36, color: "#061638" }}>Ristoranti, piani e stato servizio</h1>
+          <p style={{ margin: "8px 0 0", color: "#475569", fontSize: 17 }}>
+            Pannello piattaforma: qui controlli tutti i clienti EasyMenu, senza essere legato a un singolo ristorante.
+          </p>
         </section>
 
-        {error && (
-          <div className="em-alert em-alert-danger" style={{ marginBottom: 18 }}>
-            {error}
+        {errore && (
+          <div style={{ ...cardStyle, borderColor: "#fecaca", color: "#b91c1c", marginBottom: 18 }}>
+            {errore}
           </div>
         )}
 
-        <section className="em-grid em-grid-5" style={{ marginBottom: 18 }}>
-          <StatCard label="Ristoranti" value={stats?.restaurants ?? restaurants.length} hint="Totali in piattaforma" />
-          <StatCard label="Attivi" value={stats?.activeRestaurants ?? restaurants.filter((r) => r.isActive).length} hint="Utilizzabili dai clienti" />
-          <StatCard label="Sospesi" value={stats?.inactiveRestaurants ?? restaurants.filter((r) => !r.isActive).length} hint="Disattivati" />
-          <StatCard label="Ordini" value={stats?.orders ?? restaurants.reduce((sum, r) => sum + (r.ordersCount || 0), 0)} hint="Storico complessivo" />
-          <StatCard label="Tavoli" value={stats?.tables ?? restaurants.reduce((sum, r) => sum + (r.tablesCount || 0), 0)} hint="QR configurati" />
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+            gap: 14,
+            marginBottom: 18,
+          }}
+        >
+          {[
+            ["RISTORANTI", stats.total, "Totali in piattaforma"],
+            ["ATTIVI", stats.active, "Utilizzabili dai clienti"],
+            ["SOSPESI", stats.suspended, "Disattivati"],
+            ["ORDINI", stats.orders, "Storico complessivo"],
+            ["TAVOLI", stats.tables, "QR configurati"],
+          ].map(([label, value, hint]) => (
+            <div key={label} style={cardStyle}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: "#64748b", letterSpacing: 0.8 }}>{label}</div>
+              <div style={{ fontSize: 30, fontWeight: 950, color: "#061638", marginTop: 18 }}>{value}</div>
+              <div style={{ color: "#64748b", marginTop: 8 }}>{hint}</div>
+            </div>
+          ))}
         </section>
 
-        <section className="em-card" style={{ padding: 20 }}>
-          <div className="em-section-head" style={{ alignItems: "flex-start" }}>
+        <section style={cardStyle}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
             <div>
-              <h2 style={{ margin: 0 }}>Lista ristoranti</h2>
-              <p style={{ margin: "6px 0 0", color: "#64748b" }}>Cerca, verifica owner, piano, stato e numeri principali.</p>
+              <h2 style={{ margin: 0, fontSize: 28, color: "#061638" }}>Lista ristoranti</h2>
+              <p style={{ margin: "6px 0 0", color: "#64748b" }}>
+                Cerca, verifica owner, piano, stato e numeri principali.
+              </p>
             </div>
-            <button className="em-btn em-btn-secondary" onClick={loadRestaurants} disabled={loading}>
-              {loading ? "Carico..." : "Aggiorna"}
+            <button onClick={loadRestaurants} style={{ padding: "12px 16px", borderRadius: 12, cursor: "pointer" }}>
+              Aggiorna
             </button>
           </div>
 
-          <div className="em-toolbar" style={{ margin: "18px 0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 12, marginTop: 18 }}>
             <input
-              className="em-input"
-              placeholder="Cerca nome, slug, owner o email"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              placeholder="Cerca nome, slug, owner o email"
+              style={{ padding: 14, borderRadius: 14, border: "1px solid #dbeafe", fontSize: 16 }}
             />
-            <select className="em-input" style={{ maxWidth: 220 }} value={status} onChange={(event) => setStatus(event.target.value)}>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              style={{ padding: 14, borderRadius: 14, border: "1px solid #dbeafe", fontSize: 16 }}
+            >
               <option value="all">Tutti</option>
               <option value="active">Solo attivi</option>
-              <option value="inactive">Solo sospesi</option>
+              <option value="suspended">Solo sospesi</option>
             </select>
           </div>
 
-          <div style={{ overflowX: "auto" }}>
-            <table className="em-table">
+          <div style={{ overflowX: "auto", marginTop: 20 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 940 }}>
               <thead>
-                <tr>
-                  <th>Ristorante</th>
-                  <th>Owner</th>
-                  <th>Piano</th>
-                  <th>Stato</th>
-                  <th>Numeri</th>
-                  <th>Creato</th>
-                  <th>Azioni</th>
+                <tr style={{ textAlign: "left", color: "#475569", fontSize: 14 }}>
+                  <th style={{ padding: "12px 10px" }}>Ristorante</th>
+                  <th style={{ padding: "12px 10px" }}>Owner</th>
+                  <th style={{ padding: "12px 10px" }}>Piano</th>
+                  <th style={{ padding: "12px 10px" }}>Stato</th>
+                  <th style={{ padding: "12px 10px" }}>Numeri</th>
+                  <th style={{ padding: "12px 10px" }}>Creato</th>
+                  <th style={{ padding: "12px 10px" }}>Azioni</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((restaurant) => (
-                  <tr key={restaurant.id}>
-                    <td>
-                      <strong>{restaurant.name || "-"}</strong>
-                      <br />
-                      <span style={{ color: "#64748b" }}>{restaurant.slug || "-"}</span>
-                    </td>
-                    <td>
-                      {restaurant.ownerName || "-"}
-                      <br />
-                      <span style={{ color: "#64748b" }}>{restaurant.ownerEmail || "-"}</span>
-                    </td>
-                    <td>{restaurant.plan || "starter"}</td>
-                    <td>
-                      <span className={restaurant.isActive ? "em-badge em-badge-success" : "em-badge em-badge-danger"}>
-                        {restaurant.isActive ? "Attivo" : "Sospeso"}
-                      </span>
-                    </td>
-                    <td>
-                      {restaurant.menuItemsCount || 0} prodotti · {restaurant.tablesCount || 0} tavoli · {restaurant.ordersCount || 0} ordini
-                    </td>
-                    <td>{fmtDate(restaurant.createdAt)}</td>
-                    <td>
-                      <a className="em-btn em-btn-secondary" href="/admin">
-                        Apri admin
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-                {!loading && filtered.length === 0 && (
-                  <tr>
-                    <td colSpan="7">Nessun ristorante trovato.</td>
-                  </tr>
-                )}
                 {loading && (
                   <tr>
-                    <td colSpan="7">Caricamento ristoranti...</td>
+                    <td colSpan="7" style={{ padding: 18 }}>Caricamento ristoranti...</td>
                   </tr>
                 )}
+
+                {!loading && filteredRestaurants.length === 0 && (
+                  <tr>
+                    <td colSpan="7" style={{ padding: 18 }}>Nessun ristorante trovato.</td>
+                  </tr>
+                )}
+
+                {!loading &&
+                  filteredRestaurants.map((restaurant) => (
+                    <tr key={restaurant.id} style={{ borderTop: "1px solid #e2e8f0" }}>
+                      <td style={{ padding: "14px 10px" }}>
+                        <strong>{restaurant.name}</strong>
+                        <div style={{ color: "#64748b", fontSize: 13 }}>{restaurant.slug || "-"}</div>
+                      </td>
+                      <td style={{ padding: "14px 10px" }}>
+                        {restaurant.owner?.name || "-"}
+                        <div style={{ color: "#64748b", fontSize: 13 }}>{restaurant.owner?.email || "-"}</div>
+                      </td>
+                      <td style={{ padding: "14px 10px" }}>{restaurant.plan || "-"}</td>
+                      <td style={{ padding: "14px 10px" }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            background: restaurant.isActive ? "#dcfce7" : "#fee2e2",
+                            color: restaurant.isActive ? "#166534" : "#991b1b",
+                            fontWeight: 800,
+                            fontSize: 13,
+                          }}
+                        >
+                          {getStatusLabel(restaurant)}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 10px", color: "#334155" }}>
+                        Menu {restaurant.counts?.menuItems || 0} · Tavoli {restaurant.counts?.tables || 0} · Ordini{" "}
+                        {restaurant.counts?.orders || 0}
+                      </td>
+                      <td style={{ padding: "14px 10px" }}>{formatDate(restaurant.createdAt)}</td>
+                      <td style={{ padding: "14px 10px" }}>
+                        <button disabled style={{ padding: "8px 10px", borderRadius: 10 }}>
+                          Apri gestione
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
