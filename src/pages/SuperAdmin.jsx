@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { apiGet } from "../lib/api";
+import Navbar from "../components/Navbar.jsx";
+import { apiGet } from "../lib/api.js";
 
-const formatDate = (value) => {
-  if (!value) return "—";
+function fmtDate(value) {
+  if (!value) return "-";
   try {
     return new Intl.DateTimeFormat("it-IT", {
       day: "2-digit",
@@ -11,39 +11,37 @@ const formatDate = (value) => {
       year: "numeric",
     }).format(new Date(value));
   } catch {
-    return "—";
+    return "-";
   }
-};
+}
 
-const planLabel = {
-  starter: "Starter",
-  growth: "Growth",
-  enterprise: "Enterprise",
-};
+function StatCard({ label, value, hint }) {
+  return (
+    <div className="em-card" style={{ padding: 18 }}>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: "#64748b", textTransform: "uppercase" }}>{label}</p>
+      <strong style={{ display: "block", marginTop: 16, fontSize: 28, color: "#0f172a" }}>{value ?? "-"}</strong>
+      <span style={{ display: "block", marginTop: 10, color: "#64748b", fontSize: 14 }}>{hint}</span>
+    </div>
+  );
+}
 
 export default function SuperAdmin() {
   const [restaurants, setRestaurants] = useState([]);
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    inactive: 0,
-    starter: 0,
-    growth: 0,
-    enterprise: 0,
-  });
+  const [stats, setStats] = useState(null);
   const [query, setQuery] = useState("");
-  const [errore, setErrore] = useState("");
+  const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   async function loadRestaurants() {
+    setLoading(true);
+    setError("");
     try {
-      setErrore("");
-      setLoading(true);
       const data = await apiGet("/restaurants/super-admin");
       setRestaurants(Array.isArray(data?.restaurants) ? data.restaurants : []);
-      setStats(data?.stats || {});
-    } catch (error) {
-      setErrore(error.message || "Errore durante il caricamento dei ristoranti.");
+      setStats(data?.stats || null);
+    } catch (err) {
+      setError(err?.message || "Errore durante il caricamento dei ristoranti");
     } finally {
       setLoading(false);
     }
@@ -53,242 +51,132 @@ export default function SuperAdmin() {
     loadRestaurants();
   }, []);
 
-  const filteredRestaurants = useMemo(() => {
-    const value = query.trim().toLowerCase();
-    if (!value) return restaurants;
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return restaurants.filter((item) => {
+      const matchesQuery =
+        !needle ||
+        item.name?.toLowerCase().includes(needle) ||
+        item.slug?.toLowerCase().includes(needle) ||
+        item.ownerEmail?.toLowerCase().includes(needle) ||
+        item.ownerName?.toLowerCase().includes(needle);
 
-    return restaurants.filter((restaurant) => {
-      return [
-        restaurant.name,
-        restaurant.slug,
-        restaurant.plan,
-        restaurant.ownerEmail,
-        restaurant.subscriptionStatus,
-      ]
-        .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(value));
+      const matchesStatus =
+        status === "all" ||
+        (status === "active" && item.isActive) ||
+        (status === "inactive" && !item.isActive);
+
+      return matchesQuery && matchesStatus;
     });
-  }, [restaurants, query]);
+  }, [restaurants, query, status]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a" }}>
-      <header
-        style={{
-          background: "#0f172a",
-          color: "white",
-          padding: "18px 22px",
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 16,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <div style={{ fontSize: 12, opacity: 0.75, fontWeight: 800, letterSpacing: 1 }}>
-            EASYMENU SAAS
-          </div>
-          <h1 style={{ margin: "4px 0 0", fontSize: 24 }}>Super Admin</h1>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link to="/dashboard" style={buttonStyle("dark")}>Dashboard</Link>
-          <Link to="/admin" style={buttonStyle("dark")}>Admin ristorante</Link>
-        </div>
-      </header>
-
-      <main style={{ maxWidth: 1240, margin: "0 auto", padding: 22 }}>
-        {errore ? (
-          <div style={alertStyle}>
-            <strong>Errore:</strong> {errore}
-          </div>
-        ) : null}
-
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 12,
-            marginBottom: 16,
-          }}
-        >
-          <StatCard label="Ristoranti" value={stats.total || 0} />
-          <StatCard label="Attivi" value={stats.active || 0} />
-          <StatCard label="Disattivi" value={stats.inactive || 0} />
-          <StatCard label="Starter" value={stats.starter || 0} />
-          <StatCard label="Growth" value={stats.growth || 0} />
-          <StatCard label="Enterprise" value={stats.enterprise || 0} />
+    <div>
+      <Navbar />
+      <main className="em-page">
+        <section className="em-hero" style={{ padding: "26px 32px" }}>
+          <p style={{ margin: 0, color: "#0f172a" }}>Super admin SaaS</p>
+          <h1 style={{ margin: "10px 0 6px", color: "#0f172a" }}>Ristoranti, piani e stato servizio</h1>
+          <p style={{ margin: 0 }}>Vista operativa per controllare clienti EasyMenu, account attivi, piani e dati principali.</p>
         </section>
 
-        <section style={panelStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginBottom: 14,
-            }}
-          >
-            <div>
-              <h2 style={{ margin: 0, fontSize: 18 }}>Ristoranti registrati</h2>
-              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>
-                Vista SaaS riservata alle email presenti in SUPER_ADMIN_EMAILS.
-              </p>
-            </div>
+        {error && (
+          <div className="em-alert em-alert-danger" style={{ marginBottom: 18 }}>
+            {error}
+          </div>
+        )}
 
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cerca nome, slug, piano, owner..."
-              style={{
-                minWidth: 280,
-                maxWidth: "100%",
-                border: "1px solid #cbd5e1",
-                borderRadius: 12,
-                padding: "11px 12px",
-                fontWeight: 700,
-              }}
-            />
+        <section className="em-grid em-grid-5" style={{ marginBottom: 18 }}>
+          <StatCard label="Ristoranti" value={stats?.restaurants ?? restaurants.length} hint="Totali in piattaforma" />
+          <StatCard label="Attivi" value={stats?.activeRestaurants ?? restaurants.filter((r) => r.isActive).length} hint="Utilizzabili dai clienti" />
+          <StatCard label="Sospesi" value={stats?.inactiveRestaurants ?? restaurants.filter((r) => !r.isActive).length} hint="Disattivati" />
+          <StatCard label="Ordini" value={stats?.orders ?? restaurants.reduce((sum, r) => sum + (r.ordersCount || 0), 0)} hint="Storico complessivo" />
+          <StatCard label="Tavoli" value={stats?.tables ?? restaurants.reduce((sum, r) => sum + (r.tablesCount || 0), 0)} hint="QR configurati" />
+        </section>
+
+        <section className="em-card" style={{ padding: 20 }}>
+          <div className="em-section-head" style={{ alignItems: "flex-start" }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Lista ristoranti</h2>
+              <p style={{ margin: "6px 0 0", color: "#64748b" }}>Cerca, verifica owner, piano, stato e numeri principali.</p>
+            </div>
+            <button className="em-btn em-btn-secondary" onClick={loadRestaurants} disabled={loading}>
+              {loading ? "Carico..." : "Aggiorna"}
+            </button>
           </div>
 
-          {loading ? (
-            <div style={{ padding: 24, fontWeight: 800, color: "#334155" }}>
-              Caricamento ristoranti...
-            </div>
-          ) : filteredRestaurants.length === 0 ? (
-            <div style={{ padding: 24, color: "#64748b" }}>
-              Nessun ristorante trovato.
-            </div>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
-                <thead>
-                  <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
-                    <Th>Ristorante</Th>
-                    <Th>Stato</Th>
-                    <Th>Piano</Th>
-                    <Th>Owner</Th>
-                    <Th>Utenti</Th>
-                    <Th>Ordini</Th>
-                    <Th>Creato</Th>
-                    <Th>Azioni</Th>
+          <div className="em-toolbar" style={{ margin: "18px 0" }}>
+            <input
+              className="em-input"
+              placeholder="Cerca nome, slug, owner o email"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <select className="em-input" style={{ maxWidth: 220 }} value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="all">Tutti</option>
+              <option value="active">Solo attivi</option>
+              <option value="inactive">Solo sospesi</option>
+            </select>
+          </div>
+
+          <div style={{ overflowX: "auto" }}>
+            <table className="em-table">
+              <thead>
+                <tr>
+                  <th>Ristorante</th>
+                  <th>Owner</th>
+                  <th>Piano</th>
+                  <th>Stato</th>
+                  <th>Numeri</th>
+                  <th>Creato</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((restaurant) => (
+                  <tr key={restaurant.id}>
+                    <td>
+                      <strong>{restaurant.name || "-"}</strong>
+                      <br />
+                      <span style={{ color: "#64748b" }}>{restaurant.slug || "-"}</span>
+                    </td>
+                    <td>
+                      {restaurant.ownerName || "-"}
+                      <br />
+                      <span style={{ color: "#64748b" }}>{restaurant.ownerEmail || "-"}</span>
+                    </td>
+                    <td>{restaurant.plan || "starter"}</td>
+                    <td>
+                      <span className={restaurant.isActive ? "em-badge em-badge-success" : "em-badge em-badge-danger"}>
+                        {restaurant.isActive ? "Attivo" : "Sospeso"}
+                      </span>
+                    </td>
+                    <td>
+                      {restaurant.menuItemsCount || 0} prodotti · {restaurant.tablesCount || 0} tavoli · {restaurant.ordersCount || 0} ordini
+                    </td>
+                    <td>{fmtDate(restaurant.createdAt)}</td>
+                    <td>
+                      <a className="em-btn em-btn-secondary" href="/admin">
+                        Apri admin
+                      </a>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredRestaurants.map((restaurant) => (
-                    <tr key={restaurant.id} style={{ borderTop: "1px solid #e2e8f0" }}>
-                      <Td>
-                        <strong>{restaurant.name}</strong>
-                        <div style={{ color: "#64748b", fontSize: 12 }}>{restaurant.slug}</div>
-                      </Td>
-                      <Td>
-                        <span style={pillStyle(restaurant.isActive ? "green" : "red")}>
-                          {restaurant.isActive ? "Attivo" : "Disattivo"}
-                        </span>
-                      </Td>
-                      <Td>
-                        <span style={pillStyle("blue")}>
-                          {planLabel[restaurant.plan] || restaurant.plan || "—"}
-                        </span>
-                        {restaurant.subscriptionStatus ? (
-                          <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>
-                            {restaurant.subscriptionStatus}
-                          </div>
-                        ) : null}
-                      </Td>
-                      <Td>
-                        <div>{restaurant.ownerName || "—"}</div>
-                        <div style={{ color: "#64748b", fontSize: 12 }}>{restaurant.ownerEmail || "—"}</div>
-                      </Td>
-                      <Td>{restaurant.usersCount ?? 0}</Td>
-                      <Td>{restaurant.ordersCount ?? 0}</Td>
-                      <Td>{formatDate(restaurant.createdAt)}</Td>
-                      <Td>
-                        <a
-                          href={`/admin?restaurantId=${encodeURIComponent(restaurant.id)}`}
-                          style={buttonStyle()}
-                        >
-                          Apri
-                        </a>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                ))}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan="7">Nessun ristorante trovato.</td>
+                  </tr>
+                )}
+                {loading && (
+                  <tr>
+                    <td colSpan="7">Caricamento ristoranti...</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
     </div>
   );
 }
-
-function StatCard({ label, value }) {
-  return (
-    <div style={panelStyle}>
-      <div style={{ color: "#64748b", fontSize: 12, fontWeight: 900, textTransform: "uppercase" }}>
-        {label}
-      </div>
-      <div style={{ marginTop: 6, fontSize: 28, fontWeight: 950 }}>{value}</div>
-    </div>
-  );
-}
-
-function Th({ children }) {
-  return <th style={{ padding: "12px 10px", fontSize: 12, color: "#475569" }}>{children}</th>;
-}
-
-function Td({ children }) {
-  return <td style={{ padding: "12px 10px", verticalAlign: "top" }}>{children}</td>;
-}
-
-function pillStyle(kind) {
-  const styles = {
-    green: { background: "#dcfce7", color: "#166534" },
-    red: { background: "#fee2e2", color: "#991b1b" },
-    blue: { background: "#dbeafe", color: "#1d4ed8" },
-  };
-
-  return {
-    display: "inline-flex",
-    borderRadius: 999,
-    padding: "5px 9px",
-    fontSize: 12,
-    fontWeight: 900,
-    ...(styles[kind] || styles.blue),
-  };
-}
-
-function buttonStyle(kind) {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    padding: "9px 12px",
-    background: kind === "dark" ? "rgba(255,255,255,0.12)" : "#2563eb",
-    color: "white",
-    textDecoration: "none",
-    fontWeight: 900,
-    border: kind === "dark" ? "1px solid rgba(255,255,255,0.2)" : "none",
-  };
-}
-
-const panelStyle = {
-  background: "white",
-  border: "1px solid #e2e8f0",
-  borderRadius: 18,
-  padding: 16,
-  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.06)",
-};
-
-const alertStyle = {
-  background: "#fef2f2",
-  border: "1px solid #fecaca",
-  color: "#991b1b",
-  borderRadius: 14,
-  padding: 14,
-  marginBottom: 14,
-  fontWeight: 800,
-};

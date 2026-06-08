@@ -110,12 +110,12 @@ export const listRestaurantsForSuperAdmin = async (req, res) => {
     const superAdminEmails = getSuperAdminEmails();
 
     if (superAdminEmails.length === 0) {
-      return res.status(403).json({ message: "SUPER_ADMIN_EMAILS non configurato sul backend" });
+      return res.status(403).json({ message: "Super admin non configurato" });
     }
 
     const currentUser = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { email: true, isActive: true },
+      select: { id: true, email: true, isActive: true },
     });
 
     const currentEmail = String(currentUser?.email || "").toLowerCase();
@@ -127,32 +127,24 @@ export const listRestaurantsForSuperAdmin = async (req, res) => {
     const restaurants = await prisma.restaurant.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        subscription: true,
         users: {
-          select: {
-            name: true,
-            email: true,
-            role: true,
-            isActive: true,
-          },
-          orderBy: { createdAt: "asc" },
+          where: { role: "owner" },
+          select: { name: true, email: true },
+          take: 1,
         },
         _count: {
           select: {
             users: true,
-            orders: true,
-            tables: true,
             menuItems: true,
+            tables: true,
+            orders: true,
           },
         },
       },
     });
 
-    const normalizedRestaurants = restaurants.map((restaurant) => {
-      const owner =
-        restaurant.users.find((user) => user.role === "owner") ||
-        restaurant.users.find((user) => user.isActive) ||
-        restaurant.users[0];
+    const mappedRestaurants = restaurants.map((restaurant) => {
+      const owner = restaurant.users?.[0] || null;
 
       return {
         id: restaurant.id,
@@ -160,41 +152,34 @@ export const listRestaurantsForSuperAdmin = async (req, res) => {
         slug: restaurant.slug,
         isActive: restaurant.isActive,
         plan: restaurant.plan,
-        currency: restaurant.currency,
+        primaryColor: restaurant.primaryColor,
+        logoUrl: restaurant.logoUrl,
         createdAt: restaurant.createdAt,
         updatedAt: restaurant.updatedAt,
-        subscriptionStatus: restaurant.subscription?.status || null,
-        currentPeriodEnd: restaurant.subscription?.currentPeriodEnd || null,
-        ownerName: owner?.name || null,
-        ownerEmail: owner?.email || null,
-        usersCount: restaurant._count.users,
-        ordersCount: restaurant._count.orders,
-        tablesCount: restaurant._count.tables,
-        menuItemsCount: restaurant._count.menuItems,
+        ownerName: owner?.name || "",
+        ownerEmail: owner?.email || "",
+        usersCount: restaurant._count?.users || 0,
+        menuItemsCount: restaurant._count?.menuItems || 0,
+        tablesCount: restaurant._count?.tables || 0,
+        ordersCount: restaurant._count?.orders || 0,
       };
     });
 
-    const stats = normalizedRestaurants.reduce(
+    const stats = mappedRestaurants.reduce(
       (acc, restaurant) => {
-        acc.total += 1;
-        if (restaurant.isActive) acc.active += 1;
-        else acc.inactive += 1;
-
-        if (restaurant.plan && acc[restaurant.plan] !== undefined) {
-          acc[restaurant.plan] += 1;
-        }
-
+        acc.restaurants += 1;
+        if (restaurant.isActive) acc.activeRestaurants += 1;
+        else acc.inactiveRestaurants += 1;
+        acc.orders += restaurant.ordersCount || 0;
+        acc.tables += restaurant.tablesCount || 0;
         return acc;
       },
-      { total: 0, active: 0, inactive: 0, starter: 0, growth: 0, enterprise: 0 }
+      { restaurants: 0, activeRestaurants: 0, inactiveRestaurants: 0, orders: 0, tables: 0 }
     );
 
-    return res.json({
-      restaurants: normalizedRestaurants,
-      stats,
-    });
+    return res.json({ restaurants: mappedRestaurants, stats });
   } catch (error) {
     console.error("listRestaurantsForSuperAdmin error:", error);
-    return res.status(500).json({ message: "Errore server durante il caricamento dei ristoranti" });
+    return res.status(500).json({ message: "Errore server durante recupero ristoranti" });
   }
 };

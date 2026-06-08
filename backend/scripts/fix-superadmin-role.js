@@ -1,20 +1,19 @@
-import dotenv from "dotenv";
 import prisma from "../lib/prisma.js";
 
-dotenv.config();
-
 async function main() {
-  const result = await prisma.$executeRawUnsafe(
-    `UPDATE "User" SET "role" = 'owner' WHERE "role"::text IN ('superadmin', 'super_admin')`
-  );
+  const result = await prisma.$executeRawUnsafe(`
+    UPDATE "User"
+    SET role = 'owner'
+    WHERE role = 'superadmin'
+  `);
 
-  console.log(`Fix ruoli superadmin completato. Record aggiornati: ${result}`);
+  console.log(`Utenti superadmin convertiti in owner: ${result}`);
 }
 
 main()
   .catch((error) => {
-    console.error("Errore fix ruoli superadmin:", error);
-    process.exitCode = 1;
+    console.error("fix-superadmin-role error:", error);
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

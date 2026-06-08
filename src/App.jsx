@@ -14,8 +14,8 @@ import Login from "./pages/Login.jsx";
 import QRCodeTavoli from "./pages/QRCodeTavoli.jsx";
 import Register from "./pages/Register.jsx";
 import Statistiche from "./pages/Statistiche.jsx";
-import Storico from "./pages/Storico.jsx";
 import SuperAdmin from "./pages/SuperAdmin.jsx";
+import Storico from "./pages/Storico.jsx";
 import Tavoli from "./pages/Tavoli.jsx";
 
 export default function App() {
