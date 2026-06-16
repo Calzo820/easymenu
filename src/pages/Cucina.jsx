@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
+import OperationalFlowStrip from "../components/ops/OperationalFlowStrip";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
@@ -190,7 +191,7 @@ function Cucina() {
   const [ultimoConteggioCucina, setUltimoConteggioCucina] = useState(0);
   const [filtroVista, setFiltroVista] = useState("tutti");
   const [soloUrgenti, setSoloUrgenti] = useState(false);
-  const [modalitaVista, setModalitaVista] = useState("tavoli");
+  const [modalitaVista, setModalitaVista] = useState("piatti");
   const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(true);
   const [updatingIds, setUpdatingIds] = useState([]);
@@ -422,8 +423,8 @@ function Cucina() {
   const tavoliGrid = useMemo(() => getGridConfig(ordiniCucina.length || 1), [ordiniCucina.length]);
   const piattiGrid = useMemo(() => getGridConfig(piattiQueue.length || 1), [piattiQueue.length]);
 
-  const tavoliHeight = "calc(100vh - 350px)";
-  const piattiHeight = "calc(100vh - 350px)";
+  const tavoliHeight = "calc(100vh - 265px)";
+  const piattiHeight = "calc(100vh - 265px)";
 
   const righeTavoli = Math.ceil((ordiniCucina.length || 1) / tavoliGrid.cols) || 1;
   const cardHeightTavoli = `calc((${tavoliHeight} - ${(righeTavoli - 1) * tavoliGrid.gap}px) / ${righeTavoli})`;
@@ -437,40 +438,27 @@ function Cucina() {
 
       <div style={appShellStyle}>
         <div className="app-shell">
-          <div className="glass-hero" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 20,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div className="topbar-chip" style={{ marginBottom: 12 }}>
-                  <span className="status-dot" style={{ background: "#f59e0b" }} />
-                  Cucina live
-                </div>
-                <h1 style={{ margin: 0, fontSize: 34 }}>Cucina operativa</h1>
-                <p style={{ marginTop: 10, opacity: 0.9 }}>
-                  Ordini reali dal backend — più contenuto possibile visibile a schermo
-                </p>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div className="topbar-chip">Click una volta per attivare il suono</div>
-                <div className="topbar-chip">Priorità in alto</div>
-                <div className="topbar-chip">Pronti: {prontiCount}</div>
-              </div>
-            </div>
-          </div>
+          <OperationalFlowStrip
+            title="Cucina: coda piatti"
+            subtitle="Vista predefinita per piatto: lo chef vede subito priorità, tavolo, quantità e prossimo step."
+            stats={[
+              { label: "Nuovi", value: nuoviCount, tone: nuoviCount ? "blue" : "green" },
+              { label: "In prep", value: preparazioneCount, tone: preparazioneCount ? "amber" : "blue" },
+              { label: "Pronti", value: prontiCount, tone: "green" },
+              { label: "Urgenti", value: urgentiCount, tone: urgentiCount ? "red" : "dark" },
+            ]}
+            actions={[
+              { label: modalitaVista === "piatti" ? "Vista tavoli" : "Vista piatti", onClick: () => setModalitaVista((v) => (v === "piatti" ? "tavoli" : "piatti")), primary: true },
+              { label: filtroVista === "tutti" ? "Solo nuovi" : "Tutti", onClick: () => setFiltroVista((v) => (v === "tutti" ? "nuovi" : "tutti")) },
+              { label: soloUrgenti ? "Mostra tutto" : "Solo urgenti", onClick: () => setSoloUrgenti((v) => !v) },
+            ]}
+          />
 
           {errore ? (
             <div
               className="section-card"
               style={{
-                marginBottom: 16,
+                marginBottom: 12,
                 background: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#991b1b",
@@ -480,110 +468,19 @@ function Cucina() {
             </div>
           ) : null}
 
-          <div
-            className="os-grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              marginBottom: 16,
-            }}
-          >
-            <div className="metric-card">
-              <div className="metric-label">Tavoli attivi</div>
-              <div className="metric-value">{ordiniCucina.length}</div>
-              <div className="metric-badge">in cucina</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">Piatti totali</div>
-              <div className="metric-value">{piattiTotali}</div>
-              <div className="metric-badge">da gestire</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">Nuovi</div>
-              <div className="metric-value">{nuoviCount}</div>
-              <div className="metric-badge">da prendere</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">In preparazione</div>
-              <div className="metric-value">{preparazioneCount}</div>
-              <div className="metric-badge">al lavoro</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">Urgenti</div>
-              <div className="metric-value">{urgentiCount}</div>
-              <div className="metric-badge">priorità alta</div>
-            </div>
-          </div>
-
-          <div className="section-card" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  style={pillButton(modalitaVista === "tavoli")}
-                  onClick={() => setModalitaVista("tavoli")}
-                >
-                  Vista tavoli
-                </button>
-                <button
-                  style={pillButton(modalitaVista === "piatti")}
-                  onClick={() => setModalitaVista("piatti")}
-                >
-                  Vista piatti
-                </button>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>
-                  Tutti
-                </button>
-                <button style={pillButton(filtroVista === "subito")} onClick={() => setFiltroVista("subito")}>
-                  Solo subito
-                </button>
-                <button style={pillButton(filtroVista === "dopo")} onClick={() => setFiltroVista("dopo")}>
-                  Solo dopo
-                </button>
-                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>
-                  Nuovi
-                </button>
-                <button
-                  style={pillButton(filtroVista === "preparazione")}
-                  onClick={() => setFiltroVista("preparazione")}
-                >
-                  Prep
-                </button>
-                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>
-                  Pronti
-                </button>
-              </div>
-
-              <label
-                style={{
-                  display: "inline-flex",
-                  gap: 8,
-                  alignItems: "center",
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={soloUrgenti}
-                  onChange={(e) => setSoloUrgenti(e.target.checked)}
-                />
-                Solo urgenti
-              </label>
-            </div>
+          <div className="em-ops-filterbar">
+            {[
+              ["tutti", "Tutti"],
+              ["subito", "Subito"],
+              ["dopo", "Dopo"],
+              ["nuovi", "Nuovi"],
+              ["preparazione", "In prep"],
+              ["pronti", "Pronti"],
+            ].map(([key, label]) => (
+              <button key={key} style={pillButton(filtroVista === key)} onClick={() => setFiltroVista(key)}>
+                {label}
+              </button>
+            ))}
           </div>
 
           {loading ? (

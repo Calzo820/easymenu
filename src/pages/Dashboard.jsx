@@ -79,13 +79,27 @@ function BarLine({ label, value, max, detail }) {
   );
 }
 
-function QuickLink({ to, emoji, title, text }) {
+function QuickLink({ to, emoji, title, text, cta = "Apri" }) {
   return (
-    <Link to={to} style={{ ...card, textDecoration: "none", color: "inherit", display: "block" }}>
-      <div style={{ fontSize: 30 }}>{emoji}</div>
-      <div style={{ fontSize: 21, fontWeight: 950, marginTop: 10 }}>{title}</div>
-      <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 14, marginTop: 7 }}>{text}</div>
-      <div style={{ color: "#1d4ed8", fontWeight: 900, marginTop: 14 }}>Apri →</div>
+    <Link
+      to={to}
+      style={{
+        ...card,
+        textDecoration: "none",
+        color: "inherit",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
+        gap: 14,
+        alignItems: "center",
+        minHeight: 104,
+      }}
+    >
+      <div style={{ fontSize: 32, width: 44, textAlign: "center" }}>{emoji}</div>
+      <div>
+        <div style={{ fontSize: 21, fontWeight: 950 }}>{title}</div>
+        <div style={{ color: "#64748b", lineHeight: 1.35, fontSize: 13, marginTop: 5 }}>{text}</div>
+      </div>
+      <div style={{ background: "#111827", color: "white", borderRadius: 999, padding: "10px 13px", fontWeight: 900, whiteSpace: "nowrap" }}>{cta} →</div>
     </Link>
   );
 }
@@ -215,11 +229,13 @@ function Dashboard() {
             <KpiCard label="Errori aperti" value={kpis.unresolvedErrors || 0} note="log non risolti" tone={(kpis.unresolvedErrors || 0) ? "warning" : "default"} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14, marginBottom: 16 }}>
-            <QuickLink to="/cucina" emoji="👨‍🍳" title="Cucina" text="Piatti nuovi, in preparazione e pronti con aggiornamento live." />
-            <QuickLink to="/bar" emoji="🥤" title="Bar" text="Solo bevande e comande bar separate dal flusso cucina." />
-            <QuickLink to="/cassa" emoji="💳" title="Cassa" text="Chiusura tavoli, extra, sconti, pagamenti e storico." />
-          </div>
+          <Panel title="Operatività di sala" subtitle="Tre ingressi chiari per lo staff: chi prepara, chi serve e chi incassa. Niente moduli inutili durante il servizio.">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 }}>
+              <QuickLink to="/cucina" emoji="👨‍🍳" title="Cucina" text="Coda piatti ordinata per urgenza, tavolo e prossimo step." cta="Lavora" />
+              <QuickLink to="/bar" emoji="🥤" title="Bar" text="Solo bevande: preparazione rapida separata dalla cucina." cta="Prepara" />
+              <QuickLink to="/cassa" emoji="💳" title="Cassa" text="Griglia tavoli compatta per conto, preconto e chiusura." cta="Incassa" />
+            </div>
+          </Panel>
 
           <div style={{ display: "grid", gridTemplateColumns: "1.1fr .9fr", gap: 16, marginBottom: 16, alignItems: "start" }}>
             <Panel title="Prodotti più venduti oggi" subtitle="Aiuta owner e staff a capire cosa spingere o preparare prima">

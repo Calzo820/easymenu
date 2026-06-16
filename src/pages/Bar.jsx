@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
+import OperationalFlowStrip from "../components/ops/OperationalFlowStrip";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
@@ -182,7 +183,7 @@ function Bar() {
   const [ultimoConteggioBar, setUltimoConteggioBar] = useState(0);
   const [filtroVista, setFiltroVista] = useState("tutti");
   const [soloUrgenti, setSoloUrgenti] = useState(false);
-  const [modalitaVista, setModalitaVista] = useState("tavoli");
+  const [modalitaVista, setModalitaVista] = useState("piatti");
   const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -424,56 +425,28 @@ function Bar() {
 
       <div style={appShellStyle}>
         <div className="app-shell">
-          <div className="glass-hero" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 20,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div className="topbar-chip" style={{ marginBottom: 12 }}>
-                  <span className="status-dot" style={{ background: "#06b6d4" }} />
-                  Bar live
-                </div>
-                <h1 style={{ margin: 0, fontSize: 34 }}>Bar operativo</h1>
-                <p style={{ marginTop: 10, opacity: 0.9 }}>
-                  Ordini bevande reali dal backend — tutto visibile il più possibile a schermo
-                </p>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div className="topbar-chip">Click una volta per attivare il suono</div>
-                <div className="topbar-chip">Priorità in alto</div>
-                <div className="topbar-chip">Pronte: {prontiCount}</div>
-                <button
-                  onClick={() => syncOrdini(true)}
-                  style={{
-                    border: "none",
-                    borderRadius: 999,
-                    padding: "10px 14px",
-                    background: "#111827",
-                    color: "white",
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    fontSize: 13,
-                    opacity: refreshing ? 0.7 : 1,
-                  }}
-                >
-                  {refreshing ? "Aggiorno..." : "Aggiorna"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <OperationalFlowStrip
+            title="Bar: coda bevande"
+            subtitle="La postazione vede solo ciò che deve preparare: priorità, tavolo e bottone unico di avanzamento."
+            stats={[
+              { label: "Nuove", value: nuoviCount, tone: nuoviCount ? "blue" : "green" },
+              { label: "In prep", value: preparazioneCount, tone: preparazioneCount ? "amber" : "blue" },
+              { label: "Pronte", value: prontiCount, tone: "green" },
+              { label: "Urgenti", value: urgentiCount, tone: urgentiCount ? "red" : "dark" },
+            ]}
+            actions={[
+              { label: modalitaVista === "piatti" ? "Vista tavoli" : "Vista bevande", onClick: () => setModalitaVista((v) => (v === "piatti" ? "tavoli" : "piatti")), primary: true },
+              { label: filtroVista === "tutti" ? "Solo nuove" : "Tutte", onClick: () => setFiltroVista((v) => (v === "tutti" ? "nuovi" : "tutti")) },
+              { label: soloUrgenti ? "Mostra tutto" : "Solo urgenti", onClick: () => setSoloUrgenti((v) => !v) },
+              { label: refreshing ? "Aggiorno..." : "Aggiorna", onClick: () => syncOrdini(true), disabled: refreshing },
+            ]}
+          />
 
           {errore ? (
             <div
               className="section-card"
               style={{
-                marginBottom: 16,
+                marginBottom: 12,
                 background: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#991b1b",
@@ -483,104 +456,19 @@ function Bar() {
             </div>
           ) : null}
 
-          <div
-            className="os-grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              marginBottom: 16,
-            }}
-          >
-            <div className="metric-card">
-              <div className="metric-label">Tavoli attivi</div>
-              <div className="metric-value">{ordiniBar.length}</div>
-              <div className="metric-badge">al bar</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">Bevande totali</div>
-              <div className="metric-value">{bevandeTotali}</div>
-              <div className="metric-badge">da gestire</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">Nuove</div>
-              <div className="metric-value">{nuoviCount}</div>
-              <div className="metric-badge">da prendere</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">In preparazione</div>
-              <div className="metric-value">{preparazioneCount}</div>
-              <div className="metric-badge">al lavoro</div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">Urgenti</div>
-              <div className="metric-value">{urgentiCount}</div>
-              <div className="metric-badge">priorità alta</div>
-            </div>
-          </div>
-
-          <div className="section-card" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  style={pillButton(modalitaVista === "tavoli")}
-                  onClick={() => setModalitaVista("tavoli")}
-                >
-                  Vista tavoli
-                </button>
-                <button
-                  style={pillButton(modalitaVista === "bevande")}
-                  onClick={() => setModalitaVista("bevande")}
-                >
-                  Vista bevande
-                </button>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>
-                  Tutte
-                </button>
-                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>
-                  Nuove
-                </button>
-                <button
-                  style={pillButton(filtroVista === "preparazione")}
-                  onClick={() => setFiltroVista("preparazione")}
-                >
-                  Prep
-                </button>
-                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>
-                  Pronte
-                </button>
-              </div>
-
-              <label
-                style={{
-                  display: "inline-flex",
-                  gap: 8,
-                  alignItems: "center",
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={soloUrgenti}
-                  onChange={(e) => setSoloUrgenti(e.target.checked)}
-                />
-                Solo urgenti
-              </label>
-            </div>
+          <div className="em-ops-filterbar">
+            {[
+              ["tutti", "Tutte"],
+              ["subito", "Subito"],
+              ["dopo", "Dopo"],
+              ["nuovi", "Nuove"],
+              ["preparazione", "In prep"],
+              ["pronti", "Pronte"],
+            ].map(([key, label]) => (
+              <button key={key} style={pillButton(filtroVista === key)} onClick={() => setFiltroVista(key)}>
+                {label}
+              </button>
+            ))}
           </div>
 
           {loading ? (

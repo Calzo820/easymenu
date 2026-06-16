@@ -61,3 +61,62 @@
 .em-lift:active {
   transform: translateY(0);
 }
+
+/* Patch stellati: più flusso operativo, meno dashboard dispersiva */
+.em-flow-strip.section-card {
+  padding: 14px;
+  margin-bottom: 12px !important;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+.em-flow-head {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.em-flow-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.em-flow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.em-action-button {
+  border-radius: 999px;
+  padding: 10px 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.em-ops-filterbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.em-live-ribbon {
+  margin-bottom: 10px;
+  background: #111827;
+  color: white;
+  border-radius: 16px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, .14);
+}
+.em-touch-card:focus-visible,
+.em-action-button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .35);
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .em-flow-head { grid-template-columns: 1fr; }
+  .em-flow-actions { justify-content: flex-start; }
+}
