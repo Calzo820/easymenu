@@ -47,7 +47,7 @@ function Navbar() {
 
   const user = getUser();
   const role = (user?.role || "").toLowerCase();
-  const isSuperAdmin = Boolean(user?.isSuperAdmin) || role === "superadmin";
+  const isSuperAdmin = Boolean(user?.isSuperAdmin) || role === "superadmin" || location.pathname.startsWith("/super-admin");
   const ristorante = isSuperAdmin
     ? "Piattaforma SaaS"
     : hasPlatformSession()

@@ -1,0 +1,366 @@
+
+.superadmin-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(37, 99, 235, 0.14), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(14, 165, 233, 0.16), transparent 28%),
+    linear-gradient(180deg, #eef6ff 0%, #f8fbff 100%);
+}
+
+.superadmin-main {
+  width: min(1500px, calc(100vw - 40px));
+  margin: 0 auto;
+  padding: 28px 0 72px;
+}
+
+.superadmin-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.superadmin-panel {
+  background: rgba(255, 255, 255, 0.90);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
+}
+
+.superadmin-hero-card {
+  padding: 28px;
+  color: #fff;
+  background: linear-gradient(135deg, #123b6b 0%, #2563eb 56%, #0891b2 100%);
+}
+
+.superadmin-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.superadmin-title {
+  margin: 16px 0 8px;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.superadmin-subtitle {
+  max-width: 780px;
+  margin: 0;
+  color: rgba(255,255,255,0.86);
+  font-size: 16px;
+}
+
+.superadmin-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.superadmin-health {
+  padding: 22px;
+}
+
+.superadmin-health h3 {
+  margin: 0 0 16px;
+  color: #061638;
+}
+
+.superadmin-health-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-top: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.superadmin-health-row strong {
+  color: #061638;
+}
+
+.superadmin-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.superadmin-stat {
+  padding: 18px;
+}
+
+.superadmin-stat-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.superadmin-stat-value {
+  margin-top: 10px;
+  color: #061638;
+  font-size: 32px;
+  font-weight: 950;
+}
+
+.superadmin-stat-help {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.superadmin-card {
+  padding: 20px;
+}
+
+.superadmin-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.superadmin-card-title {
+  margin: 0;
+  color: #061638;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+
+.superadmin-card-subtitle {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.superadmin-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.superadmin-input,
+.superadmin-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 15px;
+  outline: none;
+}
+
+.superadmin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.72);
+}
+
+.superadmin-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+.superadmin-table th {
+  padding: 13px 14px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 950;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(248,250,252,0.9);
+}
+
+.superadmin-table td {
+  padding: 15px 14px;
+  border-top: 1px solid #e2e8f0;
+  vertical-align: middle;
+  color: #0f172a;
+}
+
+.superadmin-restaurant-name {
+  font-weight: 950;
+  color: #061638;
+}
+
+.superadmin-muted {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.superadmin-status {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.superadmin-status.is-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.superadmin-status.is-suspended {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.superadmin-chip {
+  display: inline-flex;
+  margin: 2px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.superadmin-chip.ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.superadmin-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.superadmin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 13px;
+  border-radius: 13px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 900;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.superadmin-btn:disabled {
+  opacity: .52;
+  cursor: not-allowed;
+}
+
+.superadmin-btn.primary {
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #0891b2);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, .18);
+}
+
+.superadmin-btn.danger {
+  color: #991b1b;
+}
+
+.superadmin-btn.success {
+  color: #166534;
+}
+
+.superadmin-message {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  font-weight: 800;
+}
+
+.superadmin-message.error {
+  color: #b91c1c;
+  background: #fff1f2;
+  border: 1px solid #fecaca;
+}
+
+.superadmin-message.success {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.superadmin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15,23,42,0.46);
+}
+
+.superadmin-modal {
+  width: min(780px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 22px;
+}
+
+.superadmin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.superadmin-form-grid label {
+  color: #334155;
+  font-weight: 850;
+  font-size: 13px;
+}
+
+.superadmin-form-grid input,
+.superadmin-form-grid select {
+  margin-top: 6px;
+}
+
+@media (max-width: 1100px) {
+  .superadmin-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .superadmin-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .superadmin-main {
+    width: min(100vw - 24px, 1500px);
+    padding-top: 18px;
+  }
+
+  .superadmin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .superadmin-toolbar,
+  .superadmin-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .superadmin-card-header {
+    flex-direction: column;
+  }
+}
