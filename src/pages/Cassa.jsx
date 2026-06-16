@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
 import Modal from "../components/Modal";
-import OperationalFlowStrip from "../components/ops/OperationalFlowStrip";
+import OperatorCommandCenter from "../components/ops/OperatorCommandCenter";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { createRestaurantSocket } from "../lib/realtime";
 import { API_URL, getAuthHeaders } from "../lib/api";
@@ -669,7 +669,7 @@ function Cassa() {
     return getStatoOrdineCassa(ordine);
   }
 
-  const gridHeight = "calc(100vh - 250px)";
+  const gridHeight = "calc(100vh - 224px)";
   const righe = Math.max(1, Math.ceil(totaleTavoli / gridConfig.cols));
   const cardHeight = `calc((${gridHeight} - ${(righe - 1) * gridConfig.gap}px) / ${righe})`;
 
@@ -708,20 +708,39 @@ function Cassa() {
 
       <div style={appShellStyle}>
         <div className="app-shell">
-          {ultimoEvento ? (
-            <div className="em-live-ribbon">
-              <b>Live</b>
-              <span>
-                {ultimoEvento.type === "new-order" && "Nuovo ordine ricevuto"}
-                {ultimoEvento.type === "order-updated" && "Ordine aggiornato"}
-                {ultimoEvento.type === "order-closed" && "Ordine chiuso"}
-                {ultimoEvento.type === "table-updated" && "Tavolo aggiornato"}
-                {ultimoEvento.type === "call-bill" && "Richiesta conto"}
-                {ultimoEvento.type === "call-staff" && `Cameriere richiesto${ultimoEvento.payload?.reason ? `: ${ultimoEvento.payload.reason}` : ""}`}
-              </span>
-              <span>{formatDateTime(ultimoEvento.at)}</span>
-            </div>
-          ) : null}
+          <OperatorCommandCenter
+            area="Postazione cassa"
+            statusColor="#16a34a"
+            title="Cassa"
+            subtitle={`${ristoranteAttivo || "Nessun ristorante attivo"} · tavoli, conto e incasso in una griglia unica.`}
+            liveMessage={ultimoEvento ? `${
+              ultimoEvento.type === "new-order" ? "Nuovo ordine" :
+              ultimoEvento.type === "order-updated" ? "Ordine aggiornato" :
+              ultimoEvento.type === "order-closed" ? "Ordine chiuso" :
+              ultimoEvento.type === "table-updated" ? "Tavolo aggiornato" :
+              ultimoEvento.type === "call-bill" ? "Richiesta conto" :
+              ultimoEvento.type === "call-staff" ? "Cameriere richiesto" : "Live"
+            } · ${formatDateTime(ultimoEvento.at)}` : "Live pronto"}
+            metrics={[
+              { label: "Da incassare", value: formatEuro(incassoPotenziale), tone: "green" },
+              { label: "Conti", value: contiRichiesti, tone: contiRichiesti ? "amber" : "default" },
+              { label: "Chiamate", value: chiamateCameriere, tone: chiamateCameriere ? "red" : "default" },
+              { label: "Articoli", value: piattiTotaliAperti, tone: "dark" },
+            ]}
+            primaryActions={[
+              { label: "Aggiorna", onClick: syncOrdini, primary: true },
+              {
+                label: tavoloSelezionato ? `Preconto T${tavoloSelezionato}` : "Preconto",
+                onClick: () => tavoloSelezionato && stampaPreconto(tavoloSelezionato),
+                disabled: !tavoloSelezionato,
+              },
+              {
+                label: tavoloSelezionato ? `Chiudi T${tavoloSelezionato}` : "Chiudi conto",
+                onClick: () => tavoloSelezionato && chiudiConto(tavoloSelezionato),
+                disabled: !tavoloSelezionato || closing,
+              },
+            ]}
+          />
 
           {errore ? (
             <div
@@ -737,30 +756,7 @@ function Cassa() {
             </div>
           ) : null}
 
-          <OperationalFlowStrip
-            title="Flusso cassa veloce"
-            subtitle="Azioni ad alto impatto sempre visibili: meno click, meno errori, più tavoli chiusi."
-            stats={[
-              { label: "Da incassare", value: formatEuro(incassoPotenziale), tone: "green" },
-              { label: "Conti", value: contiRichiesti, tone: contiRichiesti ? "amber" : "blue" },
-              { label: "Chiamate", value: chiamateCameriere, tone: chiamateCameriere ? "red" : "blue" },
-              { label: "Articoli", value: piattiTotaliAperti, tone: "dark" },
-            ]}
-            actions={[
-              { label: "Aggiorna live", onClick: syncOrdini, primary: true },
-              {
-                label: tavoloSelezionato ? `Preconto T${tavoloSelezionato}` : "Preconto",
-                onClick: () => tavoloSelezionato && stampaPreconto(tavoloSelezionato),
-                disabled: !tavoloSelezionato,
-              },
-              {
-                label: tavoloSelezionato ? `Chiudi T${tavoloSelezionato}` : "Chiudi conto",
-                onClick: () => tavoloSelezionato && chiudiConto(tavoloSelezionato),
-                disabled: !tavoloSelezionato || closing,
-              },
-            ]}
-          />
-
+          
           {loading ? (
             <div className="section-card">Caricamento cassa...</div>
           ) : (

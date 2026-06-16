@@ -163,3 +163,175 @@
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+
+.operator-command-center {
+  position: sticky;
+  top: 10px;
+  z-index: 25;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 0.85fr);
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.84);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(16px);
+}
+
+.operator-command-main,
+.operator-command-side {
+  min-width: 0;
+}
+
+.operator-title-row,
+.operator-heading-row,
+.operator-action-row,
+.operator-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.operator-heading-row {
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.operator-heading-row h1 {
+  margin: 0;
+  font-size: clamp(25px, 2.2vw, 34px);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.operator-heading-row p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.operator-live-pill,
+.operator-live-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 950;
+  border: 1px solid #e2e8f0;
+}
+
+.operator-live-message {
+  color: #475569;
+  font-weight: 850;
+  max-width: 100%;
+}
+
+.operator-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.operator-mini-metric {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 9px 10px;
+  min-height: 58px;
+}
+
+.operator-mini-metric span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.operator-mini-metric strong {
+  display: block;
+  color: #0f172a;
+  font-size: clamp(18px, 1.8vw, 28px);
+  font-weight: 950;
+  line-height: 1;
+  margin-top: 5px;
+}
+
+.operator-mini-metric--green { background: #ecfdf5; border-color: #bbf7d0; }
+.operator-mini-metric--amber { background: #fffbeb; border-color: #fde68a; }
+.operator-mini-metric--red { background: #fef2f2; border-color: #fecaca; }
+.operator-mini-metric--dark { background: #111827; border-color: #111827; }
+.operator-mini-metric--dark span,
+.operator-mini-metric--dark strong { color: #fff; }
+
+.operator-control-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.operator-control-panel button,
+.operator-control-panel label,
+.operator-action-primary,
+.operator-action-secondary {
+  min-height: 38px !important;
+}
+
+.operator-action-primary,
+.operator-action-secondary {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 13px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.operator-action-primary { background: #111827; color: #fff; }
+.operator-action-secondary { background: #e5e7eb; color: #111827; }
+.operator-action-primary:disabled,
+.operator-action-secondary:disabled { opacity: .55; cursor: not-allowed; }
+
+.operational-screen.operational-dark .operator-command-center {
+  background: rgba(15, 23, 42, 0.94);
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.operational-screen.operational-dark .operator-heading-row h1,
+.operational-screen.operational-dark .operator-mini-metric strong {
+  color: #f8fafc;
+}
+
+.operational-screen.operational-dark .operator-heading-row p,
+.operational-screen.operational-dark .operator-mini-metric span {
+  color: #cbd5e1;
+}
+
+.operational-screen.operational-dark .operator-live-pill,
+.operational-screen.operational-dark .operator-live-message,
+.operational-screen.operational-dark .operator-mini-metric {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #f8fafc;
+}
+
+@media (max-width: 1120px) {
+  .operator-command-center { grid-template-columns: 1fr; }
+  .operator-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .operator-command-center { position: static; border-radius: 20px; }
+  .operator-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .operator-action-row > button { flex: 1; }
+}

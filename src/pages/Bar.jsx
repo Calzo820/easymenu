@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
-import OperationalFlowStrip from "../components/ops/OperationalFlowStrip";
+import OperatorCommandCenter from "../components/ops/OperatorCommandCenter";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
@@ -183,7 +183,7 @@ function Bar() {
   const [ultimoConteggioBar, setUltimoConteggioBar] = useState(0);
   const [filtroVista, setFiltroVista] = useState("tutti");
   const [soloUrgenti, setSoloUrgenti] = useState(false);
-  const [modalitaVista, setModalitaVista] = useState("piatti");
+  const [modalitaVista, setModalitaVista] = useState("tavoli");
   const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -410,8 +410,8 @@ function Bar() {
   const tavoliGrid = useMemo(() => getGridConfig(ordiniBar.length || 1), [ordiniBar.length]);
   const bevandeGrid = useMemo(() => getGridConfig(bevandeQueue.length || 1), [bevandeQueue.length]);
 
-  const tavoliHeight = "calc(100vh - 350px)";
-  const bevandeHeight = "calc(100vh - 350px)";
+  const tavoliHeight = "calc(100vh - 214px)";
+  const bevandeHeight = "calc(100vh - 214px)";
 
   const righeTavoli = Math.ceil((ordiniBar.length || 1) / tavoliGrid.cols) || 1;
   const cardHeightTavoli = `calc((${tavoliHeight} - ${(righeTavoli - 1) * tavoliGrid.gap}px) / ${righeTavoli})`;
@@ -425,28 +425,46 @@ function Bar() {
 
       <div style={appShellStyle}>
         <div className="app-shell">
-          <OperationalFlowStrip
-            title="Bar: coda bevande"
-            subtitle="La postazione vede solo ciò che deve preparare: priorità, tavolo e bottone unico di avanzamento."
-            stats={[
-              { label: "Nuove", value: nuoviCount, tone: nuoviCount ? "blue" : "green" },
-              { label: "In prep", value: preparazioneCount, tone: preparazioneCount ? "amber" : "blue" },
-              { label: "Pronte", value: prontiCount, tone: "green" },
-              { label: "Urgenti", value: urgentiCount, tone: urgentiCount ? "red" : "dark" },
+          <OperatorCommandCenter
+            area="Bar live"
+            statusColor="#06b6d4"
+            title="Bar"
+            subtitle="Bevande ordinate per priorità: nuove, in lavorazione e pronte sempre nello stesso punto."
+            liveMessage={`Pronte ${prontiCount} · priorità in alto · audio al primo click`}
+            metrics={[
+              { label: "Tavoli", value: ordiniBar.length },
+              { label: "Bevande", value: bevandeTotali, tone: "dark" },
+              { label: "Nuove", value: nuoviCount, tone: nuoviCount ? "amber" : "default" },
+              { label: "Urgenti", value: urgentiCount, tone: urgentiCount ? "red" : "default" },
             ]}
-            actions={[
-              { label: modalitaVista === "piatti" ? "Vista tavoli" : "Vista bevande", onClick: () => setModalitaVista((v) => (v === "piatti" ? "tavoli" : "piatti")), primary: true },
-              { label: filtroVista === "tutti" ? "Solo nuove" : "Tutte", onClick: () => setFiltroVista((v) => (v === "tutti" ? "nuovi" : "tutti")) },
-              { label: soloUrgenti ? "Mostra tutto" : "Solo urgenti", onClick: () => setSoloUrgenti((v) => !v) },
-              { label: refreshing ? "Aggiorno..." : "Aggiorna", onClick: () => syncOrdini(true), disabled: refreshing },
+            primaryActions={[
+              { label: refreshing ? "Aggiorno..." : "Aggiorna", onClick: () => syncOrdini(true), primary: true, disabled: refreshing },
             ]}
+            viewControls={(
+              <>
+                <button style={pillButton(modalitaVista === "tavoli")} onClick={() => setModalitaVista("tavoli")}>Tavoli</button>
+                <button style={pillButton(modalitaVista === "bevande")} onClick={() => setModalitaVista("bevande")}>Bevande</button>
+              </>
+            )}
+            filters={(
+              <>
+                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>Tutte</button>
+                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>Nuove</button>
+                <button style={pillButton(filtroVista === "preparazione")} onClick={() => setFiltroVista("preparazione")}>Prep</button>
+                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>Pronte</button>
+                <label className="operator-action-secondary" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                  <input type="checkbox" checked={soloUrgenti} onChange={(e) => setSoloUrgenti(e.target.checked)} />
+                  Solo urgenti
+                </label>
+              </>
+            )}
           />
 
           {errore ? (
             <div
               className="section-card"
               style={{
-                marginBottom: 12,
+                marginBottom: 16,
                 background: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#991b1b",
@@ -455,21 +473,6 @@ function Bar() {
               {errore}
             </div>
           ) : null}
-
-          <div className="em-ops-filterbar">
-            {[
-              ["tutti", "Tutte"],
-              ["subito", "Subito"],
-              ["dopo", "Dopo"],
-              ["nuovi", "Nuove"],
-              ["preparazione", "In prep"],
-              ["pronti", "Pronte"],
-            ].map(([key, label]) => (
-              <button key={key} style={pillButton(filtroVista === key)} onClick={() => setFiltroVista(key)}>
-                {label}
-              </button>
-            ))}
-          </div>
 
           {loading ? (
             <div className="section-card">

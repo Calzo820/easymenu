@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
-import OperationalFlowStrip from "../components/ops/OperationalFlowStrip";
+import OperatorCommandCenter from "../components/ops/OperatorCommandCenter";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
@@ -191,7 +191,7 @@ function Cucina() {
   const [ultimoConteggioCucina, setUltimoConteggioCucina] = useState(0);
   const [filtroVista, setFiltroVista] = useState("tutti");
   const [soloUrgenti, setSoloUrgenti] = useState(false);
-  const [modalitaVista, setModalitaVista] = useState("piatti");
+  const [modalitaVista, setModalitaVista] = useState("tavoli");
   const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(true);
   const [updatingIds, setUpdatingIds] = useState([]);
@@ -423,8 +423,8 @@ function Cucina() {
   const tavoliGrid = useMemo(() => getGridConfig(ordiniCucina.length || 1), [ordiniCucina.length]);
   const piattiGrid = useMemo(() => getGridConfig(piattiQueue.length || 1), [piattiQueue.length]);
 
-  const tavoliHeight = "calc(100vh - 265px)";
-  const piattiHeight = "calc(100vh - 265px)";
+  const tavoliHeight = "calc(100vh - 214px)";
+  const piattiHeight = "calc(100vh - 214px)";
 
   const righeTavoli = Math.ceil((ordiniCucina.length || 1) / tavoliGrid.cols) || 1;
   const cardHeightTavoli = `calc((${tavoliHeight} - ${(righeTavoli - 1) * tavoliGrid.gap}px) / ${righeTavoli})`;
@@ -438,27 +438,46 @@ function Cucina() {
 
       <div style={appShellStyle}>
         <div className="app-shell">
-          <OperationalFlowStrip
-            title="Cucina: coda piatti"
-            subtitle="Vista predefinita per piatto: lo chef vede subito priorità, tavolo, quantità e prossimo step."
-            stats={[
-              { label: "Nuovi", value: nuoviCount, tone: nuoviCount ? "blue" : "green" },
-              { label: "In prep", value: preparazioneCount, tone: preparazioneCount ? "amber" : "blue" },
-              { label: "Pronti", value: prontiCount, tone: "green" },
-              { label: "Urgenti", value: urgentiCount, tone: urgentiCount ? "red" : "dark" },
+          <OperatorCommandCenter
+            area="Cucina live"
+            statusColor="#f59e0b"
+            title="Cucina"
+            subtitle="Una schermata da servizio: prendi i nuovi ordini, lavora gli urgenti e manda pronto senza perdere tempo."
+            liveMessage={`Pronti ${prontiCount} · priorità in alto · audio al primo click`}
+            metrics={[
+              { label: "Tavoli", value: ordiniCucina.length },
+              { label: "Piatti", value: piattiTotali, tone: "dark" },
+              { label: "Nuovi", value: nuoviCount, tone: nuoviCount ? "amber" : "default" },
+              { label: "Urgenti", value: urgentiCount, tone: urgentiCount ? "red" : "default" },
             ]}
-            actions={[
-              { label: modalitaVista === "piatti" ? "Vista tavoli" : "Vista piatti", onClick: () => setModalitaVista((v) => (v === "piatti" ? "tavoli" : "piatti")), primary: true },
-              { label: filtroVista === "tutti" ? "Solo nuovi" : "Tutti", onClick: () => setFiltroVista((v) => (v === "tutti" ? "nuovi" : "tutti")) },
-              { label: soloUrgenti ? "Mostra tutto" : "Solo urgenti", onClick: () => setSoloUrgenti((v) => !v) },
-            ]}
+            primaryActions={[]}
+            viewControls={(
+              <>
+                <button style={pillButton(modalitaVista === "tavoli")} onClick={() => setModalitaVista("tavoli")}>Tavoli</button>
+                <button style={pillButton(modalitaVista === "piatti")} onClick={() => setModalitaVista("piatti")}>Piatti</button>
+              </>
+            )}
+            filters={(
+              <>
+                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>Tutti</button>
+                <button style={pillButton(filtroVista === "subito")} onClick={() => setFiltroVista("subito")}>Subito</button>
+                <button style={pillButton(filtroVista === "dopo")} onClick={() => setFiltroVista("dopo")}>Dopo</button>
+                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>Nuovi</button>
+                <button style={pillButton(filtroVista === "preparazione")} onClick={() => setFiltroVista("preparazione")}>Prep</button>
+                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>Pronti</button>
+                <label className="operator-action-secondary" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                  <input type="checkbox" checked={soloUrgenti} onChange={(e) => setSoloUrgenti(e.target.checked)} />
+                  Solo urgenti
+                </label>
+              </>
+            )}
           />
 
           {errore ? (
             <div
               className="section-card"
               style={{
-                marginBottom: 12,
+                marginBottom: 16,
                 background: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#991b1b",
@@ -467,21 +486,6 @@ function Cucina() {
               {errore}
             </div>
           ) : null}
-
-          <div className="em-ops-filterbar">
-            {[
-              ["tutti", "Tutti"],
-              ["subito", "Subito"],
-              ["dopo", "Dopo"],
-              ["nuovi", "Nuovi"],
-              ["preparazione", "In prep"],
-              ["pronti", "Pronti"],
-            ].map(([key, label]) => (
-              <button key={key} style={pillButton(filtroVista === key)} onClick={() => setFiltroVista(key)}>
-                {label}
-              </button>
-            ))}
-          </div>
 
           {loading ? (
             <div className="section-card">
