@@ -22,6 +22,8 @@ export const requireAuth = (req, res, next) => {
       restaurantId: decoded.restaurantId || null,
       role: decoded.role,
       isSuperAdmin: Boolean(decoded.isSuperAdmin),
+      impersonating: Boolean(decoded.impersonating),
+      platformUserId: decoded.platformUserId || null,
     };
 
     next();

@@ -239,6 +239,29 @@ export const login = async (req, res) => {
 
 export const me = async (req, res) => {
   try {
+    if (req.user?.impersonating && req.user?.restaurantId) {
+      const restaurant = await prisma.restaurant.findUnique({
+        where: { id: req.user.restaurantId },
+      });
+
+      if (!restaurant) {
+        return res.status(404).json({ message: "Ristorante non trovato" });
+      }
+
+      return res.json({
+        user: {
+          id: req.user.userId,
+          name: "Super admin",
+          email: req.user.email,
+          role: "owner",
+          isActive: true,
+          isSuperAdmin: false,
+          isImpersonating: true,
+        },
+        restaurant: sanitizeRestaurant(restaurant),
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
       include: { restaurant: true },

@@ -18,6 +18,29 @@ function isLoggedIn() {
   return !!localStorage.getItem("auth_token");
 }
 
+function hasPlatformSession() {
+  return !!localStorage.getItem("superadmin_platform_session");
+}
+
+function restorePlatformSession() {
+  try {
+    const snapshot = JSON.parse(localStorage.getItem("superadmin_platform_session") || "null");
+    if (!snapshot?.token) return;
+    localStorage.setItem("auth_token", snapshot.token);
+    if (snapshot.user) localStorage.setItem("auth_user", snapshot.user);
+    else localStorage.removeItem("auth_user");
+    if (snapshot.restaurant) localStorage.setItem("auth_restaurant", snapshot.restaurant);
+    else localStorage.removeItem("auth_restaurant");
+    localStorage.removeItem("ristorante_attivo");
+    localStorage.removeItem("restaurant_slug");
+    localStorage.removeItem("restaurant_id");
+    localStorage.removeItem("superadmin_platform_session");
+    window.location.href = "/super-admin";
+  } catch {
+    localStorage.removeItem("superadmin_platform_session");
+  }
+}
+
 function Navbar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -25,8 +48,13 @@ function Navbar() {
   const user = getUser();
   const role = (user?.role || "").toLowerCase();
   const isSuperAdmin = Boolean(user?.isSuperAdmin) || role === "superadmin";
-  const ristorante = isSuperAdmin ? "Piattaforma SaaS" : getRistoranteAttivo() || "Nessun ristorante";
+  const ristorante = isSuperAdmin
+    ? "Piattaforma SaaS"
+    : hasPlatformSession()
+    ? `${getRistoranteAttivo() || "Ristorante"} · gestione superadmin`
+    : getRistoranteAttivo() || "Nessun ristorante";
   const logged = isLoggedIn();
+  const impersonating = hasPlatformSession() && !isSuperAdmin;
 
   const isAdmin = !isSuperAdmin && (role === "admin" || role === "owner");
   const canKitchen = isAdmin || role === "kitchen";
@@ -98,6 +126,9 @@ function Navbar() {
     localStorage.removeItem("auth_user");
     localStorage.removeItem("auth_restaurant");
     localStorage.removeItem("ristorante_attivo");
+    localStorage.removeItem("restaurant_slug");
+    localStorage.removeItem("restaurant_id");
+    localStorage.removeItem("superadmin_platform_session");
 
     window.location.href = "/login";
   }
@@ -184,6 +215,23 @@ function Navbar() {
               >
                 {user?.email || ""}
               </div>
+            )}
+
+            {logged && impersonating && (
+              <button
+                onClick={restorePlatformSession}
+                style={{
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "8px 12px",
+                  background: "rgba(34,197,94,0.22)",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                Torna SuperAdmin
+              </button>
             )}
 
             {logged && (

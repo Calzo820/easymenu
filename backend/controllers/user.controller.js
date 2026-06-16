@@ -17,7 +17,6 @@ function sanitizeUser(user) {
 }
 
 function canManageRole(actorRole, targetRole) {
-  if (actorRole === "superadmin") return true;
   if (actorRole === "owner") return true;
   if (actorRole === "admin") return targetRole !== "owner";
   return false;
