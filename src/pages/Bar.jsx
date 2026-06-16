@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
-import OperatorCommandCenter from "../components/ops/OperatorCommandCenter";
+import CommandDock from "../components/CommandDock";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
@@ -410,8 +410,8 @@ function Bar() {
   const tavoliGrid = useMemo(() => getGridConfig(ordiniBar.length || 1), [ordiniBar.length]);
   const bevandeGrid = useMemo(() => getGridConfig(bevandeQueue.length || 1), [bevandeQueue.length]);
 
-  const tavoliHeight = "calc(100vh - 214px)";
-  const bevandeHeight = "calc(100vh - 214px)";
+  const tavoliHeight = "calc(100vh - 350px)";
+  const bevandeHeight = "calc(100vh - 350px)";
 
   const righeTavoli = Math.ceil((ordiniBar.length || 1) / tavoliGrid.cols) || 1;
   const cardHeightTavoli = `calc((${tavoliHeight} - ${(righeTavoli - 1) * tavoliGrid.gap}px) / ${righeTavoli})`;
@@ -422,43 +422,56 @@ function Bar() {
   return (
     <div style={glowPageStyle}>
       <Navbar />
+      <div className="em-v2-shell" style={{ paddingBottom: 0 }}>
+        <CommandDock compact />
+      </div>
 
-      <div style={appShellStyle}>
+      <div style={{ ...appShellStyle, paddingTop: 0 }}>
         <div className="app-shell">
-          <OperatorCommandCenter
-            area="Bar live"
-            statusColor="#06b6d4"
-            title="Bar"
-            subtitle="Bevande ordinate per priorità: nuove, in lavorazione e pronte sempre nello stesso punto."
-            liveMessage={`Pronte ${prontiCount} · priorità in alto · audio al primo click`}
-            metrics={[
-              { label: "Tavoli", value: ordiniBar.length },
-              { label: "Bevande", value: bevandeTotali, tone: "dark" },
-              { label: "Nuove", value: nuoviCount, tone: nuoviCount ? "amber" : "default" },
-              { label: "Urgenti", value: urgentiCount, tone: urgentiCount ? "red" : "default" },
-            ]}
-            primaryActions={[
-              { label: refreshing ? "Aggiorno..." : "Aggiorna", onClick: () => syncOrdini(true), primary: true, disabled: refreshing },
-            ]}
-            viewControls={(
-              <>
-                <button style={pillButton(modalitaVista === "tavoli")} onClick={() => setModalitaVista("tavoli")}>Tavoli</button>
-                <button style={pillButton(modalitaVista === "bevande")} onClick={() => setModalitaVista("bevande")}>Bevande</button>
-              </>
-            )}
-            filters={(
-              <>
-                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>Tutte</button>
-                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>Nuove</button>
-                <button style={pillButton(filtroVista === "preparazione")} onClick={() => setFiltroVista("preparazione")}>Prep</button>
-                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>Pronte</button>
-                <label className="operator-action-secondary" style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-                  <input type="checkbox" checked={soloUrgenti} onChange={(e) => setSoloUrgenti(e.target.checked)} />
-                  Solo urgenti
-                </label>
-              </>
-            )}
-          />
+          <div className="glass-hero" style={{ marginBottom: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 20,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div className="topbar-chip" style={{ marginBottom: 12 }}>
+                  <span className="status-dot" style={{ background: "#06b6d4" }} />
+                  Bar live
+                </div>
+                <h1 style={{ margin: 0, fontSize: 34 }}>Bar operativo</h1>
+                <p style={{ marginTop: 10, opacity: 0.9 }}>
+                  Ordini bevande reali dal backend — tutto visibile il più possibile a schermo
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div className="topbar-chip">Click una volta per attivare il suono</div>
+                <div className="topbar-chip">Priorità in alto</div>
+                <div className="topbar-chip">Pronte: {prontiCount}</div>
+                <button
+                  onClick={() => syncOrdini(true)}
+                  style={{
+                    border: "none",
+                    borderRadius: 999,
+                    padding: "10px 14px",
+                    background: "#111827",
+                    color: "white",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    opacity: refreshing ? 0.7 : 1,
+                  }}
+                >
+                  {refreshing ? "Aggiorno..." : "Aggiorna"}
+                </button>
+              </div>
+            </div>
+          </div>
 
           {errore ? (
             <div
@@ -473,6 +486,106 @@ function Bar() {
               {errore}
             </div>
           ) : null}
+
+          <div
+            className="os-grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              marginBottom: 16,
+            }}
+          >
+            <div className="metric-card">
+              <div className="metric-label">Tavoli attivi</div>
+              <div className="metric-value">{ordiniBar.length}</div>
+              <div className="metric-badge">al bar</div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-label">Bevande totali</div>
+              <div className="metric-value">{bevandeTotali}</div>
+              <div className="metric-badge">da gestire</div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-label">Nuove</div>
+              <div className="metric-value">{nuoviCount}</div>
+              <div className="metric-badge">da prendere</div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-label">In preparazione</div>
+              <div className="metric-value">{preparazioneCount}</div>
+              <div className="metric-badge">al lavoro</div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-label">Urgenti</div>
+              <div className="metric-value">{urgentiCount}</div>
+              <div className="metric-badge">priorità alta</div>
+            </div>
+          </div>
+
+          <div className="section-card" style={{ marginBottom: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  style={pillButton(modalitaVista === "tavoli")}
+                  onClick={() => setModalitaVista("tavoli")}
+                >
+                  Vista tavoli
+                </button>
+                <button
+                  style={pillButton(modalitaVista === "bevande")}
+                  onClick={() => setModalitaVista("bevande")}
+                >
+                  Vista bevande
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button style={pillButton(filtroVista === "tutti")} onClick={() => setFiltroVista("tutti")}>
+                  Tutte
+                </button>
+                <button style={pillButton(filtroVista === "nuovi")} onClick={() => setFiltroVista("nuovi")}>
+                  Nuove
+                </button>
+                <button
+                  style={pillButton(filtroVista === "preparazione")}
+                  onClick={() => setFiltroVista("preparazione")}
+                >
+                  Prep
+                </button>
+                <button style={pillButton(filtroVista === "pronti")} onClick={() => setFiltroVista("pronti")}>
+                  Pronte
+                </button>
+              </div>
+
+              <label
+                style={{
+                  display: "inline-flex",
+                  gap: 8,
+                  alignItems: "center",
+                  fontWeight: 700,
+                  color: "#334155",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={soloUrgenti}
+                  onChange={(e) => setSoloUrgenti(e.target.checked)}
+                />
+                Solo urgenti
+              </label>
+            </div>
+          </div>
 
           {loading ? (
             <div className="section-card">
