@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
-import { Badge, Button } from "./ui";
 
 function getRistoranteAttivo() {
   return localStorage.getItem("ristorante_attivo") || "";
@@ -42,83 +41,64 @@ function restorePlatformSession() {
   }
 }
 
-const icon = {
-  dashboard: "⌘",
-  sala: "▦",
-  cucina: "◒",
-  bar: "◐",
-  cassa: "€",
-  menu: "≡",
-  tavoli: "□",
-  report: "↗",
-  impostazioni: "⚙",
-  login: "→",
-};
-
 function Navbar() {
   const location = useLocation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const user = getUser();
   const role = (user?.role || "").toLowerCase();
   const isSuperAdmin = Boolean(user?.isSuperAdmin) || role === "superadmin" || location.pathname.startsWith("/super-admin");
-  const logged = isLoggedIn();
-  const impersonating = hasPlatformSession() && !isSuperAdmin;
-  const restaurantName = getRistoranteAttivo();
   const ristorante = isSuperAdmin
     ? "Piattaforma SaaS"
-    : impersonating
-    ? `${restaurantName || "Ristorante"} · gestione superadmin`
-    : restaurantName || "Setup ristorante";
+    : hasPlatformSession()
+    ? `${getRistoranteAttivo() || "Ristorante"} · gestione superadmin`
+    : getRistoranteAttivo() || "Nessun ristorante";
+  const logged = isLoggedIn();
+  const impersonating = hasPlatformSession() && !isSuperAdmin;
 
   const isAdmin = !isSuperAdmin && (role === "admin" || role === "owner");
   const canKitchen = isAdmin || role === "kitchen";
   const canBar = isAdmin || role === "bar";
   const canCashier = isAdmin || role === "cashier";
 
-  const groups = useMemo(() => {
+  const links = useMemo(() => {
     if (!logged) {
       return [
-        {
-          label: "Accesso",
-          items: [
-            { to: "/", label: "Home", icon: icon.dashboard, match: ["/"] },
-            { to: "/login", label: "Login", icon: icon.login, match: ["/login"] },
-            { to: "/register", label: "Register", icon: "+", match: ["/register"] },
-            { to: "/menu/demo/demo-table-1", label: "Demo", icon: "◌", match: ["/menu"] },
-          ],
-        },
+        { to: "/", label: "Home", match: ["/"] },
+        { to: "/login", label: "Login", match: ["/login"] },
+        { to: "/register", label: "Register", match: ["/register"] },
+        { to: "/menu/demo/demo-table-1", label: "Demo Menu", match: ["/menu"] },
       ];
     }
 
     if (isSuperAdmin) {
-      return [{ label: "Platform", items: [{ to: "/super-admin", label: "Super Admin", icon: "◆", match: ["/super-admin"] }] }];
+      return [
+        { to: "/super-admin", label: "Super Admin", match: ["/super-admin"] },
+      ];
     }
-
-    const defaultStart = role === "kitchen" ? "/cucina" : role === "bar" ? "/bar" : role === "cashier" ? "/cassa" : "/dashboard";
 
     return [
       {
-        label: "Home",
-        items: [{ to: defaultStart, label: "Dashboard", icon: icon.dashboard, match: ["/dashboard"] }],
+        to:
+          role === "kitchen"
+            ? "/cucina"
+            : role === "bar"
+            ? "/bar"
+            : role === "cashier"
+            ? "/cassa"
+            : "/dashboard",
+        label: "Dashboard",
+        match: ["/dashboard"],
       },
-      {
-        label: "Operativo",
-        items: [
-          isAdmin && { to: "/tavoli", label: "Sala", icon: icon.sala, match: ["/tavoli", "/qr"] },
-          canKitchen && { to: "/cucina", label: "Cucina", icon: icon.cucina, match: ["/cucina"] },
-          canBar && { to: "/bar", label: "Bar", icon: icon.bar, match: ["/bar"] },
-          canCashier && { to: "/cassa", label: "Cassa", icon: icon.cassa, match: ["/cassa"] },
-        ].filter(Boolean),
-      },
-      isAdmin && {
-        label: "Gestione",
-        items: [
-          { to: "/admin", label: "Menu", icon: icon.menu, match: ["/admin"] },
-          { to: "/statistiche", label: "Report", icon: icon.report, match: ["/statistiche", "/storico"] },
-          { to: "/billing", label: "Impostazioni", icon: icon.impostazioni, match: ["/billing", "/errori"] },
-        ],
-      },
+
+      isAdmin && { to: "/tavoli", label: "Sala", match: ["/tavoli", "/qr"] },
+      canKitchen && { to: "/cucina", label: "Cucina", match: ["/cucina"] },
+      canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
+      canCashier && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
+
+      isAdmin && { to: "/admin", label: "Menu", match: ["/admin"] },
+      isAdmin && { to: "/statistiche", label: "Report", match: ["/statistiche", "/storico", "/errori"] },
+      isAdmin && { to: "/billing", label: "Impostazioni", match: ["/billing"] },
     ].filter(Boolean);
   }, [logged, role, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 
@@ -129,6 +109,10 @@ function Navbar() {
     });
   }
 
+  function handleNavigate() {
+    setOpen(false);
+  }
+
   function logout() {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user");
@@ -137,49 +121,178 @@ function Navbar() {
     localStorage.removeItem("restaurant_slug");
     localStorage.removeItem("restaurant_id");
     localStorage.removeItem("superadmin_platform_session");
+
     window.location.href = "/login";
   }
 
-  const navGroups = groups.map((group) => (
-    <nav className="em-nav-group" key={group.label} aria-label={group.label}>
-      <span className="em-nav-label">{group.label}</span>
-      {group.items.map((link) => (
-        <Link
-          key={`${group.label}-${link.label}`}
-          to={link.to}
-          onClick={() => setOpen(false)}
-          className={`em-nav-link ${isActive(link) ? "is-active" : ""}`}
-        >
-          <span>{link.icon}</span>
-          <span>{link.label}</span>
-        </Link>
-      ))}
-    </nav>
-  ));
-
   return (
-    <header className="em-app-nav">
-      <div className="em-app-nav__inner">
-        <Link className="em-brand-lockup" to={logged ? (isSuperAdmin ? "/super-admin" : "/dashboard") : "/"}>
-          <span className="em-brand-logo"><img src={logoEasyMenu} alt="EasyMenu" /></span>
-          <span>
-            <span className="em-brand-name">EasyMenu</span>
-            <span className="em-brand-sub"><span className="em-dot" />{ristorante}</span>
-          </span>
-        </Link>
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+        padding: "10px 18px",
+        background: "rgba(8, 13, 23, 0.92)",
+        backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(255,255,255,0.12)",
+        boxShadow: "0 18px 45px rgba(2,6,23,0.22)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1500,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, #ffffff 0%, #dbeafe 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                padding: 6,
+              }}
+            >
+              <img
+                src={logoEasyMenu}
+                alt="EasyMenu"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </div>
 
-        <div className="em-nav-sections">{navGroups}</div>
+            <div style={{ color: "white" }}>
+              <div style={{ fontWeight: 950, fontSize: 18 }}>EasyMenu</div>
 
-        <div className="em-nav-actions">
-          {logged ? <span className="em-user-pill">{user?.email || role || "Utente"}</span> : null}
-          {logged && impersonating ? <Button variant="success" onClick={restorePlatformSession}>SuperAdmin</Button> : null}
-          {logged ? <Button variant="ghost" onClick={logout}>Esci</Button> : <Badge tone="blue" dot>Demo attiva</Badge>}
-          <Button className="em-nav-toggle" variant="dark" onClick={() => setOpen((prev) => !prev)}>{open ? "Chiudi" : "Menu"}</Button>
+              <div style={{ fontSize: 12, display: "flex", gap: 8, alignItems: "center", opacity: .84 }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: getRistoranteAttivo() ? "#22c55e" : "#f59e0b",
+                  }}
+                />
+                {ristorante}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {logged && (
+              <div
+                style={{
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  opacity: 0.9,
+                }}
+              >
+                {user?.email || ""}
+              </div>
+            )}
+
+            {logged && impersonating && (
+              <button
+                onClick={restorePlatformSession}
+                style={{
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "8px 12px",
+                  background: "rgba(34,197,94,0.22)",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                Torna SuperAdmin
+              </button>
+            )}
+
+            {logged && (
+              <button
+                onClick={logout}
+                style={{
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "8px 12px",
+                  background: "rgba(255,255,255,0.15)",
+                  color: "white",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Logout
+              </button>
+            )}
+
+            <button
+              onClick={() => setOpen((prev) => !prev)}
+              style={{
+                border: "1px solid rgba(255,255,255,0.16)",
+                borderRadius: 15,
+                padding: "10px 14px",
+                background: "rgba(255,255,255,0.12)",
+                color: "white",
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              {open ? "✕" : "☰"}
+            </button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: open ? "flex" : "none",
+            gap: 6,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          {links.map((link) => {
+            const active = isActive(link);
+
+            return (
+              <Link
+                key={link.label}
+                to={link.to}
+                onClick={handleNavigate}
+                style={{
+                  color: "white",
+                  fontWeight: 850,
+                  fontSize: 13,
+                  padding: "9px 12px",
+                  borderRadius: 12,
+                  textDecoration: "none",
+                  background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.055)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
-
-      <div className={`em-mobile-menu ${open ? "is-open" : ""}`}>{navGroups}</div>
-    </header>
+    </div>
   );
 }
 

@@ -1,0 +1,35 @@
+import { Link } from "react-router-dom";
+import DashboardEmptyState from "./DashboardEmptyState.jsx";
+
+export default function DashboardTableMap({ activeTables = [], totalTables = 0, activeCount = 0 }) {
+  const tables = activeTables.length
+    ? activeTables
+    : Array.from({ length: Math.min(Number(totalTables) || 0, 18) }, (_, index) => ({ id: `free-${index}`, name: `T${index + 1}`, isPlaceholder: true }));
+
+  return (
+    <section className="dash-panel dash-table-map">
+      <div className="dash-panel-head">
+        <div>
+          <span>Sala</span>
+          <h2>Mappa rapida</h2>
+        </div>
+        <Link to="/tavoli">Gestisci →</Link>
+      </div>
+      {tables.length ? (
+        <div className="dash-table-grid">
+          {tables.map((table, index) => {
+            const occupied = !table.isPlaceholder && index < activeCount;
+            return (
+              <div className={occupied ? "dash-table-seat dash-table-seat--busy" : "dash-table-seat"} key={table.id || table.name || index}>
+                <b>{table.name || table.code || `T${index + 1}`}</b>
+                <span>{occupied ? "occupato" : "libero"}</span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <DashboardEmptyState title="Sala non configurata" text="Aggiungi i tavoli e genera i QR dalla gestione sala." />
+      )}
+    </section>
+  );
+}

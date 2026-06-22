@@ -1,139 +1,173 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
+import DashboardAlerts from "../components/dashboard/DashboardAlerts.jsx";
+import DashboardHeader from "../components/dashboard/DashboardHeader.jsx";
+import DashboardHourFlow from "../components/dashboard/DashboardHourFlow.jsx";
+import DashboardLiveOrders from "../components/dashboard/DashboardLiveOrders.jsx";
+import DashboardQuickActions from "../components/dashboard/DashboardQuickActions.jsx";
+import DashboardStat from "../components/dashboard/DashboardStat.jsx";
+import DashboardTableMap from "../components/dashboard/DashboardTableMap.jsx";
+import DashboardTopProducts from "../components/dashboard/DashboardTopProducts.jsx";
 import { apiGet } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
+import "../styles/dashboard-premium.css";
 
-function euro(value) { return `€ ${Number(value || 0).toFixed(0)}`; }
-function num(value) { return Number(value || 0); }
 function getRestaurantName() {
-  try { return JSON.parse(localStorage.getItem("auth_restaurant") || "null")?.name || localStorage.getItem("ristorante_attivo") || "Ristorante"; }
-  catch { return localStorage.getItem("ristorante_attivo") || "Ristorante"; }
-}
-function stateLabel(status) {
-  if (status === "pending") return "Nuovo";
-  if (status === "in_progress") return "In cucina";
-  if (status === "ready") return "Pronto";
-  if (status === "served") return "Servito";
-  return "Attivo";
-}
-function tableName(row) {
-  return row?.table?.name || row?.tableName || row?.tableNumber || row?.table?.number || row?.tableId || "—";
+  try {
+    const restaurant = JSON.parse(localStorage.getItem("auth_restaurant") || "null");
+    return restaurant?.name || localStorage.getItem("ristorante_attivo") || "";
+  } catch {
+    return localStorage.getItem("ristorante_attivo") || "";
+  }
 }
 
-function Kpi({ label, value, note }) {
-  return <div className="em3-kpi"><span>{label}</span><strong>{value}</strong>{note ? <small>{note}</small> : null}</div>;
+function num(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
 }
-function Panel({ title, action, children }) {
-  return <section className="em3-panel"><header><h2>{title}</h2>{action}</header>{children}</section>;
-}
-function Empty({ title, text }) { return <div className="em3-empty"><b>{title}</b><span>{text}</span></div>; }
 
-export default function Dashboard() {
+function euro(value) {
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(num(value));
+}
+
+function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [live, setLive] = useState("connessione...");
-  const restaurantName = getRestaurantName();
+  const [liveBadge, setLiveBadge] = useState("connessione live...");
 
-  const load = useCallback(async () => {
+  const restaurantName = getRestaurantName();
+  const isSuperAdminMode = localStorage.getItem("superadmin_mode") === "1";
+
+  const load = useCallback(async (manual = false) => {
     try {
+      if (manual) setRefreshing(true);
       const result = await apiGet("/analytics/summary");
       setData(result);
       setError("");
     } catch (err) {
-      setError(err.message || "Dashboard non disponibile");
+      setError(err.message || "Errore caricamento dashboard");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     load();
-    const timer = setInterval(load, 30000);
+    const fallback = setInterval(() => load(), 30000);
     const socket = createRestaurantSocket();
-    socket.on("connect", () => setLive("live"));
-    socket.on("disconnect", () => setLive("offline"));
-    const refresh = () => { playOrderSound(); load(); };
-    ["new-order", "new_order", "order-updated", "order_updated", "order-closed", "table-updated", "payment-updated", "error-logged"].forEach((event) => socket.on(event, refresh));
-    return () => { clearInterval(timer); socket.disconnect(); };
+
+    socket.on("connect", () => setLiveBadge("live attivo"));
+    socket.on("disconnect", () => setLiveBadge("live disconnesso"));
+
+    const refreshWithSound = () => {
+      playOrderSound();
+      load();
+    };
+
+    socket.on("new-order", refreshWithSound);
+    socket.on("new_order", refreshWithSound);
+    socket.on("order-updated", () => load());
+    socket.on("order_updated", () => load());
+    socket.on("order-closed", () => load());
+    socket.on("order-deleted", () => load());
+    socket.on("table-updated", () => load());
+    socket.on("payment-updated", () => load());
+    socket.on("payment_updated", () => load());
+    socket.on("error-logged", () => load());
+    socket.on("error_logged", () => load());
+
+    return () => {
+      clearInterval(fallback);
+      socket.disconnect();
+    };
   }, [load]);
 
   const kpis = data?.kpis || {};
-  const liveData = data?.live || {};
+  const live = data?.live || {};
   const charts = data?.charts || {};
   const alerts = data?.alerts || {};
-  const activeOrders = useMemo(() => (liveData.activeOrders || liveData.openOrders || []).slice(0, 8), [liveData]);
-  const tables = useMemo(() => (liveData.tables || liveData.activeTables || []).slice(0, 24), [liveData]);
-  const topProducts = useMemo(() => (charts.topProductsToday || []).slice(0, 5), [charts]);
 
-  return <main className="em3-app">
-    <Navbar />
-    <div className="em3-content">
-      <section className="em3-hero em3-hero-owner">
-        <div>
-          <div className="em3-eyebrow"><span className={live === "live" ? "ok" : "warn"} /> Restaurant OS · {live}</div>
-          <h1>{restaurantName}</h1>
-          <p>La cabina di regia del servizio: vendite, tavoli, ordini e problemi reali. Nessun rumore.</p>
-        </div>
-        <div className="em3-hero-actions">
-          <Link to="/tavoli">Apri sala</Link>
-          <Link to="/cassa">Vai in cassa</Link>
-          <button type="button" onClick={load}>Aggiorna</button>
-        </div>
-      </section>
+  const alertCount = num(kpis.unresolvedErrors) + num(kpis.paymentAlerts) + num(kpis.unavailableItems);
 
-      {error ? <div className="em3-alert">{error}</div> : null}
-      {loading ? <div className="em3-panel">Caricamento...</div> : null}
+  if (!restaurantName) {
+    return (
+      <div className="dash-os-page">
+        <Navbar />
+        <main className="dash-os-shell">
+          <section className="dash-empty-restaurant">
+            <h1>Nessun ristorante attivo</h1>
+            <p>Accedi dall'area admin o seleziona un ristorante per aprire la dashboard operativa.</p>
+            <Link to="/admin">Vai all'area admin</Link>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
-      <section className="em3-kpi-grid">
-        <Kpi label="Fatturato oggi" value={euro(kpis.revenueToday)} note="servizio corrente" />
-        <Kpi label="Ordini attivi" value={kpis.openOrders || activeOrders.length || 0} note="da gestire ora" />
-        <Kpi label="Tavoli occupati" value={`${kpis.activeTables || 0}/${kpis.totalTables || 0}`} note="sala" />
-        <Kpi label="Ticket medio" value={euro(kpis.averageTicketToday)} note="oggi" />
-      </section>
-
-      <section className="em3-dashboard-grid">
-        <Panel title="Ordini live" action={<Link to="/cucina">Cucina →</Link>}>
-          {activeOrders.length ? <div className="em3-order-list">
-            {activeOrders.map((order, index) => <div className="em3-live-row" key={order.id || index}>
-              <div><b>Tavolo {tableName(order)}</b><span>{(order.items || order.orderItems || []).length} righe · {stateLabel(order.status)}</span></div>
-              <strong>{euro(order.total || order.totalAmount)}</strong>
-            </div>)}
-          </div> : <Empty title="Nessun ordine aperto" text="Quando entra una comanda compare qui." />}
-        </Panel>
-
-        <Panel title="Mappa sala" action={<Link to="/tavoli">Sala →</Link>}>
-          {tables.length ? <div className="em3-table-map">
-            {tables.map((table, index) => <Link to="/cassa" className={`em3-table-dot ${table.status || table.state || "free"}`} key={table.id || index}>
-              <b>{table.name || table.number || index + 1}</b><span>{table.statusLabel || table.status || "libero"}</span>
-            </Link>)}
-          </div> : <Empty title="Sala non caricata" text="Apri la pagina Sala per gestire tavoli e QR." />}
-        </Panel>
-      </section>
-
-      <section className="em3-dashboard-grid secondary">
-        <Panel title="Azioni rapide">
-          <div className="em3-action-grid">
-            <Link to="/cucina">Monitor cucina</Link>
-            <Link to="/bar">Monitor bar</Link>
-            <Link to="/admin">Modifica menu</Link>
-            <Link to="/statistiche">Report</Link>
+  return (
+    <div className="dash-os-page">
+      <Navbar />
+      <main className="dash-os-shell">
+        {isSuperAdminMode ? (
+          <div className="dash-super-banner">
+            <div><b>Modalità Super Admin</b> · stai modificando questo ristorante con permessi completi.</div>
+            <button
+              type="button"
+              onClick={() => {
+                const original = localStorage.getItem("superadmin_original_token");
+                if (original) localStorage.setItem("auth_token", original);
+                localStorage.removeItem("superadmin_mode");
+                localStorage.removeItem("superadmin_original_token");
+                window.location.href = "/super-admin";
+              }}
+            >
+              Torna a Super Admin
+            </button>
           </div>
-        </Panel>
+        ) : null}
 
-        <Panel title="Da controllare">
-          <div className="em3-check-list">
-            <div><span>Alert pagamenti</span><b>{kpis.paymentAlerts || alerts.paymentAlerts || 0}</b></div>
-            <div><span>Errori aperti</span><b>{kpis.unresolvedErrors || alerts.unresolvedErrors || 0}</b></div>
-            <div><span>Prodotti esauriti</span><b>{kpis.unavailableItems || 0}</b></div>
+        <DashboardHeader
+          restaurantName={restaurantName}
+          liveBadge={liveBadge}
+          refreshing={refreshing || loading}
+          onRefresh={() => load(true)}
+        />
+
+        {error ? <div className="dash-error-banner">{error}</div> : null}
+
+        <section className="dash-kpi-grid">
+          <DashboardStat label="Incasso oggi" value={euro(kpis.revenueToday)} detail={`${num(kpis.completedOrdersToday)} ordini completati`} tone="money" />
+          <DashboardStat label="Ordini attivi" value={num(kpis.openOrders)} detail="Da cucina, bar e cassa" tone="live" />
+          <DashboardStat label="Tavoli occupati" value={`${num(kpis.activeTables)}/${num(kpis.totalTables)}`} detail={`${num(kpis.freeTables)} tavoli liberi`} />
+          <DashboardStat label="Ticket medio" value={euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
+        </section>
+
+        <section className="dash-main-grid">
+          <div>
+            <DashboardLiveOrders orders={live.activeOrders || []} />
+            <div className="dash-analytics-grid">
+              <DashboardTopProducts products={charts.topProductsToday || []} />
+              <DashboardHourFlow hours={charts.byHourToday || []} />
+            </div>
           </div>
-        </Panel>
 
-        <Panel title="Top prodotti">
-          {topProducts.length ? <div className="em3-product-list">{topProducts.map((p) => <div key={p.id || p.name}><span>{p.name}</span><b>{num(p.quantity)}×</b></div>)}</div> : <Empty title="Nessuna vendita oggi" text="Qui vedrai cosa sta performando meglio." />}
-        </Panel>
-      </section>
+          <aside className="dash-side-stack">
+            <DashboardTableMap
+              activeTables={live.activeTables || []}
+              totalTables={kpis.totalTables || 0}
+              activeCount={kpis.activeTables || 0}
+            />
+            <DashboardAlerts alerts={alerts} />
+            <DashboardQuickActions />
+          </aside>
+        </section>
+      </main>
     </div>
-  </main>;
+  );
 }
+
+export default Dashboard;
