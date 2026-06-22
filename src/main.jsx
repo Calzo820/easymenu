@@ -19,3 +19,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <App />
   </React.StrictMode>
 );
+import "./styles/easymenu-premium-v4.css";
