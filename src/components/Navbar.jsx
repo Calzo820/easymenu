@@ -43,7 +43,7 @@ function restorePlatformSession() {
 
 function Navbar() {
   const location = useLocation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const user = getUser();
   const role = (user?.role || "").toLowerCase();
@@ -64,7 +64,7 @@ function Navbar() {
   const links = useMemo(() => {
     if (!logged) {
       return [
-        { to: "/", label: "Landing", match: ["/"] },
+        { to: "/", label: "Home", match: ["/"] },
         { to: "/login", label: "Login", match: ["/login"] },
         { to: "/register", label: "Register", match: ["/register"] },
         { to: "/menu/demo/demo-table-1", label: "Demo Menu", match: ["/menu"] },
@@ -78,7 +78,7 @@ function Navbar() {
     }
 
     return [
-      { to: "/", label: "Landing", match: ["/"] },
+      { to: "/", label: "Home", match: ["/"] },
 
       {
         to:
@@ -89,24 +89,24 @@ function Navbar() {
             : role === "cashier"
             ? "/cassa"
             : "/dashboard",
-        label: "Dashboard",
+        label: "Oggi",
         match: ["/dashboard"],
       },
 
-      isAdmin && { to: "/admin", label: "Admin", match: ["/admin"] },
+      isAdmin && { to: "/admin", label: "Menu", match: ["/admin"] },
 
-      { to: "/menu/demo/demo-table-1", label: "Menu", match: ["/menu", "/cliente/menu"] },
+      { to: "/menu/demo/demo-table-1", label: "Cliente", match: ["/menu", "/cliente/menu"] },
 
       canKitchen && { to: "/cucina", label: "Cucina", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
 
-      isAdmin && { to: "/tavoli", label: "Tavoli", match: ["/tavoli"] },
+      isAdmin && { to: "/tavoli", label: "Sala", match: ["/tavoli"] },
       isAdmin && { to: "/qr", label: "QR", match: ["/qr"] },
       isAdmin && { to: "/storico", label: "Storico", match: ["/storico"] },
-      isAdmin && { to: "/statistiche", label: "Statistiche", match: ["/statistiche"] },
-      isAdmin && { to: "/billing", label: "Billing", match: ["/billing"] },
-      isAdmin && { to: "/errori", label: "Log errori", match: ["/errori"] },
+      isAdmin && { to: "/statistiche", label: "Analisi", match: ["/statistiche"] },
+      isAdmin && { to: "/billing", label: "Piano", match: ["/billing"] },
+      isAdmin && { to: "/errori", label: "Alert", match: ["/errori"] },
     ].filter(Boolean);
   }, [logged, role, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 
@@ -139,17 +139,16 @@ function Navbar() {
         position: "sticky",
         top: 0,
         zIndex: 1000,
-        padding: "12px 18px",
-        background:
-          "linear-gradient(135deg, rgba(18,59,107,0.90) 0%, rgba(29,78,216,0.84) 55%, rgba(8,145,178,0.78) 100%)",
+        padding: "10px 18px",
+        background: "rgba(8, 13, 23, 0.92)",
         backdropFilter: "blur(16px)",
         borderBottom: "1px solid rgba(255,255,255,0.12)",
-        boxShadow: "0 14px 28px rgba(18,59,107,0.14)",
+        boxShadow: "0 18px 45px rgba(2,6,23,0.22)",
       }}
     >
       <div
         style={{
-          maxWidth: 1440,
+          maxWidth: 1500,
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
@@ -168,9 +167,9 @@ function Navbar() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 15,
+                width: 42,
+                height: 42,
+                borderRadius: 14,
                 background: "linear-gradient(135deg, #ffffff 0%, #dbeafe 100%)",
                 display: "flex",
                 alignItems: "center",
@@ -187,9 +186,9 @@ function Navbar() {
             </div>
 
             <div style={{ color: "white" }}>
-              <div style={{ fontWeight: 900, fontSize: 20 }}>EasyMenu</div>
+              <div style={{ fontWeight: 950, fontSize: 18 }}>EasyMenu</div>
 
-              <div style={{ fontSize: 13, display: "flex", gap: 8 }}>
+              <div style={{ fontSize: 12, display: "flex", gap: 8, alignItems: "center", opacity: .84 }}>
                 <span
                   style={{
                     width: 8,
@@ -271,8 +270,9 @@ function Navbar() {
         <div
           style={{
             display: open ? "flex" : "none",
-            gap: 8,
+            gap: 6,
             flexWrap: "wrap",
+            alignItems: "center",
           }}
         >
           {links.map((link) => {
@@ -285,12 +285,12 @@ function Navbar() {
                 onClick={handleNavigate}
                 style={{
                   color: "white",
-                  fontWeight: 800,
-                  fontSize: 14,
-                  padding: "10px 14px",
-                  borderRadius: 14,
+                  fontWeight: 850,
+                  fontSize: 13,
+                  padding: "9px 12px",
+                  borderRadius: 12,
                   textDecoration: "none",
-                  background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
+                  background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.055)",
                   border: "1px solid rgba(255,255,255,0.1)",
                 }}
               >
