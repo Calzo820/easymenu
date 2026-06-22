@@ -7,6 +7,7 @@ import "./styles/easymenu-v2.css";
 import "./styles/easymenu-os.css";
 import "./styles/easymenu-ux-pro.css";
 import "./styles/operational-ux.css";
+import "./styles/foundation.css";
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -19,4 +20,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <App />
   </React.StrictMode>
 );
-import "./styles/easymenu-premium-v4.css";
