@@ -3,6 +3,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import { apiGet, apiPatch, apiPost } from "../lib/api";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
+import "../styles/management-os.css";
 
 const card = {
   background: "white",
@@ -48,6 +49,8 @@ export default function Tavoli() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [zoneFilter, setZoneFilter] = useState("all");
+  const [tableSearch, setTableSearch] = useState("");
   const baseUrl = window.location.origin;
 
   async function loadData() {
@@ -79,6 +82,27 @@ export default function Tavoli() {
         .sort((a, b) => String(a.code).localeCompare(String(b.code), "it", { numeric: true })),
     [tables]
   );
+
+  const zones = useMemo(() => ["all", ...new Set(activeTables.map((table) => table.zone || "Sala"))], [activeTables]);
+
+  const visibleTables = useMemo(() => {
+    const term = tableSearch.trim().toLowerCase();
+    return activeTables.filter((table) => {
+      const zoneMatch = zoneFilter === "all" || (table.zone || "Sala") === zoneFilter;
+      const text = [table.name, table.code, table.zone].filter(Boolean).join(" ").toLowerCase();
+      return zoneMatch && (!term || text.includes(term));
+    });
+  }, [activeTables, tableSearch, zoneFilter]);
+
+  const groupedTables = useMemo(() => {
+    const map = new Map();
+    visibleTables.forEach((table) => {
+      const zone = table.zone || "Sala";
+      if (!map.has(zone)) map.set(zone, []);
+      map.get(zone).push(table);
+    });
+    return [...map.entries()];
+  }, [visibleTables]);
 
   function buildMenuLink(table) {
     if (!restaurant?.slug || !table?.qrToken) return "";
@@ -144,73 +168,87 @@ export default function Tavoli() {
       `}</style>
 
       <div style={appShellStyle}>
-        <div className="app-shell" style={{ display: "grid", gap: 14 }}>
-          <div className="glass-hero em-compact-hero">
-            <div className="topbar-chip">Tavoli & QR</div>
-            <h1 style={{ margin: "8px 0 0", fontSize: 28, lineHeight: 1.1 }}>Gestione tavoli semplice</h1>
-            <p style={{ margin: "8px 0 0", color: "#475569" }}>
-              Ogni tavolo ha solo numero e QR. Niente coperti, zone o campi inutili.
+        <div className="app-shell management-os">
+          <div className="management-hero-main">
+            <div className="management-kicker">Sala · high volume</div>
+            <h1 className="management-hero-title">Trova qualsiasi tavolo in due secondi.</h1>
+            <p className="management-hero-subtitle">
+              Ricerca, filtri per zona e griglia compatta: resta veloce anche con centinaia di tavoli tra sala, terrazza e privé.
             </p>
           </div>
 
-          {error ? <div style={{ ...card, borderColor: "#fecaca", background: "#fef2f2", color: "#991b1b" }}>{error}</div> : null}
+          {error ? <div className="management-card" style={{ borderColor: "#fecaca", background: "#fef2f2", color: "#991b1b" }}>{error}</div> : null}
 
-          <form onSubmit={createTable} style={{ ...card, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <label style={{ display: "grid", gap: 6, fontWeight: 900 }}>
-              Numero tavolo
+          <div className="management-card no-print">
+            <div className="management-section-head">
+              <div>
+                <h2 className="management-title">Controllo sala</h2>
+                <p className="management-subtitle">{visibleTables.length} tavoli visibili su {activeTables.length} attivi.</p>
+              </div>
+              <div className="management-row">
+                <input className="management-input" value={tableSearch} onChange={(event) => setTableSearch(event.target.value)} placeholder="Cerca tavolo, codice o zona" style={{ minWidth: 260 }} />
+                <select className="management-select" value={zoneFilter} onChange={(event) => setZoneFilter(event.target.value)} style={{ minWidth: 180 }}>
+                  {zones.map((zone) => <option key={zone} value={zone}>{zone === "all" ? "Tutte le zone" : zone}</option>)}
+                </select>
+                <button type="button" onClick={() => window.print()} className="management-btn secondary">Stampa QR</button>
+              </div>
+            </div>
+
+            <form onSubmit={createTable} className="management-row">
               <input
                 value={tableNumber}
                 onChange={(event) => setTableNumber(event.target.value)}
-                placeholder="Es. 1"
-                style={inputStyle}
+                placeholder="Nuovo tavolo es. 101"
+                className="management-input"
                 inputMode="numeric"
+                style={{ maxWidth: 220 }}
               />
-            </label>
-            <button type="submit" disabled={saving} style={{ ...primaryButton, opacity: saving ? 0.65 : 1 }}>
-              {saving ? "Creo..." : "Crea tavolo"}
-            </button>
-            <button type="button" onClick={() => window.print()} style={lightButton}>
-              Stampa QR
-            </button>
-          </form>
+              <button type="submit" disabled={saving} className="management-btn">
+                {saving ? "Creo..." : "Crea tavolo"}
+              </button>
+            </form>
+          </div>
 
-          {loading ? <div style={card}>Caricamento tavoli...</div> : null}
+          {loading ? <div className="management-card">Caricamento tavoli...</div> : null}
+          {!loading && activeTables.length === 0 ? <div className="management-card">Nessun tavolo attivo. Crea il primo tavolo per generare il QR.</div> : null}
 
-          {!loading && activeTables.length === 0 ? (
-            <div style={card}>Nessun tavolo attivo. Crea il primo tavolo per generare il QR.</div>
-          ) : null}
-
-          <div className="qr-print-area" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14 }}>
-            {activeTables.map((table) => {
-              const link = buildMenuLink(table);
-
-              return (
-                <div key={table.id} style={{ ...card, display: "grid", gap: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontSize: 24, fontWeight: 950 }}>{table.name || `Tavolo ${table.code}`}</div>
-                      <div style={{ color: "#64748b", fontWeight: 800, marginTop: 4 }}>QR menu cliente</div>
-                    </div>
-                    <button className="no-print" onClick={() => toggleTable(table)} style={lightButton}>
-                      Nascondi
-                    </button>
+          <div className="qr-print-area management-card" style={{ display: "grid", gap: 18 }}>
+            {groupedTables.map(([zone, zoneTables]) => (
+              <div key={zone} style={{ display: "grid", gap: 12 }}>
+                <div className="management-row" style={{ justifyContent: "space-between" }}>
+                  <div>
+                    <h2 className="management-title" style={{ fontSize: 22 }}>{zone}</h2>
+                    <p className="management-subtitle">{zoneTables.length} tavoli</p>
                   </div>
-
-                  <div style={{ display: "grid", placeItems: "center", padding: 12, background: "#f8fafc", borderRadius: 16 }}>
-                    {link ? <QRCodeCanvas value={link} size={168} includeMargin /> : null}
-                  </div>
-
-                  <a href={link} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 900, overflowWrap: "anywhere" }}>
-                    Apri menu
-                  </a>
-
-                  <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => copyLink(link)} style={lightButton}>Copia link</button>
-                    <button onClick={() => regenerateQr(table.id)} style={lightButton}>Rigenera QR</button>
-                  </div>
+                  <span className="management-badge gray">QR cliente</span>
                 </div>
-              );
-            })}
+
+                <div className="table-planner-grid">
+                  {zoneTables.map((table) => {
+                    const link = buildMenuLink(table);
+                    return (
+                      <div key={table.id} className="table-planner-seat" style={{ minHeight: 190 }}>
+                        <div>
+                          <strong>{table.code || table.name}</strong>
+                          <span>{table.name || `Tavolo ${table.code}`}</span>
+                        </div>
+
+                        <div style={{ display: "grid", placeItems: "center", padding: 8, background: "#f8fafc", borderRadius: 14 }}>
+                          {link ? <QRCodeCanvas value={link} size={88} includeMargin /> : null}
+                        </div>
+
+                        <div className="no-print management-row" style={{ gap: 6 }}>
+                          <button type="button" onClick={() => copyLink(link)} className="management-btn secondary" style={{ padding: "7px 9px", minHeight: 0, fontSize: 12 }}>Copia</button>
+                          <button type="button" onClick={() => regenerateQr(table.id)} className="management-btn secondary" style={{ padding: "7px 9px", minHeight: 0, fontSize: 12 }}>QR</button>
+                          <button type="button" onClick={() => toggleTable(table)} className="management-btn secondary" style={{ padding: "7px 9px", minHeight: 0, fontSize: 12 }}>Off</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {!loading && visibleTables.length === 0 && activeTables.length > 0 ? <div className="management-subtitle">Nessun tavolo trovato con questi filtri.</div> : null}
           </div>
         </div>
       </div>

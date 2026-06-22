@@ -88,17 +88,17 @@ function Navbar() {
             ? "/cassa"
             : "/dashboard",
         label: "Dashboard",
+        group: "",
         match: ["/dashboard"],
       },
 
-      isAdmin && { to: "/tavoli", label: "Sala", match: ["/tavoli", "/qr"] },
-      canKitchen && { to: "/cucina", label: "Cucina", match: ["/cucina"] },
-      canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
-      canCashier && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
+      canKitchen && { to: "/cucina", label: "Cucina", group: "Operativo", match: ["/cucina"] },
+      canBar && { to: "/bar", label: "Bar", group: "Operativo", match: ["/bar"] },
+      canCashier && { to: "/cassa", label: "Cassa", group: "Operativo", match: ["/cassa"] },
+      isAdmin && { to: "/tavoli", label: "Sala", group: "Operativo", match: ["/tavoli"] },
 
-      isAdmin && { to: "/admin", label: "Menu", match: ["/admin"] },
-      isAdmin && { to: "/statistiche", label: "Report", match: ["/statistiche", "/storico", "/errori"] },
-      isAdmin && { to: "/billing", label: "Impostazioni", match: ["/billing"] },
+      isAdmin && { to: "/admin", label: "Gestione", group: "Gestione", match: ["/admin", "/qr", "/billing"] },
+      isAdmin && { to: "/statistiche", label: "Report", group: "Gestione", match: ["/statistiche", "/storico"] },
     ].filter(Boolean);
   }, [logged, role, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 

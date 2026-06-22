@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
+import "../styles/management-os.css";
 
 const emptyItem = {
   name: "",
@@ -22,7 +23,7 @@ const emptyTable = {
   name: "",
   code: "",
   seats: 4,
-  zone: "",
+  zone: "Sala",
   sortOrder: 0,
 };
 
@@ -38,6 +39,54 @@ function formatEuro(value) {
   return `€ ${amount.toFixed(2)}`;
 }
 
+function bySortThenName(a, b) {
+  const sortA = Number(a?.sortOrder ?? 0);
+  const sortB = Number(b?.sortOrder ?? 0);
+  if (sortA !== sortB) return sortA - sortB;
+  return String(a?.name || a?.code || "").localeCompare(String(b?.name || b?.code || ""), "it", { numeric: true });
+}
+
+function roleLabel(role) {
+  if (role === "kitchen") return "Cucina";
+  if (role === "bar") return "Bar";
+  if (role === "cashier") return "Cassa";
+  if (role === "admin") return "Admin";
+  return role || "Staff";
+}
+
+function SectionHead({ title, subtitle, action }) {
+  return (
+    <div className="management-section-head">
+      <div>
+        <h2 className="management-title">{title}</h2>
+        {subtitle ? <p className="management-subtitle">{subtitle}</p> : null}
+      </div>
+      {action || null}
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="management-label">
+      {label}
+      {children}
+    </label>
+  );
+}
+
+function TextInput(props) {
+  return <input className="management-input" {...props} />;
+}
+
+function SelectInput(props) {
+  return <select className="management-select" {...props} />;
+}
+
+function TextArea(props) {
+  return <textarea className="management-textarea" {...props} />;
+}
+
 export default function AdminPanel({ embedded = false } = {}) {
   const [restaurant, setRestaurant] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
@@ -50,6 +99,8 @@ export default function AdminPanel({ embedded = false } = {}) {
   const [savingUser, setSavingUser] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [activeTab, setActiveTab] = useState("menu");
+  const [query, setQuery] = useState("");
   const [restaurantForm, setRestaurantForm] = useState({
     name: "",
     primaryColor: "#1d4ed8",
@@ -100,13 +151,37 @@ export default function AdminPanel({ embedded = false } = {}) {
     return found.sort((a, b) => a.localeCompare(b));
   }, [menuItems]);
 
+  const filteredMenu = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return [...menuItems]
+      .sort(bySortThenName)
+      .filter((item) => {
+        if (!term) return true;
+        return [item.name, item.category, item.preparationArea].filter(Boolean).join(" ").toLowerCase().includes(term);
+      });
+  }, [menuItems, query]);
+
+  const tablesByZone = useMemo(() => {
+    const map = new Map();
+    [...tables].sort(bySortThenName).forEach((table) => {
+      const zone = table.zone || "Sala";
+      if (!map.has(zone)) map.set(zone, []);
+      map.get(zone).push(table);
+    });
+    return [...map.entries()];
+  }, [tables]);
+
+  const activeTables = tables.filter((table) => table.isActive).length;
+  const availableItems = menuItems.filter((item) => item.isAvailable).length;
+  const barItems = menuItems.filter((item) => item.preparationArea === "bar").length;
+  const kitchenItems = menuItems.filter((item) => item.preparationArea !== "bar").length;
+
   async function handleRestaurantSubmit(event) {
     event.preventDefault();
     try {
       setSavingRestaurant(true);
       setError("");
       setSuccess("");
-
       const response = await apiPatch("/restaurants/me", restaurantForm);
       setRestaurant(response.restaurant);
       localStorage.setItem("auth_restaurant", JSON.stringify(response.restaurant));
@@ -126,7 +201,6 @@ export default function AdminPanel({ embedded = false } = {}) {
       setSavingItem(true);
       setError("");
       setSuccess("");
-
       const payload = {
         ...itemForm,
         price: Number(itemForm.price),
@@ -154,9 +228,7 @@ export default function AdminPanel({ embedded = false } = {}) {
   }
 
   async function handleDeleteItem(id) {
-    const confirmed = window.confirm("Eliminare questo prodotto?");
-    if (!confirmed) return;
-
+    if (!window.confirm("Eliminare questo prodotto?")) return;
     try {
       setError("");
       setSuccess("");
@@ -169,6 +241,7 @@ export default function AdminPanel({ embedded = false } = {}) {
   }
 
   function handleEditItem(item) {
+    setActiveTab("menu");
     setEditingItemId(item.id);
     setItemForm({
       name: item.name || "",
@@ -178,12 +251,23 @@ export default function AdminPanel({ embedded = false } = {}) {
       category: item.category || "",
       preparationArea: item.preparationArea || "kitchen",
       imageUrl: item.imageUrl || "",
-      allergens: Array.isArray(item.allergens) ? item.allergens.join(", ") : "",
+      allergens: Array.isArray(item.allergens) ? item.allergens.join(", ") : item.allergens || "",
       sortOrder: item.sortOrder ?? 0,
       vatRate: item.vatRate ?? 10,
       isAvailable: Boolean(item.isAvailable),
       isFeatured: Boolean(item.isFeatured),
     });
+  }
+
+  async function toggleItemAvailability(item) {
+    try {
+      setError("");
+      setSuccess("");
+      await apiPatch(`/menu/${item.id}`, { isAvailable: !item.isAvailable });
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Errore aggiornamento disponibilità");
+    }
   }
 
   async function handleTableSubmit(event) {
@@ -226,21 +310,18 @@ export default function AdminPanel({ embedded = false } = {}) {
     }
   }
 
-
   async function handleUserSubmit(event) {
     event.preventDefault();
     try {
       setSavingUser(true);
       setError("");
       setSuccess("");
-
       await apiPost("/users", {
         name: userForm.name.trim(),
         email: userForm.email.trim().toLowerCase(),
         password: userForm.password,
         role: userForm.role,
       });
-
       setUserForm(emptyUser);
       setSuccess("Utente staff creato");
       await loadData();
@@ -264,9 +345,7 @@ export default function AdminPanel({ embedded = false } = {}) {
   }
 
   async function deleteUser(user) {
-    const confirmed = window.confirm(`Eliminare l'utente ${user.email}?`);
-    if (!confirmed) return;
-
+    if (!window.confirm(`Eliminare l'utente ${user.email}?`)) return;
     try {
       setError("");
       setSuccess("");
@@ -278,196 +357,235 @@ export default function AdminPanel({ embedded = false } = {}) {
     }
   }
 
+  const tabs = [
+    { id: "menu", title: "Menu", subtitle: "Prodotti e prezzi" },
+    { id: "tables", title: "Tavoli", subtitle: "Sala e QR" },
+    { id: "staff", title: "Staff", subtitle: "Accessi rapidi" },
+    { id: "settings", title: "Impostazioni", subtitle: "Brand e piano" },
+  ];
+
+  function renderMenu() {
+    return (
+      <div className="management-grid-2">
+        <form className="management-card management-form" onSubmit={handleItemSubmit}>
+          <SectionHead
+            title={editingItemId ? "Modifica prodotto" : "Nuovo prodotto"}
+            subtitle="Campi essenziali in alto. Dettagli opzionali solo se servono al menu cliente."
+          />
+          <Field label="Nome"><TextInput placeholder="Es. Carbonara" value={itemForm.name} onChange={(e) => setItemForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 130px", gap: 10 }}>
+            <Field label="Categoria"><TextInput placeholder="Primi" list="menu-categories" value={itemForm.category} onChange={(e) => setItemForm((prev) => ({ ...prev, category: e.target.value }))} /></Field>
+            <Field label="Prezzo"><TextInput placeholder="12.00" type="number" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((prev) => ({ ...prev, price: e.target.value }))} /></Field>
+          </div>
+          <datalist id="menu-categories">{categories.map((category) => <option key={category} value={category} />)}</datalist>
+          <Field label="Preparazione">
+            <SelectInput value={itemForm.preparationArea} onChange={(e) => setItemForm((prev) => ({ ...prev, preparationArea: e.target.value }))}>
+              <option value="kitchen">Cucina</option>
+              <option value="bar">Bar</option>
+            </SelectInput>
+          </Field>
+          <Field label="Descrizione breve"><TextInput placeholder="Una riga sul menu" value={itemForm.shortDescription} onChange={(e) => setItemForm((prev) => ({ ...prev, shortDescription: e.target.value }))} /></Field>
+          <Field label="Note cliente / allergeni"><TextArea placeholder="Ingredienti, allergeni, extra informazioni" value={itemForm.description || itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, description: e.target.value }))} /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Field label="Ordine"><TextInput type="number" value={itemForm.sortOrder} onChange={(e) => setItemForm((prev) => ({ ...prev, sortOrder: e.target.value }))} /></Field>
+            <Field label="IVA"><TextInput type="number" step="0.01" value={itemForm.vatRate} onChange={(e) => setItemForm((prev) => ({ ...prev, vatRate: e.target.value }))} /></Field>
+          </div>
+          <div className="management-row">
+            <label className="management-badge green"><input type="checkbox" checked={itemForm.isAvailable} onChange={(e) => setItemForm((prev) => ({ ...prev, isAvailable: e.target.checked }))} /> Disponibile</label>
+            <label className="management-badge"><input type="checkbox" checked={itemForm.isFeatured} onChange={(e) => setItemForm((prev) => ({ ...prev, isFeatured: e.target.checked }))} /> In evidenza</label>
+          </div>
+          <div className="management-row">
+            <button className="management-btn" type="submit" disabled={savingItem}>{savingItem ? "Salvataggio..." : editingItemId ? "Salva modifica" : "Aggiungi prodotto"}</button>
+            {editingItemId ? <button className="management-btn secondary" type="button" onClick={() => { setEditingItemId(""); setItemForm(emptyItem); }}>Annulla</button> : null}
+          </div>
+        </form>
+
+        <div className="management-card">
+          <SectionHead
+            title="Catalogo"
+            subtitle={`${filteredMenu.length} prodotti visibili. Azioni rapide senza aprire modali.`}
+            action={<TextInput placeholder="Cerca prodotto" value={query} onChange={(e) => setQuery(e.target.value)} style={{ minWidth: 240 }} />}
+          />
+          <div className="management-list">
+            {filteredMenu.map((item) => (
+              <div key={item.id} className="management-list-row">
+                <div>
+                  <div className="management-row-title">{item.name}</div>
+                  <div className="management-row-meta">{item.category || "Senza categoria"} · {item.preparationArea === "bar" ? "Bar" : "Cucina"}</div>
+                  <div className="management-price">{formatEuro(item.price)}</div>
+                </div>
+                <div className="management-row" style={{ justifyContent: "flex-end" }}>
+                  <span className={`management-badge ${item.isAvailable ? "green" : "red"}`}>{item.isAvailable ? "Online" : "Esaurito"}</span>
+                  <button className="management-btn secondary" type="button" onClick={() => toggleItemAvailability(item)}>{item.isAvailable ? "Esaurisci" : "Rimetti"}</button>
+                  <button className="management-btn secondary" type="button" onClick={() => handleEditItem(item)}>Modifica</button>
+                  <button className="management-btn danger" type="button" onClick={() => handleDeleteItem(item.id)}>Elimina</button>
+                </div>
+              </div>
+            ))}
+            {filteredMenu.length === 0 ? <div className="management-subtitle">Nessun prodotto trovato.</div> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderTables() {
+    return (
+      <div className="management-grid-2">
+        <form className="management-card management-form" onSubmit={handleTableSubmit}>
+          <SectionHead title="Nuovo tavolo" subtitle="Creazione veloce per sala, terrazza, privé o dehors." />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Field label="Nome"><TextInput placeholder="Tavolo 24" value={tableForm.name} onChange={(e) => setTableForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
+            <Field label="Codice"><TextInput placeholder="24" value={tableForm.code} onChange={(e) => setTableForm((prev) => ({ ...prev, code: e.target.value }))} /></Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Field label="Zona"><TextInput placeholder="Sala" value={tableForm.zone} onChange={(e) => setTableForm((prev) => ({ ...prev, zone: e.target.value }))} /></Field>
+            <Field label="Coperti"><TextInput type="number" value={tableForm.seats} onChange={(e) => setTableForm((prev) => ({ ...prev, seats: e.target.value }))} /></Field>
+          </div>
+          <Field label="Ordine mappa"><TextInput type="number" value={tableForm.sortOrder} onChange={(e) => setTableForm((prev) => ({ ...prev, sortOrder: e.target.value }))} /></Field>
+          <button className="management-btn" type="submit" disabled={savingTable}>{savingTable ? "Creazione..." : "Crea tavolo"}</button>
+          <button className="management-btn secondary" type="button" onClick={() => window.location.href = "/tavoli"}>Apri sala operativa</button>
+        </form>
+
+        <div className="management-card">
+          <SectionHead title="Mappa configurazione" subtitle="Vista per zone: gestibile anche con centinaia di tavoli." action={<button className="management-btn secondary" onClick={() => window.location.href = "/qr"}>QR massivi</button>} />
+          <div className="management-list">
+            {tablesByZone.map(([zone, zoneTables]) => (
+              <div key={zone}>
+                <div className="management-row" style={{ justifyContent: "space-between", marginBottom: 10 }}>
+                  <div className="management-row-title">{zone}</div>
+                  <span className="management-badge gray">{zoneTables.length} tavoli</span>
+                </div>
+                <div className="table-planner-grid">
+                  {zoneTables.map((table) => (
+                    <div key={table.id} className={`table-planner-seat ${table.isActive ? "" : "off"}`}>
+                      <strong>{table.code || table.name}</strong>
+                      <span>{table.seats || 0} coperti</span>
+                      <div className="management-row" style={{ gap: 6 }}>
+                        <button className="management-btn secondary" type="button" style={{ padding: "7px 9px", minHeight: 0, fontSize: 12 }} onClick={() => toggleTable(table)}>{table.isActive ? "Off" : "On"}</button>
+                        <button className="management-btn secondary" type="button" style={{ padding: "7px 9px", minHeight: 0, fontSize: 12 }} onClick={() => regenerateQr(table)}>QR</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {tables.length === 0 ? <div className="management-subtitle">Nessun tavolo presente.</div> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderStaff() {
+    return (
+      <div className="management-grid-2">
+        <form className="management-card management-form" onSubmit={handleUserSubmit}>
+          <SectionHead title="Nuovo accesso" subtitle="Ruoli separati: ogni operatore vede solo la schermata utile al suo lavoro." />
+          <Field label="Nome"><TextInput placeholder="Mario" value={userForm.name} onChange={(e) => setUserForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
+          <Field label="Email"><TextInput placeholder="mario@ristorante.it" type="email" value={userForm.email} onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))} /></Field>
+          <Field label="Password temporanea"><TextInput placeholder="Password" type="password" value={userForm.password} onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))} /></Field>
+          <Field label="Ruolo">
+            <SelectInput value={userForm.role} onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}>
+              <option value="kitchen">Cucina</option>
+              <option value="bar">Bar</option>
+              <option value="cashier">Cassa</option>
+              <option value="admin">Admin</option>
+            </SelectInput>
+          </Field>
+          <button className="management-btn" type="submit" disabled={savingUser}>{savingUser ? "Creazione..." : "Crea accesso"}</button>
+        </form>
+
+        <div className="management-card">
+          <SectionHead title="Team" subtitle="Controllo rapido degli accessi attivi." />
+          <div className="management-list">
+            {staffUsers.map((user) => (
+              <div key={user.id} className="management-list-row">
+                <div>
+                  <div className="management-row-title">{user.name || user.email}</div>
+                  <div className="management-row-meta">{user.email} · {roleLabel(user.role)}</div>
+                </div>
+                <div className="management-row" style={{ justifyContent: "flex-end" }}>
+                  <span className={`management-badge ${user.isActive ? "green" : "red"}`}>{user.isActive ? "Attivo" : "Disattivo"}</span>
+                  <button className="management-btn secondary" type="button" onClick={() => toggleUser(user)}>{user.isActive ? "Disattiva" : "Riattiva"}</button>
+                  <button className="management-btn danger" type="button" onClick={() => deleteUser(user)}>Elimina</button>
+                </div>
+              </div>
+            ))}
+            {staffUsers.length === 0 ? <div className="management-subtitle">Nessun utente staff creato.</div> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSettings() {
+    return (
+      <div className="management-grid-2">
+        <form className="management-card management-form" onSubmit={handleRestaurantSubmit}>
+          <SectionHead title="Brand ristorante" subtitle="Nome, logo e colore usati su menu cliente, dashboard e QR." />
+          <Field label="Nome ristorante"><TextInput value={restaurantForm.name} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
+          <Field label="Colore primario"><TextInput value={restaurantForm.primaryColor} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, primaryColor: e.target.value }))} /></Field>
+          <Field label="Logo URL"><TextInput value={restaurantForm.logoUrl} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, logoUrl: e.target.value }))} /></Field>
+          <Field label="Valuta"><TextInput value={restaurantForm.currency} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))} /></Field>
+          <label className="management-badge green" style={{ width: "fit-content" }}><input type="checkbox" checked={restaurantForm.isActive} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, isActive: e.target.checked }))} /> Ristorante attivo</label>
+          <button className="management-btn" type="submit" disabled={savingRestaurant}>{savingRestaurant ? "Salvataggio..." : "Salva impostazioni"}</button>
+        </form>
+
+        <div className="management-card">
+          <SectionHead title="Centro controllo" subtitle="Le funzioni avanzate restano raggiungibili, ma fuori dal flusso quotidiano." />
+          <div className="management-list">
+            <div className="management-list-row"><div><div className="management-row-title">QR tavoli</div><div className="management-row-meta">Stampa e rigenera QR quando serve.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/qr"}>Apri</button></div>
+            <div className="management-list-row"><div><div className="management-row-title">Abbonamento</div><div className="management-row-meta">Piano attuale: {restaurant?.plan || "starter"}</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/billing"}>Gestisci</button></div>
+            <div className="management-list-row"><div><div className="management-row-title">Storico ordini</div><div className="management-row-meta">Archivio completo fuori dalla dashboard.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/storico"}>Apri</button></div>
+            <div className="management-list-row"><div><div className="management-row-title">Alert tecnici</div><div className="management-row-meta">Errori e diagnostica avanzata.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/errori"}>Apri</button></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={embedded ? { marginBottom: 16 } : glowPageStyle}>
       {!embedded ? <Navbar /> : null}
       <div style={embedded ? { padding: 0 } : appShellStyle}>
-        <div className="app-shell" style={{ display: "grid", gap: 18 }}>
-          <div className="glass-hero" style={{ padding: 24 }}>
-            <div className="topbar-chip" style={{ marginBottom: 12 }}>Gestione ristorante</div>
-            <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.05 }}>Menu, tavoli, staff e impostazioni</h1>
-            <p style={{ marginTop: 12, marginBottom: 0, color: "rgba(255,255,255,0.9)", maxWidth: 760, lineHeight: 1.7 }}>
-              Modifica la configurazione del ristorante senza uscire dalla dashboard principale.
-            </p>
+        <div className="app-shell management-os">
+          <div className="management-hero">
+            <div className="management-hero-main">
+              <div className="management-kicker">EasyMenu · gestione</div>
+              <h1 className="management-hero-title">Meno pagine, più controllo.</h1>
+              <p className="management-hero-subtitle">
+                Menu, sala, staff e impostazioni in un unico hub. Le funzioni che usi ogni giorno sono davanti, quelle rare restano ordinate nelle impostazioni.
+              </p>
+            </div>
+            <div className="management-card">
+              <SectionHead title={restaurant?.name || "Ristorante"} subtitle={`Slug: ${restaurant?.slug || "-"}`} />
+              <div className="management-stats">
+                <div className="management-stat"><span>Prodotti</span><strong>{menuItems.length}</strong></div>
+                <div className="management-stat"><span>Online</span><strong>{availableItems}</strong></div>
+                <div className="management-stat"><span>Tavoli</span><strong>{activeTables}</strong></div>
+                <div className="management-stat"><span>Staff</span><strong>{staffUsers.length}</strong></div>
+              </div>
+            </div>
           </div>
 
-          {error ? <div className="section-card" style={{ border: "1px solid #fecaca", color: "#b91c1c" }}>{error}</div> : null}
-          {success ? <div className="section-card" style={{ border: "1px solid #bbf7d0", color: "#166534" }}>{success}</div> : null}
+          {error ? <div className="management-card" style={{ borderColor: "#fecaca", color: "#b91c1c" }}>{error}</div> : null}
+          {success ? <div className="management-card" style={{ borderColor: "#bbf7d0", color: "#166534" }}>{success}</div> : null}
 
-          {loading ? (
-            <div className="section-card">Caricamento pannello admin...</div>
-          ) : (
-            <>
-              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 18 }}>
-                <form className="section-card" onSubmit={handleRestaurantSubmit} style={{ display: "grid", gap: 14 }}>
-                  <div className="panel-title">Impostazioni ristorante</div>
-                  <label>
-                    <div>Nome ristorante</div>
-                    <input value={restaurantForm.name} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, name: e.target.value }))} style={{ width: "100%" }} />
-                  </label>
-                  <label>
-                    <div>Colore primario</div>
-                    <input value={restaurantForm.primaryColor} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, primaryColor: e.target.value }))} style={{ width: "100%" }} />
-                  </label>
-                  <label>
-                    <div>Logo URL</div>
-                    <input value={restaurantForm.logoUrl} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, logoUrl: e.target.value }))} style={{ width: "100%" }} />
-                  </label>
-                  <label>
-                    <div>Valuta</div>
-                    <input value={restaurantForm.currency} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))} style={{ width: "100%" }} />
-                  </label>
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input type="checkbox" checked={restaurantForm.isActive} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, isActive: e.target.checked }))} />
-                    Ristorante attivo
-                  </label>
-                  <button type="submit" disabled={savingRestaurant}>{savingRestaurant ? "Salvataggio..." : "Salva impostazioni"}</button>
-                </form>
+          <div className="management-tabs">
+            {tabs.map((tab) => (
+              <button key={tab.id} className={`management-tab ${activeTab === tab.id ? "is-active" : ""}`} type="button" onClick={() => setActiveTab(tab.id)}>
+                <strong>{tab.title}</strong>
+                <span>{tab.subtitle}</span>
+              </button>
+            ))}
+          </div>
 
-                <div className="section-card" style={{ display: "grid", gap: 12 }}>
-                  <div className="panel-title">Snapshot rapido</div>
-                  <div>Slug: <b>{restaurant?.slug || "-"}</b></div>
-                  <div>Piano: <b>{restaurant?.plan || "starter"}</b></div>
-                  <div>Prodotti menu: <b>{menuItems.length}</b></div>
-                  <div>Tavoli: <b>{tables.length}</b></div>
-                  <div>Categorie: <b>{categories.length}</b></div>
-                </div>
-              </div>
-
-
-
-              <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.1fr", gap: 18 }}>
-                <form className="section-card" onSubmit={handleUserSubmit} style={{ display: "grid", gap: 12 }}>
-                  <div className="panel-title">Nuovo utente staff</div>
-                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    Crea accessi separati per cucina, bar e cassa. Ogni utente resta legato solo a questo ristorante.
-                  </p>
-                  <input placeholder="Nome" value={userForm.name} onChange={(e) => setUserForm((prev) => ({ ...prev, name: e.target.value }))} />
-                  <input placeholder="Email" type="email" value={userForm.email} onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))} />
-                  <input placeholder="Password temporanea" type="password" value={userForm.password} onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))} />
-                  <select value={userForm.role} onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}>
-                    <option value="kitchen">Cucina</option>
-                    <option value="bar">Bar</option>
-                    <option value="cashier">Cassa</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  <button type="submit" disabled={savingUser}>{savingUser ? "Creazione..." : "Crea utente"}</button>
-                </form>
-
-                <div className="section-card" style={{ display: "grid", gap: 12 }}>
-                  <div className="panel-title">Utenti ristorante</div>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {staffUsers.map((user) => (
-                      <div key={user.id} style={{ padding: 14, border: "1px solid #e5e7eb", borderRadius: 16, background: "white", display: "grid", gap: 8 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                          <div>
-                            <div style={{ fontWeight: 900 }}>{user.name}</div>
-                            <div style={{ color: "#64748b", fontSize: 14 }}>{user.email} · {user.role}</div>
-                          </div>
-                          <div style={{ fontWeight: 800, color: user.isActive ? "#15803d" : "#b91c1c" }}>{user.isActive ? "Attivo" : "Disattivo"}</div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button type="button" onClick={() => toggleUser(user)}>{user.isActive ? "Disattiva" : "Riattiva"}</button>
-                          <button type="button" onClick={() => deleteUser(user)}>Elimina</button>
-                        </div>
-                      </div>
-                    ))}
-                    {staffUsers.length === 0 ? <div>Nessun utente staff creato.</div> : null}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-                <form className="section-card" onSubmit={handleItemSubmit} style={{ display: "grid", gap: 12 }}>
-                  <div className="panel-title">{editingItemId ? "Modifica prodotto" : "Nuovo prodotto"}</div>
-                  <input placeholder="Nome" value={itemForm.name} onChange={(e) => setItemForm((prev) => ({ ...prev, name: e.target.value }))} />
-                  <input placeholder="Categoria" value={itemForm.category} onChange={(e) => setItemForm((prev) => ({ ...prev, category: e.target.value }))} />
-                  <input placeholder="Prezzo" type="number" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((prev) => ({ ...prev, price: e.target.value }))} />
-                  <select value={itemForm.preparationArea} onChange={(e) => setItemForm((prev) => ({ ...prev, preparationArea: e.target.value }))}>
-                    <option value="kitchen">Kitchen</option>
-                    <option value="bar">Bar</option>
-                  </select>
-                  <input placeholder="Descrizione breve" value={itemForm.shortDescription} onChange={(e) => setItemForm((prev) => ({ ...prev, shortDescription: e.target.value }))} />
-                  <textarea placeholder="Descrizione" value={itemForm.description} onChange={(e) => setItemForm((prev) => ({ ...prev, description: e.target.value }))} />
-                  <input placeholder="URL immagine" value={itemForm.imageUrl} onChange={(e) => setItemForm((prev) => ({ ...prev, imageUrl: e.target.value }))} />
-                  <input placeholder="Allergeni separati da virgola" value={itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, allergens: e.target.value }))} />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <input placeholder="Ordine" type="number" value={itemForm.sortOrder} onChange={(e) => setItemForm((prev) => ({ ...prev, sortOrder: e.target.value }))} />
-                    <input placeholder="IVA" type="number" step="0.01" value={itemForm.vatRate} onChange={(e) => setItemForm((prev) => ({ ...prev, vatRate: e.target.value }))} />
-                  </div>
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input type="checkbox" checked={itemForm.isAvailable} onChange={(e) => setItemForm((prev) => ({ ...prev, isAvailable: e.target.checked }))} />
-                    Disponibile
-                  </label>
-                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input type="checkbox" checked={itemForm.isFeatured} onChange={(e) => setItemForm((prev) => ({ ...prev, isFeatured: e.target.checked }))} />
-                    In evidenza
-                  </label>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button type="submit" disabled={savingItem}>{savingItem ? "Salvataggio..." : editingItemId ? "Aggiorna prodotto" : "Crea prodotto"}</button>
-                    {editingItemId ? <button type="button" onClick={() => { setEditingItemId(""); setItemForm(emptyItem); }}>Annulla</button> : null}
-                  </div>
-                </form>
-
-                <div className="section-card" style={{ display: "grid", gap: 12 }}>
-                  <div className="panel-title">Catalogo menu</div>
-                  <div style={{ maxHeight: 640, overflow: "auto", display: "grid", gap: 10 }}>
-                    {menuItems.map((item) => (
-                      <div key={item.id} style={{ padding: 14, border: "1px solid #e5e7eb", borderRadius: 16, background: "white" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                          <div>
-                            <div style={{ fontWeight: 900 }}>{item.name}</div>
-                            <div style={{ color: "#64748b", fontSize: 14 }}>{item.category || "Senza categoria"} · {item.preparationArea}</div>
-                            <div style={{ marginTop: 6 }}>{formatEuro(item.price)}</div>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, alignItems: "start" }}>
-                            <button type="button" onClick={() => handleEditItem(item)}>Modifica</button>
-                            <button type="button" onClick={() => handleDeleteItem(item.id)}>Elimina</button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {menuItems.length === 0 ? <div>Nessun prodotto ancora creato.</div> : null}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1.1fr", gap: 18 }}>
-                <form className="section-card" onSubmit={handleTableSubmit} style={{ display: "grid", gap: 12 }}>
-                  <div className="panel-title">Nuovo tavolo</div>
-                  <input placeholder="Nome tavolo" value={tableForm.name} onChange={(e) => setTableForm((prev) => ({ ...prev, name: e.target.value }))} />
-                  <input placeholder="Codice" value={tableForm.code} onChange={(e) => setTableForm((prev) => ({ ...prev, code: e.target.value }))} />
-                  <input placeholder="Coperti" type="number" value={tableForm.seats} onChange={(e) => setTableForm((prev) => ({ ...prev, seats: e.target.value }))} />
-                  <input placeholder="Zona" value={tableForm.zone} onChange={(e) => setTableForm((prev) => ({ ...prev, zone: e.target.value }))} />
-                  <input placeholder="Ordine visualizzazione" type="number" value={tableForm.sortOrder} onChange={(e) => setTableForm((prev) => ({ ...prev, sortOrder: e.target.value }))} />
-                  <button type="submit" disabled={savingTable}>{savingTable ? "Creazione..." : "Crea tavolo"}</button>
-                </form>
-
-                <div className="section-card" style={{ display: "grid", gap: 12 }}>
-                  <div className="panel-title">Tavoli</div>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {tables.map((table) => (
-                      <div key={table.id} style={{ padding: 14, border: "1px solid #e5e7eb", borderRadius: 16, display: "grid", gap: 8 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                          <div>
-                            <div style={{ fontWeight: 900 }}>{table.name}</div>
-                            <div style={{ color: "#64748b", fontSize: 14 }}>Codice {table.code} · {table.seats} coperti · {table.zone || "Sala"}</div>
-                          </div>
-                          <div style={{ fontWeight: 800, color: table.isActive ? "#15803d" : "#b91c1c" }}>{table.isActive ? "Attivo" : "Disattivo"}</div>
-                        </div>
-                        <div style={{ fontSize: 13, color: "#64748b", wordBreak: "break-all" }}>QR token: {table.qrToken}</div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button type="button" onClick={() => toggleTable(table)}>{table.isActive ? "Disattiva" : "Attiva"}</button>
-                          <button type="button" onClick={() => regenerateQr(table)}>Rigenera QR</button>
-                        </div>
-                      </div>
-                    ))}
-                    {tables.length === 0 ? <div>Nessun tavolo presente.</div> : null}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+          {loading ? <div className="management-card">Caricamento gestione...</div> : null}
+          {!loading && activeTab === "menu" ? renderMenu() : null}
+          {!loading && activeTab === "tables" ? renderTables() : null}
+          {!loading && activeTab === "staff" ? renderStaff() : null}
+          {!loading && activeTab === "settings" ? renderSettings() : null}
         </div>
       </div>
     </div>
