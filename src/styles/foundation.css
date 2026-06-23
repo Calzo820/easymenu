@@ -291,3 +291,60 @@ a { color: inherit; text-decoration: none; }
   .em-grid-2, .em-grid-3, .em-grid-4, .em-form-grid { grid-template-columns: 1fr; }
   .em-title { font-size: 34px; }
 }
+
+/* Global readability pass for dark operational heroes */
+.glass-hero {
+  color: #fff !important;
+  background:
+    radial-gradient(circle at top right, rgba(20,184,166,.18), transparent 36%),
+    linear-gradient(135deg, #0f172a 0%, #123b6b 55%, #0f766e 100%) !important;
+}
+
+.glass-hero h1,
+.glass-hero h2,
+.glass-hero h3,
+.glass-hero .panel-title {
+  color: #fff !important;
+}
+
+.glass-hero p,
+.glass-hero .panel-subtitle {
+  color: rgba(255,255,255,.84) !important;
+}
+
+.glass-hero .topbar-chip {
+  background: rgba(255,255,255,.15) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+body.em-has-sidebar .glass-hero {
+  background:
+    radial-gradient(circle at top right, rgba(20,184,166,.20), transparent 34%),
+    linear-gradient(135deg, #0f172a 0%, #123b6b 58%, #0f766e 100%) !important;
+}
+
+body.em-has-sidebar .glass-hero h1,
+body.em-has-sidebar .glass-hero h2,
+body.em-has-sidebar .glass-hero h3,
+body.em-has-sidebar .glass-hero .panel-title {
+  color: #fff !important;
+}
+
+body.em-has-sidebar .glass-hero p,
+body.em-has-sidebar .glass-hero .panel-subtitle {
+  color: rgba(255,255,255,.84) !important;
+}
+
+body.em-has-sidebar .tables-hero p {
+  display: block !important;
+}
+
+.section-card,
+.metric-card,
+.em-card,
+.card,
+.card-soft {
+  color: #0f172a;
+}

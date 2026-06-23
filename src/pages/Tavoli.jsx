@@ -52,7 +52,31 @@ function formatEuro(value) {
   return `EUR ${Number(value || 0).toFixed(2)}`;
 }
 
-function getVisualTableState(table, state) {
+function makeLocalTables(total = 12) {
+  return Array.from({ length: total }, (_, index) => {
+    const code = String(index + 1);
+    return {
+      id: `local-${code}`,
+      name: `Tavolo ${code}`,
+      code,
+      qrToken: `local-${code}`,
+      isActive: true,
+      isLocal: true,
+    };
+  });
+}
+
+function reservationsKey(restaurant) {
+  return `easymenu_reservations_${restaurant?.id || restaurant?.slug || "local"}`;
+}
+
+function getActiveReservation(table, reservations) {
+  return reservations.find((reservation) => {
+    return reservation.tableId === table.id || reservation.tableCode === table.code;
+  }) || null;
+}
+
+function getVisualTableState(table, state, reservation) {
   const status = state?.status || (table.isActive ? "free" : "inactive");
   const order = state?.activeOrder || null;
   const session = state?.activeSession || null;
@@ -69,6 +93,9 @@ function getVisualTableState(table, state) {
   if (status === "in_progress" || status === "pending" || status === "active") {
     return { kind: "occupied", label: "Occupato", detail: order ? `Ordine ${order.orderNumber || ""}` : "Sessione aperta", total: order?.totalAmount || session?.totalAmount || 0 };
   }
+  if (reservation) {
+    return { kind: "reserved", label: "Prenotato", detail: `${reservation.time || "--:--"} - ${reservation.name || "Cliente"}`, total: 0 };
+  }
   return { kind: "free", label: "Libero", detail: "Nessun ordine", total: 0 };
 }
 
@@ -76,7 +103,16 @@ export default function Tavoli() {
   const [tables, setTables] = useState([]);
   const [tableStatuses, setTableStatuses] = useState([]);
   const [restaurant, setRestaurant] = useState(null);
+  const [reservations, setReservations] = useState([]);
+  const [localMode, setLocalMode] = useState(false);
   const [tableNumber, setTableNumber] = useState("");
+  const [reservationForm, setReservationForm] = useState({
+    name: "",
+    time: "",
+    guests: "",
+    phone: "",
+    notes: "",
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -87,17 +123,37 @@ export default function Tavoli() {
     try {
       setLoading(true);
       setError("");
-      const [tablesData, restaurantData, statusResult] = await Promise.all([
+      const [tablesResult, restaurantResult, statusResult] = await Promise.allSettled([
         apiGet("/tables"),
         apiGet("/restaurants/me"),
-        apiGet("/tables/status").catch(() => null),
+        apiGet("/tables/status"),
       ]);
 
-      setTables(Array.isArray(tablesData) ? tablesData : []);
-      setTableStatuses(normalizeStatusResponse(statusResult));
+      const restaurantData = restaurantResult.status === "fulfilled" ? restaurantResult.value : null;
+      const tablesData = tablesResult.status === "fulfilled" ? tablesResult.value : null;
+      const statusesData = statusResult.status === "fulfilled" ? statusResult.value : null;
+      const storedReservations = JSON.parse(localStorage.getItem(reservationsKey(restaurantData)) || "[]");
+
+      if (tablesResult.status === "rejected") {
+        const savedLocalTables = JSON.parse(localStorage.getItem("easymenu_local_tables") || "[]");
+        const fallbackTables = savedLocalTables.length ? savedLocalTables : makeLocalTables(12);
+        localStorage.setItem("easymenu_local_tables", JSON.stringify(fallbackTables));
+        setTables(fallbackTables);
+        setLocalMode(true);
+        setError(tablesResult.reason?.message || "Account scaduto o tavoli non raggiungibili: mostro una mappa locale provvisoria.");
+      } else {
+        setTables(Array.isArray(tablesData) ? tablesData : []);
+        setLocalMode(false);
+      }
+
+      setTableStatuses(normalizeStatusResponse(statusesData));
+      setReservations(Array.isArray(storedReservations) ? storedReservations : []);
       setRestaurant(restaurantData || null);
     } catch (err) {
-      setError(err.message || "Errore caricamento tavoli");
+      const fallbackTables = makeLocalTables(12);
+      setTables(fallbackTables);
+      setLocalMode(true);
+      setError(err.message || "Errore caricamento tavoli: mostro una mappa locale provvisoria.");
     } finally {
       setLoading(false);
     }
@@ -123,14 +179,16 @@ export default function Tavoli() {
         .filter((table) => table.isActive)
         .map((table) => {
           const state = tableStatusMap.get(`id:${table.id}`) || tableStatusMap.get(`code:${table.code}`) || null;
+          const reservation = getActiveReservation(table, reservations);
           return {
             ...table,
             liveState: state,
-            visualState: getVisualTableState(table, state),
+            reservation,
+            visualState: getVisualTableState(table, state, reservation),
           };
         })
         .sort((a, b) => String(a.code).localeCompare(String(b.code), "it", { numeric: true })),
-    [tables, tableStatusMap]
+    [tables, tableStatusMap, reservations]
   );
 
   const selectedTable = useMemo(
@@ -162,6 +220,22 @@ export default function Tavoli() {
     try {
       setSaving(true);
       setError("");
+      if (localMode) {
+        const nextTable = {
+          id: `local-${code}`,
+          name: `Tavolo ${code}`,
+          code,
+          qrToken: `local-${code}`,
+          isActive: true,
+          isLocal: true,
+        };
+        const nextTables = [...tables.filter((table) => table.code !== code), nextTable]
+          .sort((a, b) => String(a.code).localeCompare(String(b.code), "it", { numeric: true }));
+        setTables(nextTables);
+        localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
+        setTableNumber("");
+        return;
+      }
       await apiPost("/tables", {
         name: `Tavolo ${code}`,
         code,
@@ -183,6 +257,14 @@ export default function Tavoli() {
 
   async function regenerateQr(tableId) {
     try {
+      if (localMode || String(tableId).startsWith("local-")) {
+        const nextTables = tables.map((table) =>
+          table.id === tableId ? { ...table, qrToken: `${table.id}-${Date.now()}` } : table
+        );
+        setTables(nextTables);
+        localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
+        return;
+      }
       await apiPatch(`/tables/${tableId}`, { regenerateQrToken: true });
       await loadData();
     } catch (err) {
@@ -192,11 +274,49 @@ export default function Tavoli() {
 
   async function toggleTable(table) {
     try {
+      if (localMode || table.isLocal) {
+        const nextTables = tables.map((item) =>
+          item.id === table.id ? { ...item, isActive: !item.isActive } : item
+        );
+        setTables(nextTables);
+        localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
+        return;
+      }
       await apiPatch(`/tables/${table.id}`, { isActive: !table.isActive });
       await loadData();
     } catch (err) {
       setError(err.message || "Errore aggiornamento tavolo");
     }
+  }
+
+  function saveReservation(event) {
+    event.preventDefault();
+    if (!selectedTable || !reservationForm.name.trim()) return;
+
+    const reservation = {
+      id: selectedTable.reservation?.id || `reservation-${Date.now()}`,
+      tableId: selectedTable.id,
+      tableCode: selectedTable.code,
+      name: reservationForm.name.trim(),
+      time: reservationForm.time || "",
+      guests: reservationForm.guests || "",
+      phone: reservationForm.phone.trim(),
+      notes: reservationForm.notes.trim(),
+    };
+    const nextReservations = [
+      ...reservations.filter((item) => item.id !== reservation.id && item.tableCode !== selectedTable.code),
+      reservation,
+    ];
+    setReservations(nextReservations);
+    localStorage.setItem(reservationsKey(restaurant), JSON.stringify(nextReservations));
+    setReservationForm({ name: "", time: "", guests: "", phone: "", notes: "" });
+  }
+
+  function clearReservation(table) {
+    if (!table?.reservation) return;
+    const nextReservations = reservations.filter((item) => item.id !== table.reservation.id);
+    setReservations(nextReservations);
+    localStorage.setItem(reservationsKey(restaurant), JSON.stringify(nextReservations));
   }
 
   return (
@@ -213,15 +333,21 @@ export default function Tavoli() {
 
       <div style={appShellStyle}>
         <div className="app-shell" style={{ display: "grid", gap: 14 }}>
-          <div className="glass-hero em-compact-hero">
+          <div className="glass-hero em-compact-hero tables-hero">
             <div className="topbar-chip">Tavoli & QR</div>
-            <h1 style={{ margin: "8px 0 0", fontSize: 28, lineHeight: 1.1 }}>Gestione tavoli semplice</h1>
-            <p style={{ margin: "8px 0 0", color: "#475569" }}>
-              Ogni tavolo ha solo numero e QR. Niente coperti, zone o campi inutili.
+            <h1 style={{ margin: "8px 0 0", fontSize: 30, lineHeight: 1.05 }}>Mappa tavoli e prenotazioni</h1>
+            <p style={{ margin: "8px 0 0" }}>
+              Vista sala leggibile: tavoli liberi, occupati, conto richiesto e prenotazioni nello stesso posto.
             </p>
           </div>
 
-          {error ? <div style={{ ...card, borderColor: "#fecaca", background: "#fef2f2", color: "#991b1b" }}>{error}</div> : null}
+          {error ? (
+            <div className="tables-alert">
+              <b>Attenzione</b>
+              <span>{error}</span>
+              {localMode ? <small>Puoi comunque preparare tavoli e prenotazioni; quando il piano torna attivo ricollega i dati reali dal backend.</small> : null}
+            </div>
+          ) : null}
 
           <form onSubmit={createTable} style={{ ...card, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <label style={{ display: "grid", gap: 6, fontWeight: 900 }}>
@@ -240,12 +366,39 @@ export default function Tavoli() {
             <button type="button" onClick={() => window.print()} style={lightButton}>
               Stampa QR
             </button>
+            {localMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const nextTables = makeLocalTables(12);
+                  setTables(nextTables);
+                  localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
+                }}
+                style={lightButton}
+              >
+                Crea sala 12 tavoli
+              </button>
+            ) : null}
           </form>
 
           {loading ? <div style={card}>Caricamento tavoli...</div> : null}
 
           {!loading && activeTables.length === 0 ? (
-            <div style={card}>Nessun tavolo attivo. Crea il primo tavolo per generare il QR.</div>
+            <div className="tables-empty-map">
+              <strong>Nessun tavolo attivo</strong>
+              <span>Crea il primo tavolo oppure prepara subito una sala demo da 12 tavoli.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextTables = makeLocalTables(12);
+                  setTables(nextTables);
+                  setLocalMode(true);
+                  localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
+                }}
+              >
+                Crea sala 12 tavoli
+              </button>
+            </div>
           ) : null}
 
           {!loading && activeTables.length > 0 ? (
@@ -279,7 +432,16 @@ export default function Tavoli() {
                       <button
                         key={table.id}
                         type="button"
-                        onClick={() => setSelectedTableId(table.id)}
+                        onClick={() => {
+                          setSelectedTableId(table.id);
+                          setReservationForm({
+                            name: table.reservation?.name || "",
+                            time: table.reservation?.time || "",
+                            guests: table.reservation?.guests || "",
+                            phone: table.reservation?.phone || "",
+                            notes: table.reservation?.notes || "",
+                          });
+                        }}
                         className={`table-map-tile table-map-tile--${visual.kind} ${isSelected ? "is-selected" : ""}`}
                       >
                         <span className="table-map-tile__number">T{tableCode}</span>
@@ -313,6 +475,48 @@ export default function Tavoli() {
                     <a href={buildMenuLink(selectedTable)} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 900, overflowWrap: "anywhere" }}>
                       Apri menu cliente
                     </a>
+
+                    <form className="table-reservation-card" onSubmit={saveReservation}>
+                      <div>
+                        <strong>Prenotazione</strong>
+                        <span>{selectedTable.reservation ? "Prenotazione attiva su questo tavolo" : "Aggiungi una prenotazione rapida"}</span>
+                      </div>
+                      <input
+                        value={reservationForm.name}
+                        onChange={(event) => setReservationForm((prev) => ({ ...prev, name: event.target.value }))}
+                        placeholder="Nome cliente"
+                      />
+                      <div className="table-reservation-card__grid">
+                        <input
+                          value={reservationForm.time}
+                          onChange={(event) => setReservationForm((prev) => ({ ...prev, time: event.target.value }))}
+                          placeholder="Ora"
+                        />
+                        <input
+                          value={reservationForm.guests}
+                          onChange={(event) => setReservationForm((prev) => ({ ...prev, guests: event.target.value }))}
+                          placeholder="Coperti"
+                          inputMode="numeric"
+                        />
+                      </div>
+                      <input
+                        value={reservationForm.phone}
+                        onChange={(event) => setReservationForm((prev) => ({ ...prev, phone: event.target.value }))}
+                        placeholder="Telefono"
+                      />
+                      <textarea
+                        value={reservationForm.notes}
+                        onChange={(event) => setReservationForm((prev) => ({ ...prev, notes: event.target.value }))}
+                        placeholder="Note prenotazione"
+                        rows={3}
+                      />
+                      <div className="table-reservation-card__actions">
+                        <button type="submit">Salva prenotazione</button>
+                        {selectedTable.reservation ? (
+                          <button type="button" onClick={() => clearReservation(selectedTable)}>Libera prenotazione</button>
+                        ) : null}
+                      </div>
+                    </form>
 
                     <div className="no-print" style={{ display: "grid", gap: 8 }}>
                       <button onClick={() => copyLink(buildMenuLink(selectedTable))} style={primaryButton}>Copia link QR</button>
