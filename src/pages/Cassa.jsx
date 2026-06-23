@@ -118,6 +118,15 @@ function getStatoOrdineCassa(ordine) {
   };
 }
 
+function getTableTileKind({ ordine, contoRichiesto, cameriereRichiesto }) {
+  if (cameriereRichiesto) return "staff";
+  if (contoRichiesto) return "bill";
+  if (!ordine) return "free";
+  if (ordine.status === "ready" || ordine.stato === "ready") return "ready";
+  if (ordine.status === "in_progress" || ordine.stato === "in_progress") return "progress";
+  return "open";
+}
+
 function subtototaleOrdineSafe(ordine) {
   return (ordine?.piatti || []).reduce((acc, p) => {
     return acc + parseNumber(p.prezzo) * parseNumber(p.qty || 0);
@@ -761,6 +770,7 @@ function Cassa() {
                     richiesteConto[String(tavolo)]
                 );
                 const cameriereRichiesto = Boolean(richiesteCameriere[String(tavolo)]);
+                const tileKind = getTableTileKind({ ordine, contoRichiesto, cameriereRichiesto });
 
                 return (
                   <button
@@ -769,97 +779,38 @@ function Cassa() {
                       setTavoloSelezionato(tavolo);
                       setModalAperta(true);
                     }}
-                    className="section-card em-touch-card"
+                    className={`cash-table-card cash-table-card--${tileKind} ${evidenziato ? "is-live" : ""}`}
                     style={{
                       height: cardHeight,
                       minHeight: 72,
-                      border: contoRichiesto || cameriereRichiesto
-                        ? "3px solid rgba(255,255,255,0.95)"
-                        : evidenziato
-                          ? "2px solid rgba(255,255,255,0.8)"
-                          : "none",
-                      background: cameriereRichiesto
-                        ? "linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
-                        : contoRichiesto
-                        ? "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)"
-                        : stato.bg,
-                      color: "white",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 8,
-                      transition: "transform 0.18s ease, box-shadow 0.18s ease",
-                      padding: 12,
-                      overflow: "hidden",
                       animation: evidenziato ? "pulseTableRealtime 1.2s ease-in-out infinite" : "none",
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                      e.currentTarget.style.boxShadow = "0 14px 22px rgba(15,23,42,0.18)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "";
-                    }}
                   >
-                    <div style={{ fontSize: 20, fontWeight: 900 }}>T{tavolo}</div>
+                    <div className="cash-table-card__number">T{tavolo}</div>
 
                     {cameriereRichiesto ? (
-                      <div
-                        style={{
-                          background: "rgba(255,255,255,0.24)",
-                          padding: "5px 9px",
-                          borderRadius: 999,
-                          fontSize: 11,
-                          fontWeight: 900,
-                        }}
-                      >
+                      <div className="cash-table-card__badge">
                         Cameriere
                       </div>
                     ) : contoRichiesto ? (
-                      <div
-                        style={{
-                          background: "rgba(255,255,255,0.24)",
-                          padding: "5px 9px",
-                          borderRadius: 999,
-                          fontSize: 11,
-                          fontWeight: 900,
-                        }}
-                      >
+                      <div className="cash-table-card__badge">
                         Conto
                       </div>
                     ) : null}
 
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        textAlign: "center",
-                        lineHeight: 1.15,
-                      }}
-                    >
+                    <div className="cash-table-card__state">
                       {stato.label}
                     </div>
 
-                    <div
-                      style={{
-                        background: "rgba(255,255,255,0.18)",
-                        padding: "6px 10px",
-                        borderRadius: 999,
-                        fontSize: 12,
-                        fontWeight: 800,
-                      }}
-                    >
+                    <div className="cash-table-card__meta">
                       {ordine ? `${articoli} articoli` : "Libero"}
                     </div>
 
-                    <div style={{ fontSize: 14, fontWeight: 900 }}>
+                    <div className="cash-table-card__total">
                       {ordine ? formatEuro(totale) : "—"}
                     </div>
 
-                    <div style={{ fontSize: 11, opacity: 0.92 }}>
+                    <div className="cash-table-card__time">
                       {ordine ? `${minuti} min fa` : "Nessun ordine"}
                     </div>
                   </button>

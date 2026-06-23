@@ -41,8 +41,40 @@ function normalizeTableNumber(value) {
   return String(value || "").trim().replace(/[^\w-]/g, "").toUpperCase();
 }
 
+function normalizeStatusResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.tables)) return data.tables;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+function formatEuro(value) {
+  return `EUR ${Number(value || 0).toFixed(2)}`;
+}
+
+function getVisualTableState(table, state) {
+  const status = state?.status || (table.isActive ? "free" : "inactive");
+  const order = state?.activeOrder || null;
+  const session = state?.activeSession || null;
+
+  if (!table.isActive) {
+    return { kind: "inactive", label: "Nascosto", detail: "Non visibile", total: 0 };
+  }
+  if (status === "bill_requested" || order?.paymentStatus === "pending" || session?.status === "closing") {
+    return { kind: "bill", label: "Conto", detail: "Richiesto", total: order?.totalAmount || session?.totalAmount || 0 };
+  }
+  if (status === "ready") {
+    return { kind: "ready", label: "Pronto", detail: "Da servire", total: order?.totalAmount || session?.totalAmount || 0 };
+  }
+  if (status === "in_progress" || status === "pending" || status === "active") {
+    return { kind: "occupied", label: "Occupato", detail: order ? `Ordine ${order.orderNumber || ""}` : "Sessione aperta", total: order?.totalAmount || session?.totalAmount || 0 };
+  }
+  return { kind: "free", label: "Libero", detail: "Nessun ordine", total: 0 };
+}
+
 export default function Tavoli() {
   const [tables, setTables] = useState([]);
+  const [tableStatuses, setTableStatuses] = useState([]);
   const [restaurant, setRestaurant] = useState(null);
   const [tableNumber, setTableNumber] = useState("");
   const [loading, setLoading] = useState(true);
@@ -55,12 +87,14 @@ export default function Tavoli() {
     try {
       setLoading(true);
       setError("");
-      const [tablesData, restaurantData] = await Promise.all([
+      const [tablesData, restaurantData, statusResult] = await Promise.all([
         apiGet("/tables"),
         apiGet("/restaurants/me"),
+        apiGet("/tables/status").catch(() => null),
       ]);
 
       setTables(Array.isArray(tablesData) ? tablesData : []);
+      setTableStatuses(normalizeStatusResponse(statusResult));
       setRestaurant(restaurantData || null);
     } catch (err) {
       setError(err.message || "Errore caricamento tavoli");
@@ -73,12 +107,30 @@ export default function Tavoli() {
     loadData();
   }, []);
 
+  const tableStatusMap = useMemo(() => {
+    const map = new Map();
+    tableStatuses.forEach((state) => {
+      if (state.id) map.set(`id:${state.id}`, state);
+      if (state.code) map.set(`code:${state.code}`, state);
+      if (state.number) map.set(`code:${state.number}`, state);
+    });
+    return map;
+  }, [tableStatuses]);
+
   const activeTables = useMemo(
     () =>
       tables
         .filter((table) => table.isActive)
+        .map((table) => {
+          const state = tableStatusMap.get(`id:${table.id}`) || tableStatusMap.get(`code:${table.code}`) || null;
+          return {
+            ...table,
+            liveState: state,
+            visualState: getVisualTableState(table, state),
+          };
+        })
         .sort((a, b) => String(a.code).localeCompare(String(b.code), "it", { numeric: true })),
-    [tables]
+    [tables, tableStatusMap]
   );
 
   const selectedTable = useMemo(
@@ -213,34 +265,27 @@ export default function Tavoli() {
                   className="qr-print-area"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: `repeat(${gridCols}, minmax(42px, 1fr))`,
-                    gap: activeTables.length > 80 ? 6 : 9,
+                    gridTemplateColumns: `repeat(${gridCols}, minmax(88px, 1fr))`,
+                    gap: activeTables.length > 80 ? 8 : 12,
                     height: "calc(100vh - 250px)",
                     minHeight: 420,
                   }}
                 >
                   {activeTables.map((table) => {
                     const isSelected = selectedTable?.id === table.id;
+                    const visual = table.visualState || getVisualTableState(table, table.liveState);
+                    const tableCode = table.code || table.number || table.name?.replace(/[^0-9A-Za-z-]/g, "") || table.id;
                     return (
                       <button
                         key={table.id}
                         type="button"
                         onClick={() => setSelectedTableId(table.id)}
-                        style={{
-                          minHeight: 44,
-                          border: isSelected ? "3px solid #0f172a" : "1px solid #bbf7d0",
-                          borderRadius: activeTables.length > 80 ? 10 : 14,
-                          background: table.isActive ? "#ecfdf5" : "#f1f5f9",
-                          color: table.isActive ? "#14532d" : "#64748b",
-                          fontWeight: 950,
-                          cursor: "pointer",
-                          display: "grid",
-                          placeItems: "center",
-                          padding: 4,
-                          boxShadow: isSelected ? "0 10px 24px rgba(15,23,42,0.14)" : "none",
-                        }}
+                        className={`table-map-tile table-map-tile--${visual.kind} ${isSelected ? "is-selected" : ""}`}
                       >
-                        {table.code || table.number || table.name?.replace(/[^0-9A-Za-z-]/g, "") || table.id}
+                        <span className="table-map-tile__number">T{tableCode}</span>
+                        <span className="table-map-tile__label">{visual.label}</span>
+                        <span className="table-map-tile__detail">{visual.detail}</span>
+                        {visual.total ? <span className="table-map-tile__total">{formatEuro(visual.total)}</span> : null}
                       </button>
                     );
                   })}
@@ -253,6 +298,12 @@ export default function Tavoli() {
                     <div>
                       <div style={{ fontSize: 28, fontWeight: 950 }}>{selectedTable.name || `Tavolo ${selectedTable.code}`}</div>
                       <div style={{ color: "#64748b", fontWeight: 800, marginTop: 4 }}>QR e azioni rapide</div>
+                    </div>
+
+                    <div className={`table-side-status table-side-status--${selectedTable.visualState?.kind || "free"}`}>
+                      <span>{selectedTable.visualState?.label || "Libero"}</span>
+                      <b>{selectedTable.visualState?.total ? formatEuro(selectedTable.visualState.total) : "Nessun conto aperto"}</b>
+                      <small>{selectedTable.visualState?.detail || "Nessun ordine"}</small>
                     </div>
 
                     <div style={{ display: "grid", placeItems: "center", padding: 16, background: "#f8fafc", borderRadius: 18 }}>
