@@ -196,6 +196,14 @@ export default function Tavoli() {
     [activeTables, selectedTableId]
   );
 
+  const upcomingReservations = useMemo(
+    () =>
+      [...reservations]
+        .sort((a, b) => String(a.time || "99:99").localeCompare(String(b.time || "99:99")))
+        .slice(0, 4),
+    [reservations]
+  );
+
   const gridCols = useMemo(() => {
     const total = Math.max(activeTables.length, 1);
     if (total <= 8) return 4;
@@ -380,6 +388,39 @@ export default function Tavoli() {
               </button>
             ) : null}
           </form>
+
+          <section className="tables-reservation-strip">
+            <div>
+              <span>Prenotazioni sala</span>
+              <strong>{reservations.length}</strong>
+              <small>{reservations.length ? "Tavoli gia assegnati per il prossimo servizio" : "Nessuna prenotazione inserita"}</small>
+            </div>
+            <div className="tables-reservation-strip__list">
+              {upcomingReservations.length ? (
+                upcomingReservations.map((reservation) => (
+                  <button
+                    key={reservation.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTableId(reservation.tableId);
+                      setReservationForm({
+                        name: reservation.name || "",
+                        time: reservation.time || "",
+                        guests: reservation.guests || "",
+                        phone: reservation.phone || "",
+                        notes: reservation.notes || "",
+                      });
+                    }}
+                  >
+                    <b>T{reservation.tableCode}</b>
+                    <span>{reservation.time || "--:--"} - {reservation.name || "Cliente"}</span>
+                  </button>
+                ))
+              ) : (
+                <span className="tables-reservation-strip__empty">Seleziona un tavolo e salva una prenotazione rapida.</span>
+              )}
+            </div>
+          </section>
 
           {loading ? <div style={card}>Caricamento tavoli...</div> : null}
 

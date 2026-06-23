@@ -66,6 +66,9 @@ async function performFetch(endpoint, options = {}, withAuth = true) {
     const data = await parseResponse(response);
 
     if (!response.ok) {
+      if (response.status === 402) {
+        throw new Error(data?.message || "Piano non attivo: riattiva l'abbonamento da Billing per usare i dati reali del ristorante.");
+      }
       if (response.status === 401 && withAuth && !options.skipRefresh) {
         try {
           const refresh = await fetch(buildUrl("/auth/refresh"), {

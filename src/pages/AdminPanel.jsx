@@ -123,6 +123,7 @@ export default function AdminPanel({ embedded = false } = {}) {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [areaFilter, setAreaFilter] = useState("all");
+  const [qualityFilter, setQualityFilter] = useState("all");
   const [restaurantForm, setRestaurantForm] = useState({
     name: "",
     primaryColor: "#1d4ed8",
@@ -186,6 +187,11 @@ export default function AdminPanel({ embedded = false } = {}) {
       .filter((item) => {
         if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
         if (areaFilter !== "all" && item.preparationArea !== areaFilter) return false;
+        if (qualityFilter === "missingPhoto" && hasText(item.imageUrl)) return false;
+        if (qualityFilter === "missingDescription" && (hasText(item.shortDescription) || hasText(item.description))) return false;
+        if (qualityFilter === "missingCategory" && hasText(item.category)) return false;
+        if (qualityFilter === "offline" && item.isAvailable) return false;
+        if (qualityFilter === "featured" && !item.isFeatured) return false;
         if (!term) return true;
         return [item.name, item.category, item.preparationArea, item.shortDescription, item.description]
           .filter(Boolean)
@@ -193,7 +199,7 @@ export default function AdminPanel({ embedded = false } = {}) {
           .toLowerCase()
           .includes(term);
       });
-  }, [menuItems, query, categoryFilter, areaFilter]);
+  }, [menuItems, query, categoryFilter, areaFilter, qualityFilter]);
 
   const tablesByZone = useMemo(() => {
     const map = new Map();
@@ -448,6 +454,26 @@ export default function AdminPanel({ embedded = false } = {}) {
         </div>
       </div>
 
+      <div className="menu-action-board">
+        {[
+          ["missingPhoto", "Foto mancanti", menuQuality.missingPhoto, "Aggiungi immagini ai piatti piu vendibili."],
+          ["missingDescription", "Descrizioni", menuQuality.missingDescription, "Rendi chiaro cosa arriva al cliente."],
+          ["missingCategory", "Categorie", menuQuality.missingCategory, "Ordina il menu per una lettura piu veloce."],
+          ["offline", "Non disponibili", menuQuality.total - menuQuality.online, "Controlla cosa il cliente non puo ordinare."],
+        ].map(([filter, title, value, hint]) => (
+          <button
+            key={filter}
+            type="button"
+            className={qualityFilter === filter ? "is-active" : ""}
+            onClick={() => setQualityFilter(qualityFilter === filter ? "all" : filter)}
+          >
+            <span>{title}</span>
+            <b>{value}</b>
+            <small>{hint}</small>
+          </button>
+        ))}
+      </div>
+
       <div className="management-grid-2">
         <form className="management-card management-form" onSubmit={handleItemSubmit}>
           <SectionHead
@@ -499,6 +525,14 @@ export default function AdminPanel({ embedded = false } = {}) {
                   <option value="all">Tutti i reparti</option>
                   <option value="kitchen">Cucina</option>
                   <option value="bar">Bar</option>
+                </SelectInput>
+                <SelectInput value={qualityFilter} onChange={(e) => setQualityFilter(e.target.value)}>
+                  <option value="all">Qualita: tutti</option>
+                  <option value="missingPhoto">Senza foto</option>
+                  <option value="missingDescription">Senza descrizione</option>
+                  <option value="missingCategory">Senza categoria</option>
+                  <option value="offline">Non disponibili</option>
+                  <option value="featured">In evidenza</option>
                 </SelectInput>
               </div>
             }

@@ -580,6 +580,20 @@ function Cassa() {
     return Math.max(0, Math.round(totaleScontato * 100) / 100);
   }
 
+  function quotaPerPersona(ordine) {
+    if (!ordine) return 0;
+    const cfg = impostazioniConto[ordine.tavolo] || {};
+    const persone = parseNumber(cfg.dividiConto);
+    if (persone <= 1) return 0;
+    return Math.round((totaleFinale(ordine) / persone) * 100) / 100;
+  }
+
+  function restanteDaIncassare(ordine) {
+    if (!ordine) return 0;
+    const cfg = impostazioniConto[ordine.tavolo] || {};
+    return Math.max(0, Math.round((totaleFinale(ordine) - parseNumber(cfg.acconto)) * 100) / 100);
+  }
+
   async function chiudiConto(tavolo) {
     const ordiniCorrenti = JSON.parse(localStorage.getItem(ordiniKey(ristoranteAttivo)) || "[]");
     const storico = JSON.parse(localStorage.getItem(storicoKey(ristoranteAttivo)) || "[]");
@@ -620,6 +634,9 @@ function Cassa() {
         coperti: parseNumber(cfg.coperti),
         costoCoperto: parseNumber(cfg.costoCoperto),
         sconto: parseNumber(cfg.sconto),
+        dividiConto: parseNumber(cfg.dividiConto),
+        acconto: parseNumber(cfg.acconto),
+        restante: restanteDaIncassare(ordine),
       });
 
       const nuovi = ordiniCorrenti.filter((o) => String(o.tavolo) !== String(tavolo));
@@ -724,6 +741,7 @@ function Cassa() {
             <div className="hc-compact-stats">
               <b>{tavoliAperti}</b><span>aperti</span>
               <b>{contiRichiesti}</b><span>conti</span>
+              <b>{piattiTotaliAperti}</b><span>articoli</span>
               <b>{formatEuro(incassoPotenziale)}</b><span>da incassare</span>
             </div>
             <div className="hc-compact-buttons">
@@ -1124,6 +1142,36 @@ function Cassa() {
                             <span>Totale</span>
                             <span>{formatEuro(totaleFinale(ordineSelezionato))}</span>
                           </div>
+
+                          {parseNumber(cfgSelezionato.dividiConto) > 1 ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                color: "#1d4ed8",
+                                fontWeight: 900,
+                              }}
+                            >
+                              <span>Quota x {parseNumber(cfgSelezionato.dividiConto)}</span>
+                              <b>{formatEuro(quotaPerPersona(ordineSelezionato))}</b>
+                            </div>
+                          ) : null}
+
+                          {parseNumber(cfgSelezionato.acconto) > 0 ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                color: "#166534",
+                                fontWeight: 900,
+                              }}
+                            >
+                              <span>Restante da incassare</span>
+                              <b>{formatEuro(restanteDaIncassare(ordineSelezionato))}</b>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -1186,6 +1234,37 @@ function Cassa() {
                               style={inputStyle}
                             />
                           </label>
+
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={{ fontWeight: 700 }}>Dividi conto</span>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Persone"
+                                value={cfgSelezionato.dividiConto || ""}
+                                onChange={(e) =>
+                                  aggiornaConto(tavoloSelezionato, "dividiConto", e.target.value)
+                                }
+                                style={inputStyle}
+                              />
+                            </label>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={{ fontWeight: 700 }}>Gia incassato</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={cfgSelezionato.acconto || ""}
+                                onChange={(e) =>
+                                  aggiornaConto(tavoloSelezionato, "acconto", e.target.value)
+                                }
+                                style={inputStyle}
+                              />
+                            </label>
+                          </div>
 
                           <label style={{ display: "grid", gap: 6 }}>
                             <span style={{ fontWeight: 700 }}>Metodo pagamento</span>

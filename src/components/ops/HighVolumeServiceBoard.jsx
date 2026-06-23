@@ -145,6 +145,7 @@ function ServiceOrderCard({ order, itemsKey, updating, onNext, onBack, onReadyAl
 
 export default function HighVolumeServiceBoard({
   title,
+  subtitle,
   station = "cucina",
   loading,
   error,
@@ -217,13 +218,16 @@ export default function HighVolumeServiceBoard({
   return (
     <main className={`hv-board hv-board-${station} hv-density-${density}`}>
       <section className="hv-compact-topbar">
-        <div className="hv-compact-title">
-          <span>{title}</span>
-          <b>{newCount}</b><small>nuovi</small>
-          <b>{inProgressCount}</b><small>in prep</small>
-          <b>{readyCount}</b><small>pronti</small>
-          <b>{activeLoad}</b><small>pezzi</small>
-          {urgentCount ? <em>{urgentCount} urgenti</em> : null}
+        <div>
+          <div className="hv-compact-title">
+            <span>{title}</span>
+            <b>{newCount}</b><small>nuovi</small>
+            <b>{inProgressCount}</b><small>in prep</small>
+            <b>{readyCount}</b><small>pronti</small>
+            <b>{activeLoad}</b><small>pezzi</small>
+            {urgentCount ? <em>{urgentCount} urgenti</em> : null}
+          </div>
+          {subtitle ? <p className="hv-compact-subtitle">{subtitle}</p> : null}
         </div>
         <div className="hv-compact-actions">
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca tavolo, piatto o nota..." />

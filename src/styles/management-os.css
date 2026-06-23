@@ -354,9 +354,9 @@
 /* Menu quality cockpit */
 .management-inline-tools {
   display: grid;
-  grid-template-columns: minmax(190px, 1fr) minmax(160px, .85fr) minmax(140px, .7fr);
+  grid-template-columns: minmax(170px, 1fr) minmax(145px, .75fr) minmax(130px, .65fr) minmax(150px, .7fr);
   gap: 8px;
-  min-width: min(640px, 100%);
+  min-width: min(820px, 100%);
 }
 
 .menu-health-grid {
@@ -408,12 +408,63 @@
   line-height: 1;
 }
 
+.menu-action-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.menu-action-board button {
+  min-height: 118px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  text-align: left;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #fff;
+  padding: 15px;
+  color: #0f172a;
+  box-shadow: 0 14px 28px rgba(15,23,42,.055);
+}
+
+.menu-action-board button.is-active {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+.menu-action-board span {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.menu-action-board b {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.menu-action-board small {
+  color: #64748b;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.menu-action-board button.is-active small {
+  color: rgba(255,255,255,.72);
+}
+
 @media (max-width: 980px) {
   .menu-health-grid { grid-template-columns: 1fr; }
   .menu-health-metrics { grid-template-columns: repeat(3, 1fr); }
   .management-inline-tools { grid-template-columns: 1fr; min-width: 100%; }
+  .menu-action-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 620px) {
   .menu-health-metrics { grid-template-columns: repeat(2, 1fr); }
+  .menu-action-board { grid-template-columns: 1fr; }
 }

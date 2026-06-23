@@ -11,6 +11,33 @@ import "../styles/superadmin.css";
 
 const PLAN_OPTIONS = ["starter", "growth", "enterprise"];
 
+const PLATFORM_ROADMAP = [
+  {
+    area: "Pagamenti",
+    title: "SumUp / Nexi",
+    status: "Priorita alta",
+    impact: "Incasso al tavolo e riconciliazione pagamenti: aumenta il valore percepito del prodotto.",
+  },
+  {
+    area: "Fiscale",
+    title: "Fatture in Cloud",
+    status: "Priorita alta",
+    impact: "Export fiscale e documenti contabili: utile per ristoranti piu strutturati.",
+  },
+  {
+    area: "POS",
+    title: "Tilby / Cassa in Cloud",
+    status: "Discovery",
+    impact: "Riduce sostituzione del gestionale esistente: EasyMenu diventa strato operativo.",
+  },
+  {
+    area: "Prenotazioni",
+    title: "TheFork / gestione turni",
+    status: "Discovery",
+    impact: "Collega sala, tavoli e coperti: forte leva per locali con servizio su prenotazione.",
+  },
+];
+
 function formatDate(value) {
   if (!value) return "-";
   try {
@@ -269,6 +296,27 @@ export default function SuperAdmin() {
           <StatCard label="Ordini" value={stats.orders} hint="Storico complessivo" />
           <StatCard label="Tavoli" value={stats.tables} hint="QR configurati" />
           <StatCard label="Alert" value={stats.alerts} hint="Da controllare" />
+        </section>
+
+        <section className="superadmin-panel superadmin-roadmap">
+          <div className="superadmin-card-header">
+            <div>
+              <h2 className="superadmin-card-title">Roadmap competitiva</h2>
+              <p className="superadmin-card-subtitle">
+                Questa sezione e solo tua: serve a decidere quali integrazioni rendono EasyMenu piu forte come SaaS.
+              </p>
+            </div>
+          </div>
+          <div className="superadmin-roadmap-grid">
+            {PLATFORM_ROADMAP.map((item) => (
+              <article key={`${item.area}-${item.title}`} className="superadmin-roadmap-card">
+                <span>{item.area}</span>
+                <h3>{item.title}</h3>
+                <b>{item.status}</b>
+                <p>{item.impact}</p>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section className="superadmin-panel superadmin-card">

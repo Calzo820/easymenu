@@ -92,6 +92,9 @@ function Dashboard() {
   const alerts = data?.alerts || {};
 
   const alertCount = num(kpis.unresolvedErrors) + num(kpis.paymentAlerts) + num(kpis.unavailableItems);
+  const busyTables = num(kpis.activeTables);
+  const freeTables = num(kpis.freeTables);
+  const openOrders = num(kpis.openOrders);
 
   if (!restaurantName) {
     return (
@@ -144,6 +147,29 @@ function Dashboard() {
           <DashboardStat label="Ordini attivi" value={num(kpis.openOrders)} detail="Da cucina, bar e cassa" tone="live" />
           <DashboardStat label="Tavoli occupati" value={`${num(kpis.activeTables)}/${num(kpis.totalTables)}`} detail={`${num(kpis.freeTables)} tavoli liberi`} />
           <DashboardStat label="Ticket medio" value={euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
+        </section>
+
+        <section className="dash-service-strip">
+          <Link className={openOrders ? "dash-service-card is-hot" : "dash-service-card"} to="/cucina">
+            <span>Servizio</span>
+            <b>{openOrders ? `${openOrders} ordini attivi` : "Nessun ordine attivo"}</b>
+            <small>Apri cucina e bar per seguire il pass.</small>
+          </Link>
+          <Link className={busyTables ? "dash-service-card" : "dash-service-card is-calm"} to="/tavoli">
+            <span>Sala</span>
+            <b>{busyTables} occupati / {freeTables} liberi</b>
+            <small>Controlla tavoli, QR e prenotazioni.</small>
+          </Link>
+          <Link className={num(kpis.unavailableItems) ? "dash-service-card is-warning" : "dash-service-card"} to="/admin">
+            <span>Menu</span>
+            <b>{num(kpis.unavailableItems)} piatti non disponibili</b>
+            <small>Aggiorna disponibilita, foto e descrizioni.</small>
+          </Link>
+          <Link className={alertCount ? "dash-service-card is-warning" : "dash-service-card is-calm"} to="/errori">
+            <span>Controllo</span>
+            <b>{alertCount ? `${alertCount} alert` : "Tutto regolare"}</b>
+            <small>Verifica pagamenti, errori e avvisi.</small>
+          </Link>
         </section>
 
         <section className="dash-main-grid">

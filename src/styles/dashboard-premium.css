@@ -150,6 +150,67 @@
   gap: 14px;
 }
 
+.dash-service-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.dash-service-card {
+  min-height: 122px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: var(--dash-ink);
+  text-decoration: none;
+  box-shadow: 0 14px 30px rgba(15,23,42,.06);
+}
+
+.dash-service-card span {
+  color: var(--dash-muted);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.dash-service-card b {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.dash-service-card small {
+  color: var(--dash-muted);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.dash-service-card.is-hot {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+.dash-service-card.is-hot span,
+.dash-service-card.is-hot small {
+  color: rgba(255,255,255,.74);
+}
+
+.dash-service-card.is-warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.dash-service-card.is-calm {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
 .dash-stat,
 .dash-panel,
 .dash-empty-restaurant {
@@ -482,11 +543,15 @@
   .dash-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .dash-service-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
   .dash-os-shell { padding: 14px 12px 70px; }
   .dash-kpi-grid,
+  .dash-service-strip,
   .dash-action-grid,
   .dash-table-grid {
     grid-template-columns: 1fr;

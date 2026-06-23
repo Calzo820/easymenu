@@ -442,7 +442,7 @@ function Cucina() {
       <div style={{ ...appShellStyle, paddingTop: 12, paddingLeft: 70, paddingRight: 16 }}>
         <HighVolumeServiceBoard
           title="Cucina"
-          subtitle="Tre corsie operative, ricerca istantanea e densità compatta per reggere anche servizi molto pieni."
+          subtitle="Pass chef: urgenze davanti, batch piatti raggruppati e comande separate tra nuovi, in preparazione e pronti."
           station="kitchen"
           loading={loading}
           error={errore}

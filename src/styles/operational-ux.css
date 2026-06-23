@@ -1004,6 +1004,14 @@ input:focus, select:focus, textarea:focus {
   font-weight: 950;
 }
 
+.hv-compact-subtitle {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .hv-compact-actions {
   display: flex;
   gap: 8px;
@@ -1406,11 +1414,91 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid #fecaca;
 }
 
+.tables-reservation-strip {
+  display: grid;
+  grid-template-columns: minmax(220px, .28fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.94);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 28px rgba(15,23,42,.07);
+}
+
+.tables-reservation-strip > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.tables-reservation-strip span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.tables-reservation-strip strong {
+  color: #0f172a;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.tables-reservation-strip small {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.tables-reservation-strip__list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tables-reservation-strip__list button,
+.tables-reservation-strip__empty {
+  min-height: 72px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  border-radius: 15px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 10px;
+  text-align: left;
+}
+
+.tables-reservation-strip__list button b {
+  color: #7c2d12;
+  font-size: 16px;
+}
+
+.tables-reservation-strip__list button span {
+  color: #9a3412;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tables-reservation-strip__empty {
+  grid-column: 1 / -1;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 @media (max-width: 920px) {
   .table-map-tile { min-height: 104px; }
   .cash-table-card,
   .table-map-tile { border-radius: 16px; padding: 10px; }
   .table-reservation-card__grid { grid-template-columns: 1fr; }
+  .tables-reservation-strip,
+  .tables-reservation-strip__list { grid-template-columns: 1fr; }
 }
 
 /* Kitchen pass upgrade */

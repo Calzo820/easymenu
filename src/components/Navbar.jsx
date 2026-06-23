@@ -102,10 +102,10 @@ function Navbar() {
       canKitchen && { to: "/cucina", label: "Cucina", icon: "◴", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", icon: "◷", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", icon: "▣", match: ["/cassa"] },
-      isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli", "/qr"] },
+      isAdmin && { to: "/tavoli", label: "Sala / Tavoli", icon: "▦", match: ["/tavoli", "/qr"] },
       isAdmin && { to: "/admin", label: "Menu", icon: "☰", match: ["/admin"] },
       isAdmin && { to: "/statistiche", label: "Report", icon: "↗", match: ["/statistiche", "/storico"] },
-      isAdmin && { to: "/integrazioni", label: "Integrazioni", icon: "◇", match: ["/integrazioni"] },
+      isAdmin && { to: "/integrazioni", label: "Collegamenti", icon: "◇", match: ["/integrazioni"] },
       isAdmin && { to: "/billing", label: "Piano", icon: "◌", match: ["/billing"] },
       isAdmin && { to: "/errori", label: "Alert", icon: "!", match: ["/errori"] },
     ].filter(Boolean);
