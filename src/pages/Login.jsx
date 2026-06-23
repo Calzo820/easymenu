@@ -17,15 +17,6 @@ function getDashboardPathByRole(role) {
   return "/dashboard";
 }
 
-
-const DEMO_USERS = [
-  { label: "Owner", email: "owner@demo.test", password: "EasyMenu2026!", hint: "Dashboard completa" },
-  { label: "Admin", email: "admin@demo.test", password: "EasyMenu2026!", hint: "Gestione operativa" },
-  { label: "Cucina", email: "cucina@demo.test", password: "EasyMenu2026!", hint: "Solo cucina" },
-  { label: "Bar", email: "bar@demo.test", password: "EasyMenu2026!", hint: "Solo bar" },
-  { label: "Cassa", email: "cassa@demo.test", password: "EasyMenu2026!", hint: "Solo cassa" },
-];
-
 export default function Login() {
   const navigate = useNavigate();
 
@@ -60,15 +51,6 @@ export default function Login() {
 
     if (errore) setErrore("");
     if (successo) setSuccesso("");
-  }
-
-  function useDemoUser(demoUser) {
-    setForm({
-      email: demoUser.email,
-      password: demoUser.password,
-    });
-    setErrore("");
-    setSuccesso(`Credenziali ${demoUser.label} inserite. Ora clicca Accedi.`);
   }
 
   async function handleSubmit(e) {
@@ -306,55 +288,6 @@ export default function Login() {
               </div>
             ) : null}
 
-            <div
-              style={{
-                marginBottom: 18,
-                background: "#f8fbff",
-                border: "1px solid #dbeafe",
-                borderRadius: 18,
-                padding: 14,
-              }}
-            >
-              <div style={{ fontWeight: 900, color: "#0b2e59", marginBottom: 10 }}>
-                Account demo rapidi
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  gap: 8,
-                }}
-              >
-                {DEMO_USERS.map((demoUser) => (
-                  <button
-                    key={demoUser.email}
-                    type="button"
-                    onClick={() => useDemoUser(demoUser)}
-                    style={{
-                      border: "1px solid #bfdbfe",
-                      background: "white",
-                      borderRadius: 14,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div style={{ fontWeight: 900, color: "#1d4ed8" }}>
-                      {demoUser.label}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
-                      {demoUser.hint}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ marginTop: 10, fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>
-                Password demo: <strong>EasyMenu2026!</strong>. Prima esegui nel backend: <strong>npm run demo:seed</strong>.
-              </div>
-            </div>
-
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: 14 }}>
                 <label
@@ -472,7 +405,7 @@ export default function Login() {
             >
               Non hai ancora un account?{" "}
               <Link
-                to="/register"
+                to="/register?next=/billing&plan=starter"
                 style={{
                   color: "#2563eb",
                   fontWeight: 800,

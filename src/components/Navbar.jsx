@@ -57,7 +57,7 @@ function initials(user) {
   return source.slice(0, 2).toUpperCase();
 }
 
-function Navbar() {
+export default function Navbar() {
   const location = useLocation();
   const user = getUser();
   const role = (user?.role || "").toLowerCase();
@@ -65,11 +65,7 @@ function Navbar() {
   const isSuperAdmin = Boolean(user?.isSuperAdmin) || role === "superadmin" || location.pathname.startsWith("/super-admin");
   const impersonating = hasPlatformSession() && !isSuperAdmin;
   const isOperational = ["/cucina", "/bar", "/cassa", "/tavoli"].some((path) => location.pathname.startsWith(path));
-  const [open, setOpen] = useState(() => {
-    const saved = localStorage.getItem("em_sidebar_open");
-    if (saved !== null) return saved === "1";
-    return !isOperational;
-  });
+  const [open, setOpen] = useState(false);
 
   const restaurantName = isSuperAdmin
     ? "Piattaforma SaaS"
@@ -87,7 +83,6 @@ function Navbar() {
     document.body.classList.add("em-sidebar-ready");
     document.body.classList.toggle("em-sidebar-open", open);
     document.body.classList.toggle("em-sidebar-closed", !open);
-    localStorage.setItem("em_sidebar_open", open ? "1" : "0");
     return () => {
       document.body.classList.remove("em-sidebar-ready", "em-sidebar-open", "em-sidebar-closed");
     };
@@ -102,10 +97,9 @@ function Navbar() {
       canKitchen && { to: "/cucina", label: "Cucina", icon: "◴", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", icon: "◷", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", icon: "▣", match: ["/cassa"] },
-      isAdmin && { to: "/tavoli", label: "Sala / Tavoli", icon: "▦", match: ["/tavoli", "/qr"] },
+      isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli", "/qr"] },
       isAdmin && { to: "/admin", label: "Menu", icon: "☰", match: ["/admin"] },
       isAdmin && { to: "/statistiche", label: "Report", icon: "↗", match: ["/statistiche", "/storico"] },
-      isAdmin && { to: "/integrazioni", label: "Collegamenti", icon: "◇", match: ["/integrazioni"] },
       isAdmin && { to: "/billing", label: "Piano", icon: "◌", match: ["/billing"] },
       isAdmin && { to: "/errori", label: "Alert", icon: "!", match: ["/errori"] },
     ].filter(Boolean);
@@ -118,15 +112,15 @@ function Navbar() {
   }
 
   function handleNavigate() {
-    if (window.innerWidth <= 1180) setOpen(false);
+    if (isOperational || window.innerWidth <= 1180) setOpen(false);
   }
 
   return (
     <>
       <style>{`
-        body.em-sidebar-ready { --em-sidebar-width: 248px; }
-        body.em-sidebar-open { padding-left: var(--em-sidebar-width); }
-        body.em-sidebar-closed { padding-left: 0; }
+        body.em-sidebar-ready,
+        body.em-sidebar-open,
+        body.em-sidebar-closed { padding-left: 0 !important; }
         .em-menu-toggle {
           position: fixed;
           top: 14px;
@@ -134,9 +128,9 @@ function Navbar() {
           z-index: 1202;
           width: 46px;
           height: 46px;
-          border-radius: 16px;
+          border-radius: 15px;
           border: 1px solid rgba(15,23,42,0.13);
-          background: rgba(255,255,255,0.94);
+          background: rgba(255,255,255,0.96);
           color: #0f172a;
           box-shadow: 0 16px 34px rgba(15,23,42,0.18);
           font-size: 22px;
@@ -147,7 +141,7 @@ function Navbar() {
           position: fixed;
           inset: 0;
           z-index: 1198;
-          background: rgba(2,6,23,0.35);
+          background: rgba(2,6,23,0.36);
           opacity: 0;
           pointer-events: none;
           transition: opacity .18s ease;
@@ -156,7 +150,7 @@ function Navbar() {
         .em-sidebar {
           position: fixed;
           inset: 0 auto 0 0;
-          width: var(--em-sidebar-width);
+          width: min(286px, 88vw);
           z-index: 1200;
           display: flex;
           flex-direction: column;
@@ -168,31 +162,26 @@ function Navbar() {
           transition: transform .2s ease;
         }
         .em-sidebar.is-open { transform: translateX(0); }
-        .em-sidebar__brand { padding: 20px 16px 16px 72px; display: flex; gap: 12px; align-items: center; min-height: 80px; }
+        .em-sidebar__brand { padding: 18px 16px 16px 72px; display: flex; gap: 12px; align-items: center; min-height: 80px; }
         .em-sidebar__logo { width: 42px; height: 42px; border-radius: 14px; background: white; display: grid; place-items: center; padding: 7px; overflow: hidden; flex: 0 0 auto; }
         .em-sidebar__logo img { width: 100%; height: 100%; object-fit: contain; }
         .em-sidebar__name { font-size: 18px; font-weight: 950; letter-spacing: -0.04em; line-height: 1; }
-        .em-sidebar__restaurant { margin-top: 6px; color: #9fb0c7; font-size: 12px; font-weight: 750; display: flex; align-items: center; gap: 7px; line-height: 1.25; }
-        .em-sidebar__dot { width: 8px; height: 8px; border-radius: 999px; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,0.12); }
-        .em-sidebar__nav { padding: 12px; display: grid; gap: 7px; }
-        .em-sidebar__link { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 10px 12px; border-radius: 14px; color: #d7e1ef; text-decoration: none; font-size: 14px; font-weight: 850; border: 1px solid transparent; }
-        .em-sidebar__link:hover { background: rgba(255,255,255,0.06); color: white; transform: none; }
-        .em-sidebar__link.is-active { background: #ffffff; color: #07111f; box-shadow: 0 14px 26px rgba(0,0,0,0.18); }
-        .em-sidebar__icon { width: 22px; text-align: center; font-weight: 950; }
-        .em-sidebar__footer { margin-top: auto; padding: 12px; display: grid; gap: 10px; }
-        .em-sidebar__user { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); min-width: 0; }
-        .em-sidebar__avatar { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: #1d4ed8; color: white; font-size: 13px; font-weight: 950; flex: 0 0 auto; }
-        .em-sidebar__email { min-width: 0; color: #cbd5e1; font-size: 11px; font-weight: 750; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .em-sidebar__restaurant { margin-top: 6px; color: #9fb0c7; font-size: 12px; font-weight: 750; display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .em-sidebar__dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,0.12); }
+        .em-sidebar__nav { display: grid; gap: 6px; padding: 14px; overflow: auto; }
+        .em-sidebar__link { display: flex; align-items: center; gap: 14px; min-height: 48px; padding: 0 14px; border-radius: 16px; color: #cbd5e1; text-decoration: none; font-weight: 900; }
+        .em-sidebar__link:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .em-sidebar__link.is-active { background: #fff; color: #07111f; }
+        .em-sidebar__icon { width: 20px; display: inline-grid; place-items: center; font-size: 15px; }
+        .em-sidebar__footer { margin-top: auto; padding: 14px; display: grid; gap: 10px; }
+        .em-sidebar__user { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 18px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); }
+        .em-sidebar__avatar { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: #1d4ed8; color: white; font-size: 13px; font-weight: 950; flex: 0 0 auto; }
+        .em-sidebar__email { max-width: 170px; color: #cbd5e1; font-size: 11px; font-weight: 750; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .em-sidebar__actions { display: grid; grid-template-columns: ${impersonating ? "1fr 1fr" : "1fr"}; gap: 8px; }
         .em-sidebar__btn { border: 1px solid rgba(255,255,255,0.10); border-radius: 13px; padding: 10px 11px; background: rgba(255,255,255,0.07); color: white; font-weight: 900; cursor: pointer; }
         .em-sidebar__btn--green { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.25); }
-        @media (max-width: 1180px) {
-          body.em-sidebar-open, body.em-sidebar-closed { padding-left: 0; }
-          .em-sidebar { width: min(86vw, 286px); }
-        }
         @media print {
           .em-menu-toggle, .em-sidebar, .em-sidebar-backdrop { display: none !important; }
-          body.em-sidebar-open, body.em-sidebar-closed { padding-left: 0 !important; }
         }
       `}</style>
 
@@ -236,5 +225,3 @@ function Navbar() {
     </>
   );
 }
-
-export default Navbar;

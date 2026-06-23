@@ -20,7 +20,7 @@ async function processQueue() {
   try {
     console.log(`[PRINT] ${job.type}:`, job.payload);
     await new Promise((resolve) => setTimeout(resolve, 400));
-  } catch (error) {
+  } catch {
     if (job.retries < 3) {
       job.retries += 1;
       queue.push(job);

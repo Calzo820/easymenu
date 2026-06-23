@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
-import Modal from "../components/Modal";
-import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
+import { glowPageStyle } from "../styles/pageStyles";
 import { createRestaurantSocket } from "../lib/realtime";
 import { API_URL, getAuthHeaders } from "../lib/api";
 
@@ -125,12 +124,6 @@ function getTableTileKind({ ordine, contoRichiesto, cameriereRichiesto }) {
   if (ordine.status === "ready" || ordine.stato === "ready") return "ready";
   if (ordine.status === "in_progress" || ordine.stato === "in_progress") return "progress";
   return "open";
-}
-
-function subtototaleOrdineSafe(ordine) {
-  return (ordine?.piatti || []).reduce((acc, p) => {
-    return acc + parseNumber(p.prezzo) * parseNumber(p.qty || 0);
-  }, 0);
 }
 
 function mapBackendItemStatus(status) {
@@ -267,7 +260,6 @@ function Cassa() {
   const [impostazioniConto, setImpostazioniConto] = useState({});
   const [tavoloStampa, setTavoloStampa] = useState(null);
   const [tavoloSelezionato, setTavoloSelezionato] = useState(null);
-  const [modalAperta, setModalAperta] = useState(false);
   const [closing, setClosing] = useState(false);
   const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(true);
@@ -656,7 +648,6 @@ function Cassa() {
         delete next[String(tavolo)];
         return next;
       });
-      setModalAperta(false);
       setTavoloSelezionato(null);
 
       await syncOrdini();
@@ -686,7 +677,6 @@ function Cassa() {
   const incassoPotenziale = ordiniOrdinati.reduce((acc, o) => acc + totaleFinale(o), 0);
   const tavoliAperti = ordiniOrdinati.length;
   const contiRichiesti = ordiniOrdinati.filter((o) => o.billRequested || o.paymentStatus === "pending" || richiesteConto[o.tavolo]).length;
-  const chiamateCameriere = Object.keys(richiesteCameriere).length;
   const piattiTotaliAperti = ordiniOrdinati.reduce((acc, ordine) => acc + totalePezzi(ordine), 0);
 
   function statoTavolo(numero) {
@@ -694,11 +684,10 @@ function Cassa() {
     return getStatoOrdineCassa(ordine);
   }
 
-  const gridHeight = "calc(100vh - 320px)";
-  const righe = Math.max(1, Math.ceil(totaleTavoli / gridConfig.cols));
-  const cardHeight = `calc((${gridHeight} - ${(righe - 1) * gridConfig.gap}px) / ${righe})`;
-
   const cfgSelezionato = tavoloSelezionato ? impostazioniConto[tavoloSelezionato] || {} : {};
+
+  const tableTiles = Array.from({ length: totaleTavoli }, (_, i) => i + 1);
+  const selectedHasOrder = Boolean(ordineSelezionato);
 
   return (
     <div style={glowPageStyle}>
@@ -706,24 +695,10 @@ function Cassa() {
 
       <style>{`
         @media print {
-          body * {
-            visibility: hidden !important;
-          }
-
-          .print-area, .print-area * {
-            visibility: visible !important;
-          }
-
-          .print-area {
-            position: absolute !important;
-            inset: 0 !important;
-            width: 100% !important;
-            background: white !important;
-            color: black !important;
-            padding: 24px !important;
-          }
+          body * { visibility: hidden !important; }
+          .print-area, .print-area * { visibility: visible !important; }
+          .print-area { position: absolute !important; inset: 0 !important; width: 100% !important; background: white !important; color: black !important; padding: 24px !important; }
         }
-
         @keyframes pulseTableRealtime {
           0% { transform: scale(1); box-shadow: 0 0 0 rgba(59,130,246,0); }
           50% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(59,130,246,0.14); }
@@ -731,666 +706,174 @@ function Cassa() {
         }
       `}</style>
 
-      <div style={{ ...appShellStyle, paddingTop: 12, paddingLeft: 70, paddingRight: 16 }}>
-        <div className="app-shell">
-          <section className="hc-compact-register">
-            <div>
-              <span className="hc-compact-eyebrow">Cassa live</span>
-              <h1>Cassa</h1>
-            </div>
-            <div className="hc-compact-stats">
-              <b>{tavoliAperti}</b><span>aperti</span>
-              <b>{contiRichiesti}</b><span>conti</span>
-              <b>{piattiTotaliAperti}</b><span>articoli</span>
-              <b>{formatEuro(incassoPotenziale)}</b><span>da incassare</span>
-            </div>
-            <div className="hc-compact-buttons">
-              <button onClick={syncOrdini}>Aggiorna</button>
-              <button disabled={!tavoloSelezionato} onClick={() => tavoloSelezionato && stampaPreconto(tavoloSelezionato)}>Preconto</button>
-              <button disabled={!tavoloSelezionato || closing} onClick={() => tavoloSelezionato && chiudiConto(tavoloSelezionato)}>Chiudi</button>
-            </div>
-          </section>
+      <div className="operator-workspace cashdesk-workspace">
+        <section className="pos-topbar">
+          <div>
+            <span>Cassa live</span>
+            <strong>{tavoliAperti} aperti</strong>
+          </div>
+          <div className="pos-topbar__stats">
+            <b>{contiRichiesti}</b><small>conti</small>
+            <b>{Object.keys(richiesteCameriere).length}</b><small>chiamate</small>
+            <b>{piattiTotaliAperti}</b><small>articoli</small>
+            <b>{formatEuro(incassoPotenziale)}</b><small>potenziale</small>
+          </div>
+          <button type="button" onClick={syncOrdini}>Aggiorna</button>
+        </section>
 
-          {ultimoEvento ? (
-            <div className="hc-live" style={{ marginBottom: 10 }}>
-              Live: {ultimoEvento.type === "new-order" && "Nuovo ordine"}{ultimoEvento.type === "order-updated" && "Ordine aggiornato"}{ultimoEvento.type === "order-closed" && "Ordine chiuso"}{ultimoEvento.type === "table-updated" && "Tavolo aggiornato"}{ultimoEvento.type === "call-bill" && "Richiesta conto"}{ultimoEvento.type === "call-staff" && "Cameriere richiesto"}
-            </div>
-          ) : null}
+        {ultimoEvento ? (
+          <div className="pos-live-strip">
+            Live: {ultimoEvento.type === "new-order" && "Nuovo ordine"}{ultimoEvento.type === "order-updated" && "Ordine aggiornato"}{ultimoEvento.type === "order-closed" && "Ordine chiuso"}{ultimoEvento.type === "table-updated" && "Tavolo aggiornato"}{ultimoEvento.type === "call-bill" && "Richiesta conto"}{ultimoEvento.type === "call-staff" && "Cameriere richiesto"}
+          </div>
+        ) : null}
 
-          {errore ? (
-            <div className="section-card" style={{ marginBottom: 10, background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
-              {errore}
-            </div>
-          ) : null}
+        {errore ? <div className="pos-error">{errore}</div> : null}
 
-          {loading ? (
-            <div className="section-card">Caricamento cassa...</div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(${gridConfig.cols}, 1fr)`,
-                gap: gridConfig.gap,
-                height: gridHeight,
-              }}
-            >
-              {Array.from({ length: totaleTavoli }, (_, i) => {
-                const tavolo = i + 1;
-                const stato = statoTavolo(tavolo);
-                const ordine = ordiniOrdinati.find((o) => String(o.tavolo) === String(tavolo));
-                const totale = ordine ? totaleFinale(ordine) : 0;
-                const articoli = ordine ? totalePezzi(ordine) : 0;
-                const minuti = ordine ? differenzaMinuti(ordine.time) : 0;
-                const evidenziato = Boolean(tavoliInEvidenza[String(tavolo)]);
-                const contoRichiesto = Boolean(
-                  ordine?.billRequested ||
-                    ordine?.paymentStatus === "pending" ||
-                    richiesteConto[String(tavolo)]
-                );
-                const cameriereRichiesto = Boolean(richiesteCameriere[String(tavolo)]);
-                const tileKind = getTableTileKind({ ordine, contoRichiesto, cameriereRichiesto });
-
-                return (
-                  <button
-                    key={tavolo}
-                    onClick={() => {
-                      setTavoloSelezionato(tavolo);
-                      setModalAperta(true);
-                    }}
-                    className={`cash-table-card cash-table-card--${tileKind} ${evidenziato ? "is-live" : ""}`}
-                    style={{
-                      height: cardHeight,
-                      minHeight: 72,
-                      animation: evidenziato ? "pulseTableRealtime 1.2s ease-in-out infinite" : "none",
-                    }}
-                  >
-                    <div className="cash-table-card__number">T{tavolo}</div>
-
-                    {cameriereRichiesto ? (
-                      <div className="cash-table-card__badge">
-                        Cameriere
-                      </div>
-                    ) : contoRichiesto ? (
-                      <div className="cash-table-card__badge">
-                        Conto
-                      </div>
-                    ) : null}
-
-                    <div className="cash-table-card__state">
-                      {stato.label}
-                    </div>
-
-                    <div className="cash-table-card__meta">
-                      {ordine ? `${articoli} articoli` : "Libero"}
-                    </div>
-
-                    <div className="cash-table-card__total">
-                      {ordine ? formatEuro(totale) : "—"}
-                    </div>
-
-                    <div className="cash-table-card__time">
-                      {ordine ? `${minuti} min fa` : "Nessun ordine"}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {modalAperta && (
-            <Modal
-              onClose={() => {
-                setModalAperta(false);
-                setTavoloSelezionato(null);
-                setTavoloStampa(null);
-              }}
-              maxWidth={1100}
-            >
-              <div style={{ paddingTop: 10 }}>
-                <h2 style={{ marginTop: 0, marginBottom: 10 }}>
-                  Tavolo {tavoloSelezionato}
-                </h2>
-
-                {!ordineSelezionato ? (
-                  <div
-                    style={{
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 18,
-                      padding: 18,
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, fontSize: 18 }}>Tavolo libero</div>
-                    <div style={{ marginTop: 6, color: "#475569" }}>
-                      Nessun ordine attivo su questo tavolo.
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1.15fr 0.85fr",
-                      gap: 18,
-                      alignItems: "start",
-                    }}
-                  >
-                    <div
-                      style={{
-                        background: "#ffffff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 20,
-                        padding: 18,
-                        boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
-                          flexWrap: "wrap",
-                          marginBottom: 12,
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 900, fontSize: 22 }}>
-                            Ordine tavolo {ordineSelezionato.tavolo}
-                          </div>
-                          <div style={{ color: "#6b7280", marginTop: 4 }}>
-                            Aperto il {formatDateTime(ordineSelezionato.time)}
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            padding: "8px 12px",
-                            borderRadius: 999,
-                            background: "#eff6ff",
-                            color: "#1d4ed8",
-                            fontWeight: 800,
-                          }}
-                        >
-                          {differenzaMinuti(ordineSelezionato.time)} min
-                        </div>
-                      </div>
-
-                      {(ordineSelezionato.billRequested ||
-                        ordineSelezionato.paymentStatus === "pending" ||
-                        richiesteConto[String(tavoloSelezionato)]) ? (
-                        <div
-                          style={{
-                            marginBottom: 14,
-                            background: "#f5f3ff",
-                            border: "1px solid #c4b5fd",
-                            color: "#4c1d95",
-                            borderRadius: 16,
-                            padding: 14,
-                            fontWeight: 800,
-                          }}
-                        >
-                          🔔 Il cliente ha richiesto il conto. Controlla il preconto e chiudi con il metodo di pagamento corretto.
-                        </div>
-                      ) : null}
-
-                      {richiesteCameriere[String(tavoloSelezionato)] ? (
-                        <div
-                          style={{
-                            marginBottom: 14,
-                            background: "#fff7ed",
-                            border: "1px solid #fed7aa",
-                            color: "#9a3412",
-                            borderRadius: 16,
-                            padding: 14,
-                            fontWeight: 800,
-                          }}
-                        >
-                          🛎️ Il cliente ha chiamato il cameriere: {richiesteCameriere[String(tavoloSelezionato)]?.reason || "assistenza"}.
-                        </div>
-                      ) : null}
-
-                      <div
-                        className={tavoloStampa === tavoloSelezionato ? "print-area" : ""}
-                        style={{
-                          background: "#f8fafc",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 16,
-                          padding: 16,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            alignItems: "center",
-                            marginBottom: 14,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 900, fontSize: 18 }}>
-                              Preconto tavolo {ordineSelezionato.tavolo}
-                            </div>
-                            <div style={{ color: "#6b7280", marginTop: 4 }}>
-                              {ristoranteAttivo}
-                            </div>
-                          </div>
-
-                          <div style={{ color: "#6b7280", fontSize: 14 }}>
-                            {formatDateTime(Date.now())}
-                          </div>
-                        </div>
-
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {ordineSelezionato.piatti.map((p, index) => (
-                            <div
-                              key={`${p.nome}-${p.servizio}-${p.categoria}-${index}`}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                background: "white",
-                                border: "1px solid #e5e7eb",
-                                borderRadius: 14,
-                                padding: 12,
-                              }}
-                            >
-                              <div>
-                                <div style={{ fontWeight: 800 }}>
-                                  {p.nome} x{p.qty}
-                                </div>
-
-                                <div
-                                  style={{
-                                    marginTop: 6,
-                                    display: "flex",
-                                    gap: 8,
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      padding: "4px 8px",
-                                      borderRadius: 999,
-                                      background: "#f3f4f6",
-                                      fontSize: 12,
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    {p.categoria || "Senza categoria"}
-                                  </span>
-
-                                  <span
-                                    style={{
-                                      padding: "4px 8px",
-                                      borderRadius: 999,
-                                      background: p.servizio === "dopo" ? "#ede9fe" : "#dbeafe",
-                                      color: p.servizio === "dopo" ? "#6d28d9" : "#1d4ed8",
-                                      fontSize: 12,
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    {p.servizio === "dopo" ? "Porta dopo" : "Porta subito"}
-                                  </span>
-
-                                  <span
-                                    style={{
-                                      padding: "4px 8px",
-                                      borderRadius: 999,
-                                      background:
-                                        p.stato === "pronto"
-                                          ? "#dcfce7"
-                                          : p.stato === "preparazione"
-                                          ? "#fef3c7"
-                                          : "#dbeafe",
-                                      color:
-                                        p.stato === "pronto"
-                                          ? "#166534"
-                                          : p.stato === "preparazione"
-                                          ? "#92400e"
-                                          : "#1d4ed8",
-                                      fontSize: 12,
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    {p.stato || "nuovo"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div style={{ fontWeight: 900 }}>
-                                {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {ordineSelezionato.nota ? (
-                          <div
-                            style={{
-                              marginTop: 14,
-                              background: "#fff7ed",
-                              border: "1px solid #fed7aa",
-                              borderRadius: 14,
-                              padding: 12,
-                            }}
-                          >
-                            <b>Nota:</b> {ordineSelezionato.nota}
-                          </div>
-                        ) : null}
-
-                        <div
-                          style={{
-                            marginTop: 16,
-                            borderTop: "1px dashed #cbd5e1",
-                            paddingTop: 14,
-                            display: "grid",
-                            gap: 8,
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                            }}
-                          >
-                            <span>Subtotale</span>
-                            <b>{formatEuro(subtototaleOrdineSafe(ordineSelezionato))}</b>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                            }}
-                          >
-                            <span>
-                              Coperti ({parseNumber(cfgSelezionato.coperti)} ×{" "}
-                              {formatEuro(parseNumber(cfgSelezionato.costoCoperto))})
-                            </span>
-                            <b>
-                              {formatEuro(
-                                parseNumber(cfgSelezionato.coperti) *
-                                  parseNumber(cfgSelezionato.costoCoperto)
-                              )}
-                            </b>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                            }}
-                          >
-                            <span>Sconto</span>
-                            <b>{parseNumber(cfgSelezionato.sconto)}%</b>
-                          </div>
-
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                              fontSize: 20,
-                              fontWeight: 900,
-                            }}
-                          >
-                            <span>Totale</span>
-                            <span>{formatEuro(totaleFinale(ordineSelezionato))}</span>
-                          </div>
-
-                          {parseNumber(cfgSelezionato.dividiConto) > 1 ? (
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                color: "#1d4ed8",
-                                fontWeight: 900,
-                              }}
-                            >
-                              <span>Quota x {parseNumber(cfgSelezionato.dividiConto)}</span>
-                              <b>{formatEuro(quotaPerPersona(ordineSelezionato))}</b>
-                            </div>
-                          ) : null}
-
-                          {parseNumber(cfgSelezionato.acconto) > 0 ? (
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                color: "#166534",
-                                fontWeight: 900,
-                              }}
-                            >
-                              <span>Restante da incassare</span>
-                              <b>{formatEuro(restanteDaIncassare(ordineSelezionato))}</b>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 16,
-                      }}
-                    >
-                      <div
-                        style={{
-                          background: "#ffffff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 20,
-                          padding: 18,
-                          boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>Impostazioni conto</h3>
-
-                        <div style={{ display: "grid", gap: 12 }}>
-                          <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ fontWeight: 700 }}>Numero coperti</span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={cfgSelezionato.coperti || ""}
-                              onChange={(e) =>
-                                aggiornaConto(tavoloSelezionato, "coperti", e.target.value)
-                              }
-                              style={inputStyle}
-                            />
-                          </label>
-
-                          <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ fontWeight: 700 }}>Costo coperto</span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={cfgSelezionato.costoCoperto || ""}
-                              onChange={(e) =>
-                                aggiornaConto(tavoloSelezionato, "costoCoperto", e.target.value)
-                              }
-                              style={inputStyle}
-                            />
-                          </label>
-
-                          <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ fontWeight: 700 }}>Sconto %</span>
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={cfgSelezionato.sconto || ""}
-                              onChange={(e) =>
-                                aggiornaConto(tavoloSelezionato, "sconto", e.target.value)
-                              }
-                              style={inputStyle}
-                            />
-                          </label>
-
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={{ fontWeight: 700 }}>Dividi conto</span>
-                              <input
-                                type="number"
-                                min="1"
-                                placeholder="Persone"
-                                value={cfgSelezionato.dividiConto || ""}
-                                onChange={(e) =>
-                                  aggiornaConto(tavoloSelezionato, "dividiConto", e.target.value)
-                                }
-                                style={inputStyle}
-                              />
-                            </label>
-
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={{ fontWeight: 700 }}>Gia incassato</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={cfgSelezionato.acconto || ""}
-                                onChange={(e) =>
-                                  aggiornaConto(tavoloSelezionato, "acconto", e.target.value)
-                                }
-                                style={inputStyle}
-                              />
-                            </label>
-                          </div>
-
-                          <label style={{ display: "grid", gap: 6 }}>
-                            <span style={{ fontWeight: 700 }}>Metodo pagamento</span>
-                            <select
-                              value={cfgSelezionato.pagamento || ""}
-                              onChange={(e) =>
-                                aggiornaConto(tavoloSelezionato, "pagamento", e.target.value)
-                              }
-                              style={inputStyle}
-                            >
-                              <option value="">Seleziona</option>
-                              <option value="Contanti">Contanti</option>
-                              <option value="Carta">Carta</option>
-                              <option value="POS">POS</option>
-                              <option value="Satispay">Satispay</option>
-                              <option value="Altro">Altro</option>
-                            </select>
-                          </label>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          background: "#ffffff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 20,
-                          padding: 18,
-                          boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>Aggiungi extra</h3>
-
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <input
-                            type="text"
-                            placeholder="Nome extra"
-                            value={extraInputs[tavoloSelezionato]?.nome || ""}
-                            onChange={(e) =>
-                              aggiornaExtra(tavoloSelezionato, "nome", e.target.value)
-                            }
-                            style={inputStyle}
-                          />
-
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="Prezzo"
-                            value={extraInputs[tavoloSelezionato]?.prezzo || ""}
-                            onChange={(e) =>
-                              aggiornaExtra(tavoloSelezionato, "prezzo", e.target.value)
-                            }
-                            style={inputStyle}
-                          />
-
-                          <button
-                            onClick={() => aggiungiPiatto(tavoloSelezionato)}
-                            style={{
-                              border: "none",
-                              borderRadius: 14,
-                              padding: "13px 16px",
-                              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                              color: "white",
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              boxShadow: "0 12px 22px rgba(37,99,235,0.22)",
-                            }}
-                          >
-                            Aggiungi extra al tavolo
-                          </button>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          background: "#ffffff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 20,
-                          padding: 18,
-                          boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
-                        }}
-                      >
-                        <h3 style={{ marginTop: 0 }}>Azioni</h3>
-
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <button
-                            onClick={() => stampaPreconto(tavoloSelezionato)}
-                            style={{
-                              border: "none",
-                              borderRadius: 14,
-                              padding: "13px 16px",
-                              background: "linear-gradient(135deg, #111827 0%, #1f2937 100%)",
-                              color: "white",
-                              fontWeight: 800,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Stampa preconto
-                          </button>
-
-                          <button
-                            onClick={() => chiudiConto(tavoloSelezionato)}
-                            disabled={closing}
-                            style={{
-                              border: "none",
-                              borderRadius: 14,
-                              padding: "13px 16px",
-                              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-                              color: "white",
-                              fontWeight: 800,
-                              cursor: closing ? "not-allowed" : "pointer",
-                              boxShadow: "0 12px 22px rgba(22,163,74,0.22)",
-                              opacity: closing ? 0.75 : 1,
-                            }}
-                          >
-                            {closing ? "Chiusura conto..." : "Chiudi conto"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        <section className="pos-layout">
+          <div className="pos-table-map">
+            <div className="pos-map-head">
+              <div>
+                <strong>Tavoli</strong>
+                <span>{totaleTavoli} totali · clicca il numero richiesto dal cliente</span>
               </div>
-            </Modal>
-          )}
-        </div>
+              <div className="pos-legend">
+                <i className="free" /> libero <i className="open" /> aperto <i className="bill" /> conto
+              </div>
+            </div>
+
+            {loading ? <div className="pos-empty">Caricamento cassa...</div> : null}
+
+            {!loading ? (
+              <div
+                className="em-table-grid em-table-grid--cash"
+                style={{
+                  gridTemplateColumns: `repeat(${gridConfig.cols}, minmax(0, 1fr))`,
+                  gap: gridConfig.gap,
+                  minHeight: 0,
+                }}
+              >
+                {tableTiles.map((tavolo) => {
+                  const stato = statoTavolo(tavolo);
+                  const ordine = ordiniOrdinati.find((o) => String(o.tavolo) === String(tavolo));
+                  const totale = ordine ? totaleFinale(ordine) : 0;
+                  const articoli = ordine ? totalePezzi(ordine) : 0;
+                  const minuti = ordine ? differenzaMinuti(ordine.time) : 0;
+                  const evidenziato = Boolean(tavoliInEvidenza[String(tavolo)]);
+                  const contoRichiesto = Boolean(ordine?.billRequested || ordine?.paymentStatus === "pending" || richiesteConto[String(tavolo)]);
+                  const cameriereRichiesto = Boolean(richiesteCameriere[String(tavolo)]);
+                  const tileKind = getTableTileKind({ ordine, contoRichiesto, cameriereRichiesto });
+                  const selected = String(tavoloSelezionato) === String(tavolo);
+
+                  return (
+                    <button
+                      key={tavolo}
+                      type="button"
+                      onClick={() => setTavoloSelezionato(tavolo)}
+                      className={`cash-table-card cash-table-card--${tileKind} ${evidenziato ? "is-live" : ""} ${selected ? "is-selected" : ""}`}
+                      style={{ animation: evidenziato ? "pulseTableRealtime 1.2s ease-in-out infinite" : "none" }}
+                    >
+                      <div className="cash-table-card__number">{tavolo}</div>
+                      <div className="cash-table-card__state">{stato.label}</div>
+                      <div className="cash-table-card__meta">{ordine ? `${articoli} articoli` : "Libero"}</div>
+                      <div className="cash-table-card__total">{ordine ? formatEuro(totale) : "—"}</div>
+                      <div className="cash-table-card__time">{ordine ? `${minuti} min` : ""}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="pos-drawer">
+            <div className="pos-drawer__head">
+              <div>
+                <span>Tavolo selezionato</span>
+                <strong>{tavoloSelezionato ? `Tavolo ${tavoloSelezionato}` : "Nessun tavolo"}</strong>
+              </div>
+              {tavoloSelezionato ? <button type="button" onClick={() => setTavoloSelezionato(null)}>×</button> : null}
+            </div>
+
+            {!tavoloSelezionato ? (
+              <div className="pos-empty">Seleziona un tavolo dalla mappa per aprire ordine, preconto e pagamento.</div>
+            ) : null}
+
+            {tavoloSelezionato && !selectedHasOrder ? (
+              <div className="pos-empty pos-empty--success">Tavolo libero. Nessun conto da chiudere.</div>
+            ) : null}
+
+            {ordineSelezionato ? (
+              <div className="pos-bill">
+                <div className="pos-total-card">
+                  <span>Totale</span>
+                  <strong>{formatEuro(totaleFinale(ordineSelezionato))}</strong>
+                  <small>Aperto {formatDateTime(ordineSelezionato.time)}</small>
+                </div>
+
+                {(ordineSelezionato.billRequested || ordineSelezionato.paymentStatus === "pending" || richiesteConto[String(tavoloSelezionato)]) ? (
+                  <div className="pos-callout">Conto richiesto dal cliente</div>
+                ) : null}
+
+                <div className="pos-items-list">
+                  {(ordineSelezionato.piatti || []).map((p, index) => (
+                    <div key={`${p.id || p.nome}-${index}`}>
+                      <b>{parseNumber(p.qty || 1)}× {p.nome}</b>
+                      <span>{formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pos-payment-grid">
+                  {["Carta", "Contanti", "Satispay", "Altro"].map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      className={cfgSelezionato.pagamento === method ? "is-active" : ""}
+                      onClick={() => aggiornaConto(tavoloSelezionato, "pagamento", method)}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+
+                <details className="pos-advanced">
+                  <summary>Extra, sconto e divisione conto</summary>
+                  <div className="pos-form-grid">
+                    <input style={inputStyle} placeholder="Coperti" inputMode="numeric" value={cfgSelezionato.coperti || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "coperti", event.target.value)} />
+                    <input style={inputStyle} placeholder="Costo coperto" inputMode="decimal" value={cfgSelezionato.costoCoperto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "costoCoperto", event.target.value)} />
+                    <input style={inputStyle} placeholder="Sconto %" inputMode="decimal" value={cfgSelezionato.sconto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "sconto", event.target.value)} />
+                    <input style={inputStyle} placeholder="Dividi per" inputMode="numeric" value={cfgSelezionato.dividiConto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "dividiConto", event.target.value)} />
+                    <input style={inputStyle} placeholder="Acconto" inputMode="decimal" value={cfgSelezionato.acconto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "acconto", event.target.value)} />
+                  </div>
+                  {quotaPerPersona(ordineSelezionato) ? <div className="pos-split">Quota: {formatEuro(quotaPerPersona(ordineSelezionato))} a persona</div> : null}
+                  <div className="pos-extra-row">
+                    <input style={inputStyle} placeholder="Extra" value={extraInputs[tavoloSelezionato]?.nome || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "nome", event.target.value)} />
+                    <input style={inputStyle} placeholder="Prezzo" inputMode="decimal" value={extraInputs[tavoloSelezionato]?.prezzo || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "prezzo", event.target.value)} />
+                    <button type="button" onClick={() => aggiungiPiatto(tavoloSelezionato)}>Aggiungi</button>
+                  </div>
+                </details>
+
+                <div className="pos-main-actions">
+                  <button type="button" onClick={() => stampaPreconto(tavoloSelezionato)}>Stampa</button>
+                  <button type="button" className="is-primary" disabled={closing} onClick={() => chiudiConto(tavoloSelezionato)}>
+                    {closing ? "Chiusura..." : "Chiudi conto"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </aside>
+        </section>
       </div>
+
+      {tavoloStampa && ordineSelezionato ? (
+        <div className="print-area" style={{ display: "none" }}>
+          <h2>Preconto tavolo {ordineSelezionato.tavolo}</h2>
+          {(ordineSelezionato.piatti || []).map((p, index) => (
+            <div key={`${p.nome}-${index}`}>{p.qty || 1} x {p.nome} — {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</div>
+          ))}
+          <hr />
+          <strong>Totale {formatEuro(totaleFinale(ordineSelezionato))}</strong>
+        </div>
+      ) : null}
     </div>
   );
 }

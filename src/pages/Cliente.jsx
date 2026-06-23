@@ -304,7 +304,6 @@ function ProductSheet({
             <button
               onClick={() => setServizioDraft("subito")}
               style={{
-                border: "none",
                 borderRadius: 999,
                 padding: "10px 16px",
                 background:
@@ -1089,7 +1088,7 @@ function Cliente() {
   const giaPagatoOnline = pagamento.summary?.paymentStatus === "paid" || residuoPagamento <= 0.01;
   const paymentResult = params.get("payment");
 
-  const suggerimentiUpsell = useMemo(() => {
+  const SUGGERIMENTI_UPSELL = useMemo(() => {
     const selezionatiIds = new Set(selezionati.map((item) => item.id));
     const categorieCarrello = selezionati.map((item) => String(item.categoria || "").toLowerCase());
     const haBevande = categorieCarrello.some((cat) => cat.includes("bev") || cat.includes("drink") || cat.includes("vino") || cat.includes("bar"));
@@ -1218,8 +1217,7 @@ function Cliente() {
                       onClick={pagaOnline}
                       disabled={pagamento.loading || !(ordineAttivo?.publicToken || ordineInviato?.publicToken || ordineInviato?.id)}
                       style={{
-                        border: "none",
-                        borderRadius: 12,
+                            borderRadius: 12,
                         padding: "12px 18px",
                         background: pagamento.loading ? "#94a3b8" : "linear-gradient(135deg, #0f172a 0%, #2563eb 100%)",
                         color: "white",
@@ -1638,7 +1636,6 @@ function Cliente() {
                   key={c}
                   onClick={() => setCategoria(c)}
                   style={{
-                    border: "none",
                     borderRadius: 999,
                     padding: "12px 18px",
                     background:

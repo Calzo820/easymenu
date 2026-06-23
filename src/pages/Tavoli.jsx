@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import { apiGet, apiPatch, apiPost } from "../lib/api";
-import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
+import { glowPageStyle } from "../styles/pageStyles";
 
 const card = {
   background: "white",
@@ -10,13 +10,6 @@ const card = {
   borderRadius: 18,
   padding: 16,
   boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
-};
-
-const inputStyle = {
-  border: "1px solid #cbd5e1",
-  borderRadius: 12,
-  padding: "12px 14px",
-  minHeight: 44,
 };
 
 const primaryButton = {
@@ -210,8 +203,9 @@ export default function Tavoli() {
     if (total <= 20) return 5;
     if (total <= 36) return 6;
     if (total <= 64) return 8;
-    if (total <= 100) return 10;
-    return 12;
+    if (total <= 100) return 12;
+    if (total <= 144) return 14;
+    return 16;
   }, [activeTables.length]);
 
   function buildMenuLink(table) {
@@ -339,236 +333,174 @@ export default function Tavoli() {
         }
       `}</style>
 
-      <div style={appShellStyle}>
-        <div className="app-shell" style={{ display: "grid", gap: 14 }}>
-          <div className="glass-hero em-compact-hero tables-hero">
-            <div className="topbar-chip">Tavoli & QR</div>
-            <h1 style={{ margin: "8px 0 0", fontSize: 30, lineHeight: 1.05 }}>Mappa tavoli e prenotazioni</h1>
-            <p style={{ margin: "8px 0 0" }}>
-              Vista sala leggibile: tavoli liberi, occupati, conto richiesto e prenotazioni nello stesso posto.
-            </p>
+      <div className="operator-workspace tables-workspace">
+        <section className="tables-controlbar">
+          <div>
+            <span>Sala</span>
+            <strong>{activeTables.length} tavoli</strong>
           </div>
-
-          {error ? (
-            <div className="tables-alert">
-              <b>Attenzione</b>
-              <span>{error}</span>
-              {localMode ? <small>Puoi comunque preparare tavoli e prenotazioni; quando il piano torna attivo ricollega i dati reali dal backend.</small> : null}
-            </div>
-          ) : null}
-
-          <form onSubmit={createTable} style={{ ...card, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <label style={{ display: "grid", gap: 6, fontWeight: 900 }}>
-              Numero tavolo
-              <input
-                value={tableNumber}
-                onChange={(event) => setTableNumber(event.target.value)}
-                placeholder="Es. 1"
-                style={inputStyle}
-                inputMode="numeric"
-              />
-            </label>
-            <button type="submit" disabled={saving} style={{ ...primaryButton, opacity: saving ? 0.65 : 1 }}>
-              {saving ? "Creo..." : "Crea tavolo"}
-            </button>
-            <button type="button" onClick={() => window.print()} style={lightButton}>
-              Stampa QR
-            </button>
-            {localMode ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const nextTables = makeLocalTables(12);
-                  setTables(nextTables);
-                  localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
-                }}
-                style={lightButton}
-              >
-                Crea sala 12 tavoli
-              </button>
-            ) : null}
+          <div className="tables-controlbar__legend">
+            <i className="free" /> libero <i className="occupied" /> occupato <i className="bill" /> conto <i className="reserved" /> prenotato
+          </div>
+          <form onSubmit={createTable} className="tables-controlbar__form">
+            <input
+              value={tableNumber}
+              onChange={(event) => setTableNumber(event.target.value)}
+              placeholder="N. tavolo"
+              inputMode="numeric"
+            />
+            <button type="submit" disabled={saving}>{saving ? "Creo..." : "+ Tavolo"}</button>
+            <button type="button" onClick={() => window.print()}>Stampa QR</button>
           </form>
+        </section>
 
-          <section className="tables-reservation-strip">
-            <div>
-              <span>Prenotazioni sala</span>
-              <strong>{reservations.length}</strong>
-              <small>{reservations.length ? "Tavoli gia assegnati per il prossimo servizio" : "Nessuna prenotazione inserita"}</small>
+        {error ? (
+          <div className="tables-alert">
+            <b>Attenzione</b>
+            <span>{error}</span>
+            {localMode ? <small>Modalita locale provvisoria: le prenotazioni rimangono su questo dispositivo.</small> : null}
+          </div>
+        ) : null}
+
+        <section className="tables-main-layout">
+          <div className="tables-map-panel">
+            <div className="tables-map-head">
+              <div>
+                <strong>Mappa tavoli</strong>
+                <span>Tutti i tavoli in un colpo d'occhio. Se sono 100, le card diventano compatte.</span>
+              </div>
+              <button type="button" onClick={loadData}>Aggiorna</button>
             </div>
-            <div className="tables-reservation-strip__list">
-              {upcomingReservations.length ? (
-                upcomingReservations.map((reservation) => (
-                  <button
-                    key={reservation.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTableId(reservation.tableId);
-                      setReservationForm({
-                        name: reservation.name || "",
-                        time: reservation.time || "",
-                        guests: reservation.guests || "",
-                        phone: reservation.phone || "",
-                        notes: reservation.notes || "",
-                      });
-                    }}
-                  >
-                    <b>T{reservation.tableCode}</b>
-                    <span>{reservation.time || "--:--"} - {reservation.name || "Cliente"}</span>
-                  </button>
-                ))
-              ) : (
-                <span className="tables-reservation-strip__empty">Seleziona un tavolo e salva una prenotazione rapida.</span>
-              )}
-            </div>
-          </section>
 
-          {loading ? <div style={card}>Caricamento tavoli...</div> : null}
+            {loading ? <div style={card}>Caricamento tavoli...</div> : null}
 
-          {!loading && activeTables.length === 0 ? (
-            <div className="tables-empty-map">
-              <strong>Nessun tavolo attivo</strong>
-              <span>Crea il primo tavolo oppure prepara subito una sala demo da 12 tavoli.</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const nextTables = makeLocalTables(12);
-                  setTables(nextTables);
-                  setLocalMode(true);
-                  localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
-                }}
-              >
-                Crea sala 12 tavoli
-              </button>
-            </div>
-          ) : null}
-
-          {!loading && activeTables.length > 0 ? (
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 14, alignItems: "start" }}>
-              <div style={{ ...card, padding: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 950, fontSize: 20 }}>Mappa tavoli</div>
-                    <div style={{ color: "#64748b", fontWeight: 750, marginTop: 4 }}>
-                      Tutti i tavoli visibili. Clicca un tavolo per QR, link o prenotazione.
-                    </div>
-                  </div>
-                  <div style={{ fontWeight: 950, color: "#0f172a" }}>{activeTables.length} tavoli</div>
-                </div>
-
-                <div
-                  className="qr-print-area"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${gridCols}, minmax(88px, 1fr))`,
-                    gap: activeTables.length > 80 ? 8 : 12,
-                    height: "calc(100vh - 250px)",
-                    minHeight: 420,
+            {!loading && activeTables.length === 0 ? (
+              <div className="tables-empty-map">
+                <strong>Nessun tavolo attivo</strong>
+                <span>Crea il primo tavolo oppure prepara subito una sala demo da 12 tavoli.</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextTables = makeLocalTables(12);
+                    setTables(nextTables);
+                    setLocalMode(true);
+                    localStorage.setItem("easymenu_local_tables", JSON.stringify(nextTables));
                   }}
                 >
-                  {activeTables.map((table) => {
-                    const isSelected = selectedTable?.id === table.id;
-                    const visual = table.visualState || getVisualTableState(table, table.liveState);
-                    const tableCode = table.code || table.number || table.name?.replace(/[^0-9A-Za-z-]/g, "") || table.id;
-                    return (
-                      <button
-                        key={table.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedTableId(table.id);
-                          setReservationForm({
-                            name: table.reservation?.name || "",
-                            time: table.reservation?.time || "",
-                            guests: table.reservation?.guests || "",
-                            phone: table.reservation?.phone || "",
-                            notes: table.reservation?.notes || "",
-                          });
-                        }}
-                        className={`table-map-tile table-map-tile--${visual.kind} ${isSelected ? "is-selected" : ""}`}
-                      >
-                        <span className="table-map-tile__number">T{tableCode}</span>
-                        <span className="table-map-tile__label">{visual.label}</span>
-                        <span className="table-map-tile__detail">{visual.detail}</span>
-                        {visual.total ? <span className="table-map-tile__total">{formatEuro(visual.total)}</span> : null}
-                      </button>
-                    );
-                  })}
+                  Crea sala 12 tavoli
+                </button>
+              </div>
+            ) : null}
+
+            {!loading && activeTables.length > 0 ? (
+              <div
+                className="qr-print-area em-table-grid em-table-grid--tables"
+                style={{
+                  gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+                  gap: activeTables.length > 80 ? 6 : 10,
+                }}
+              >
+                {activeTables.map((table) => {
+                  const isSelected = selectedTable?.id === table.id;
+                  const visual = table.visualState || getVisualTableState(table, table.liveState);
+                  const tableCode = table.code || table.number || table.name?.replace(/[^0-9A-Za-z-]/g, "") || table.id;
+                  return (
+                    <button
+                      key={table.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTableId(table.id);
+                        setReservationForm({
+                          name: table.reservation?.name || "",
+                          time: table.reservation?.time || "",
+                          guests: table.reservation?.guests || "",
+                          phone: table.reservation?.phone || "",
+                          notes: table.reservation?.notes || "",
+                        });
+                      }}
+                      className={`table-map-tile table-map-tile--${visual.kind} ${isSelected ? "is-selected" : ""}`}
+                    >
+                      <span className="table-map-tile__number">{tableCode}</span>
+                      <span className="table-map-tile__label">{visual.label}</span>
+                      <span className="table-map-tile__detail">{visual.detail}</span>
+                      {visual.total ? <span className="table-map-tile__total">{formatEuro(visual.total)}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="tables-side-panel">
+            {selectedTable ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                <div className="tables-side-panel__head">
+                  <div>
+                    <span>Tavolo selezionato</span>
+                    <strong>{selectedTable.name || `Tavolo ${selectedTable.code}`}</strong>
+                  </div>
+                  <button type="button" onClick={() => setSelectedTableId(null)}>×</button>
+                </div>
+
+                <div className={`table-side-status table-side-status--${selectedTable.visualState?.kind || "free"}`}>
+                  <span>{selectedTable.visualState?.label || "Libero"}</span>
+                  <b>{selectedTable.visualState?.total ? formatEuro(selectedTable.visualState.total) : "Nessun conto"}</b>
+                  <small>{selectedTable.visualState?.detail || "Nessun ordine"}</small>
+                </div>
+
+                <section className="tables-reservation-strip tables-reservation-strip--compact">
+                  <div>
+                    <span>Prenotazioni</span>
+                    <strong>{reservations.length}</strong>
+                    <small>{upcomingReservations.length ? "Prossime assegnate" : "Nessuna prenotazione"}</small>
+                  </div>
+                  <div className="tables-reservation-strip__list">
+                    {upcomingReservations.length ? (
+                      upcomingReservations.map((reservation) => (
+                        <button key={reservation.id} type="button" onClick={() => setSelectedTableId(reservation.tableId)}>
+                          <b>T{reservation.tableCode}</b>
+                          <span>{reservation.time || "--:--"} - {reservation.name || "Cliente"}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <span className="tables-reservation-strip__empty">Nessuna prenotazione rapida.</span>
+                    )}
+                  </div>
+                </section>
+
+                <form className="table-reservation-card" onSubmit={saveReservation}>
+                  <div>
+                    <strong>Prenota tavolo</strong>
+                    <span>{selectedTable.reservation ? "Modifica prenotazione" : "Salva nome, orario e coperti"}</span>
+                  </div>
+                  <input value={reservationForm.name} onChange={(event) => setReservationForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Nome cliente" />
+                  <div className="table-reservation-card__grid">
+                    <input value={reservationForm.time} onChange={(event) => setReservationForm((prev) => ({ ...prev, time: event.target.value }))} placeholder="Ora" />
+                    <input value={reservationForm.guests} onChange={(event) => setReservationForm((prev) => ({ ...prev, guests: event.target.value }))} placeholder="Coperti" inputMode="numeric" />
+                  </div>
+                  <input value={reservationForm.phone} onChange={(event) => setReservationForm((prev) => ({ ...prev, phone: event.target.value }))} placeholder="Telefono" />
+                  <textarea value={reservationForm.notes} onChange={(event) => setReservationForm((prev) => ({ ...prev, notes: event.target.value }))} placeholder="Note" rows={2} />
+                  <div className="table-reservation-card__actions">
+                    <button type="submit">Salva</button>
+                    {selectedTable.reservation ? <button type="button" onClick={() => clearReservation(selectedTable)}>Libera</button> : null}
+                  </div>
+                </form>
+
+                <div className="qr-panel no-print">
+                  <div className="qr-panel__code">
+                    {buildMenuLink(selectedTable) ? <QRCodeCanvas value={buildMenuLink(selectedTable)} size={150} includeMargin /> : null}
+                  </div>
+                  <a href={buildMenuLink(selectedTable)} target="_blank" rel="noreferrer">Apri menu cliente</a>
+                  <button onClick={() => copyLink(buildMenuLink(selectedTable))} style={primaryButton}>Copia link QR</button>
+                  <button onClick={() => regenerateQr(selectedTable.id)} style={lightButton}>Rigenera QR</button>
+                  <button onClick={() => toggleTable(selectedTable)} style={lightButton}>Nascondi tavolo</button>
                 </div>
               </div>
-
-              <aside style={{ ...card, position: "sticky", top: 18 }}>
-                {selectedTable ? (
-                  <div style={{ display: "grid", gap: 14 }}>
-                    <div>
-                      <div style={{ fontSize: 28, fontWeight: 950 }}>{selectedTable.name || `Tavolo ${selectedTable.code}`}</div>
-                      <div style={{ color: "#64748b", fontWeight: 800, marginTop: 4 }}>QR e azioni rapide</div>
-                    </div>
-
-                    <div className={`table-side-status table-side-status--${selectedTable.visualState?.kind || "free"}`}>
-                      <span>{selectedTable.visualState?.label || "Libero"}</span>
-                      <b>{selectedTable.visualState?.total ? formatEuro(selectedTable.visualState.total) : "Nessun conto aperto"}</b>
-                      <small>{selectedTable.visualState?.detail || "Nessun ordine"}</small>
-                    </div>
-
-                    <div style={{ display: "grid", placeItems: "center", padding: 16, background: "#f8fafc", borderRadius: 18 }}>
-                      {buildMenuLink(selectedTable) ? <QRCodeCanvas value={buildMenuLink(selectedTable)} size={210} includeMargin /> : null}
-                    </div>
-
-                    <a href={buildMenuLink(selectedTable)} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 900, overflowWrap: "anywhere" }}>
-                      Apri menu cliente
-                    </a>
-
-                    <form className="table-reservation-card" onSubmit={saveReservation}>
-                      <div>
-                        <strong>Prenotazione</strong>
-                        <span>{selectedTable.reservation ? "Prenotazione attiva su questo tavolo" : "Aggiungi una prenotazione rapida"}</span>
-                      </div>
-                      <input
-                        value={reservationForm.name}
-                        onChange={(event) => setReservationForm((prev) => ({ ...prev, name: event.target.value }))}
-                        placeholder="Nome cliente"
-                      />
-                      <div className="table-reservation-card__grid">
-                        <input
-                          value={reservationForm.time}
-                          onChange={(event) => setReservationForm((prev) => ({ ...prev, time: event.target.value }))}
-                          placeholder="Ora"
-                        />
-                        <input
-                          value={reservationForm.guests}
-                          onChange={(event) => setReservationForm((prev) => ({ ...prev, guests: event.target.value }))}
-                          placeholder="Coperti"
-                          inputMode="numeric"
-                        />
-                      </div>
-                      <input
-                        value={reservationForm.phone}
-                        onChange={(event) => setReservationForm((prev) => ({ ...prev, phone: event.target.value }))}
-                        placeholder="Telefono"
-                      />
-                      <textarea
-                        value={reservationForm.notes}
-                        onChange={(event) => setReservationForm((prev) => ({ ...prev, notes: event.target.value }))}
-                        placeholder="Note prenotazione"
-                        rows={3}
-                      />
-                      <div className="table-reservation-card__actions">
-                        <button type="submit">Salva prenotazione</button>
-                        {selectedTable.reservation ? (
-                          <button type="button" onClick={() => clearReservation(selectedTable)}>Libera prenotazione</button>
-                        ) : null}
-                      </div>
-                    </form>
-
-                    <div className="no-print" style={{ display: "grid", gap: 8 }}>
-                      <button onClick={() => copyLink(buildMenuLink(selectedTable))} style={primaryButton}>Copia link QR</button>
-                      <button onClick={() => regenerateQr(selectedTable.id)} style={lightButton}>Rigenera QR</button>
-                      <button onClick={() => toggleTable(selectedTable)} style={lightButton}>Nascondi tavolo</button>
-                    </div>
-                  </div>
-                ) : null}
-              </aside>
-            </div>
-          ) : null}        </div>
+            ) : (
+              <div className="tables-side-empty">Seleziona un tavolo per prenotare, copiare QR o modificarne lo stato.</div>
+            )}
+          </aside>
+        </section>
       </div>
     </div>
   );

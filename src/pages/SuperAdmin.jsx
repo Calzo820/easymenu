@@ -38,19 +38,6 @@ const PLATFORM_ROADMAP = [
   },
 ];
 
-function formatDate(value) {
-  if (!value) return "-";
-  try {
-    return new Intl.DateTimeFormat("it-IT", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(new Date(value));
-  } catch {
-    return "-";
-  }
-}
-
 function getStatusLabel(restaurant) {
   if (!restaurant?.isActive) return "Sospeso";
   const status = restaurant?.subscription?.status;

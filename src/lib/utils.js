@@ -43,7 +43,7 @@ export function formatoOra(timestamp) {
 export function pillButtonStyle(active) {
   /*
    * Render a pill-style button. The sizing here follows mobile/touch guidelines: 
-   * touch targets should be at least 1 cm (≈40 px) tall and wide for reliable
+   * touch targets should be at least 1 cm (≈40 px) tall and wide for reliable
    * selection【549256552326334†L96-L109】. A minimum height ensures the
    * button is comfortably tappable on tablets and smartphones. Padding is
    * increased for additional hit area. Colour contrast is preserved via the

@@ -107,7 +107,7 @@ export default function Register() {
           navigate(`${next}${plan ? `?plan=${encodeURIComponent(plan)}` : ""}`, { replace: true });
           return;
         }
-        navigate("/dashboard");
+        navigate("/billing");
       }, 600);
     } catch (error) {
       setErrore(error.message || "Errore durante la registrazione.");

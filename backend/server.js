@@ -150,7 +150,7 @@ app.get("/ready", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ ok: true, database: "connected", timestamp: new Date().toISOString() });
-  } catch (error) {
+  } catch {
     res.status(503).json({ ok: false, database: "unavailable" });
   }
 });
@@ -179,7 +179,7 @@ app.use((req, res) => {
   res.status(404).json({ message: "Rotta non trovata" });
 });
 
-app.use(async (error, req, res, next) => {
+app.use(async (error, req, res, _next) => {
   console.error("Unhandled error:", error);
 
   await logError({

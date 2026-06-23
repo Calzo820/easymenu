@@ -213,8 +213,6 @@ export default function AdminPanel({ embedded = false } = {}) {
 
   const activeTables = tables.filter((table) => table.isActive).length;
   const availableItems = menuItems.filter((item) => item.isAvailable).length;
-  const barItems = menuItems.filter((item) => item.preparationArea === "bar").length;
-  const kitchenItems = menuItems.filter((item) => item.preparationArea !== "bar").length;
 
   async function handleRestaurantSubmit(event) {
     event.preventDefault();
