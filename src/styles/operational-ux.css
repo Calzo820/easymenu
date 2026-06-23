@@ -945,3 +945,181 @@ input:focus, select:focus, textarea:focus {
   .hv-toolbar input,
   .hc-searchbar input { min-width: 100%; }
 }
+
+/* Sprint 4.2 - tablet-first kitchen/bar operations */
+.hv-board {
+  gap: 10px;
+  min-height: calc(100vh - 28px);
+}
+
+.hv-compact-topbar {
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.96);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 32px rgba(15,23,42,0.10);
+  color: #0f172a;
+}
+
+.hv-compact-title {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.hv-compact-title span {
+  font-size: 20px;
+  font-weight: 950;
+  margin-right: 6px;
+}
+
+.hv-compact-title b {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.hv-compact-title small {
+  color: #64748b;
+  font-weight: 900;
+  margin-right: 6px;
+}
+
+.hv-compact-title em {
+  font-style: normal;
+  border-radius: 999px;
+  padding: 7px 9px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.hv-compact-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.hv-compact-actions input {
+  width: min(360px, 28vw);
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 11px 13px;
+  font-weight: 850;
+  outline: none;
+}
+
+.hv-compact-actions button {
+  border: 0;
+  border-radius: 13px;
+  padding: 11px 13px;
+  background: #0f172a;
+  color: white;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.hv-toolbar-tight {
+  padding: 8px;
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+}
+
+.hv-toolbar-tight .hv-tabs {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.hv-toolbar-tight .hv-tabs button {
+  min-height: 42px;
+}
+
+.hv-columns {
+  height: calc(100vh - 150px);
+  min-height: 480px;
+}
+
+.hv-column {
+  border-radius: 18px;
+  padding: 10px;
+}
+
+.hv-column-title {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(255,255,255,0.96);
+  border-radius: 13px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.hv-scroll-list {
+  max-height: calc(100vh - 225px);
+  gap: 8px;
+}
+
+.hv-order-card {
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.hv-table { font-size: 19px; }
+.hv-meta { font-size: 11px; }
+.hv-priority { font-size: 10px; padding: 6px 8px; }
+.hv-items { margin: 9px 0; gap: 5px; }
+.hv-item-row { padding: 8px 9px; font-size: 14px; }
+.hv-actions { gap: 6px; }
+.hv-actions button { min-height: 44px; padding: 9px 8px; font-size: 13px; }
+.hv-density-compact .hv-scroll-list { gap: 6px; }
+.hv-density-compact .hv-order-card { padding: 8px; }
+.hv-density-compact .hv-actions button { min-height: 38px; }
+
+@media (max-width: 1180px) {
+  .app-shell { padding: 8px !important; }
+  .hv-compact-topbar { top: 8px; align-items: stretch; flex-direction: column; }
+  .hv-compact-actions { width: 100%; }
+  .hv-compact-actions input { width: 100%; flex: 1; }
+  .hv-toolbar-tight .hv-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hv-columns { height: auto; min-height: 0; grid-template-columns: 1fr !important; }
+  .hv-scroll-list { max-height: none; }
+}
+
+/* Sprint 4.2 - cassa topbar compatta */
+.hc-compact-register {
+  position: sticky;
+  top: 10px;
+  z-index: 15;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.96);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 30px rgba(15,23,42,0.10);
+  color: #0f172a;
+}
+.hc-compact-register h1 { margin: 0; font-size: 22px; line-height: 1; }
+.hc-compact-eyebrow { display:block; color:#64748b; font-size:11px; font-weight:950; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+.hc-compact-stats { display:flex; gap:8px; align-items:baseline; justify-content:center; flex-wrap:wrap; }
+.hc-compact-stats b { font-size:22px; }
+.hc-compact-stats span { color:#64748b; font-weight:900; margin-right:8px; }
+.hc-compact-buttons { display:flex; gap:8px; }
+.hc-compact-buttons button { border:0; border-radius:13px; padding:11px 13px; background:#0f172a; color:white; font-weight:950; cursor:pointer; }
+.hc-compact-buttons button:disabled { opacity:.45; cursor:not-allowed; }
+@media (max-width: 1180px) { .hc-compact-register { grid-template-columns:1fr; } .hc-compact-stats { justify-content:flex-start; } }

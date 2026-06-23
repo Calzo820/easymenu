@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
-import CommandDock from "../components/CommandDock";
 import Modal from "../components/Modal";
-import OperationalFlowStrip from "../components/ops/OperationalFlowStrip";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { createRestaurantSocket } from "../lib/realtime";
 import { API_URL, getAuthHeaders } from "../lib/api";
@@ -707,114 +705,36 @@ function Cassa() {
         }
       `}</style>
 
-      <div className="em-v2-shell" style={{ paddingBottom: 0 }}>
-        <CommandDock compact />
-      </div>
-
-      <div style={{ ...appShellStyle, paddingTop: 0 }}>
+      <div style={{ ...appShellStyle, paddingTop: 12, paddingLeft: 70, paddingRight: 16 }}>
         <div className="app-shell">
-          <div className="glass-hero" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 20,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div className="topbar-chip" style={{ marginBottom: 12 }}>
-                  <span className="status-dot" style={{ background: "#16a34a" }} />
-                  Postazione cassa
-                </div>
-
-                <h1 style={{ margin: 0, fontSize: 34 }}>Cassa operativa</h1>
-
-                <p style={{ marginTop: 10, opacity: 0.9 }}>
-                  {ristoranteAttivo || "Nessun ristorante attivo"} — tutti i tavoli visibili in una sola schermata
-                </p>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div className="topbar-chip">Tavoli aperti: {tavoliAperti}</div>
-                <div className="topbar-chip">Conti richiesti: {contiRichiesti}</div>
-                <div className="topbar-chip">Chiamate cameriere: {chiamateCameriere}</div>
-                <div className="topbar-chip">Articoli attivi: {piattiTotaliAperti}</div>
-                <div className="topbar-chip">
-                  Incasso potenziale: {formatEuro(incassoPotenziale)}
-                </div>
-              </div>
+          <section className="hc-compact-register">
+            <div>
+              <span className="hc-compact-eyebrow">Cassa live</span>
+              <h1>Cassa</h1>
             </div>
+            <div className="hc-compact-stats">
+              <b>{tavoliAperti}</b><span>aperti</span>
+              <b>{contiRichiesti}</b><span>conti</span>
+              <b>{formatEuro(incassoPotenziale)}</b><span>da incassare</span>
+            </div>
+            <div className="hc-compact-buttons">
+              <button onClick={syncOrdini}>Aggiorna</button>
+              <button disabled={!tavoloSelezionato} onClick={() => tavoloSelezionato && stampaPreconto(tavoloSelezionato)}>Preconto</button>
+              <button disabled={!tavoloSelezionato || closing} onClick={() => tavoloSelezionato && chiudiConto(tavoloSelezionato)}>Chiudi</button>
+            </div>
+          </section>
 
-            {ultimoEvento ? (
-              <div
-                style={{
-                  marginTop: 14,
-                  background: "rgba(255,255,255,0.14)",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                  borderRadius: 16,
-                  padding: 12,
-                  color: "white",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={{ fontWeight: 900 }}>Live:</span>
-                <span>
-                  {ultimoEvento.type === "new-order" && "Nuovo ordine ricevuto"}
-                  {ultimoEvento.type === "order-updated" && "Ordine aggiornato"}
-                  {ultimoEvento.type === "order-closed" && "Ordine chiuso"}
-                  {ultimoEvento.type === "table-updated" && "Tavolo aggiornato"}
-                  {ultimoEvento.type === "call-bill" && "Richiesta conto"}
-                  {ultimoEvento.type === "call-staff" && `Cameriere richiesto${ultimoEvento.payload?.reason ? `: ${ultimoEvento.payload.reason}` : ""}`}
-                </span>
-                <span style={{ opacity: 0.85 }}>
-                  {formatDateTime(ultimoEvento.at)}
-                </span>
-              </div>
-            ) : null}
-          </div>
-
-          {errore ? (
-            <div
-              className="section-card"
-              style={{
-                marginBottom: 16,
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                color: "#991b1b",
-              }}
-            >
-              {errore}
+          {ultimoEvento ? (
+            <div className="hc-live" style={{ marginBottom: 10 }}>
+              Live: {ultimoEvento.type === "new-order" && "Nuovo ordine"}{ultimoEvento.type === "order-updated" && "Ordine aggiornato"}{ultimoEvento.type === "order-closed" && "Ordine chiuso"}{ultimoEvento.type === "table-updated" && "Tavolo aggiornato"}{ultimoEvento.type === "call-bill" && "Richiesta conto"}{ultimoEvento.type === "call-staff" && "Cameriere richiesto"}
             </div>
           ) : null}
 
-          <OperationalFlowStrip
-            title="Flusso cassa veloce"
-            subtitle="Azioni ad alto impatto sempre visibili: meno click, meno errori, più tavoli chiusi."
-            stats={[
-              { label: "Da incassare", value: formatEuro(incassoPotenziale), tone: "green" },
-              { label: "Conti", value: contiRichiesti, tone: contiRichiesti ? "amber" : "blue" },
-              { label: "Chiamate", value: chiamateCameriere, tone: chiamateCameriere ? "red" : "blue" },
-              { label: "Articoli", value: piattiTotaliAperti, tone: "dark" },
-            ]}
-            actions={[
-              { label: "Aggiorna live", onClick: syncOrdini, primary: true },
-              {
-                label: tavoloSelezionato ? `Preconto T${tavoloSelezionato}` : "Preconto",
-                onClick: () => tavoloSelezionato && stampaPreconto(tavoloSelezionato),
-                disabled: !tavoloSelezionato,
-              },
-              {
-                label: tavoloSelezionato ? `Chiudi T${tavoloSelezionato}` : "Chiudi conto",
-                onClick: () => tavoloSelezionato && chiudiConto(tavoloSelezionato),
-                disabled: !tavoloSelezionato || closing,
-              },
-            ]}
-          />
+          {errore ? (
+            <div className="section-card" style={{ marginBottom: 10, background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
+              {errore}
+            </div>
+          ) : null}
 
           {loading ? (
             <div className="section-card">Caricamento cassa...</div>

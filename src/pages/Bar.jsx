@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
-import CommandDock from "../components/CommandDock";
 import HighVolumeServiceBoard from "../components/ops/HighVolumeServiceBoard";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
@@ -423,10 +422,7 @@ function Bar() {
   return (
     <div style={glowPageStyle}>
       <Navbar />
-      <div className="em-v2-shell" style={{ paddingBottom: 0 }}>
-        <CommandDock compact />
-      </div>
-      <div style={{ ...appShellStyle, paddingTop: 0 }}>
+      <div style={{ ...appShellStyle, paddingTop: 12, paddingLeft: 70, paddingRight: 16 }}>
         <HighVolumeServiceBoard
           title="Bar"
           subtitle="Bevande in coda, contatori live e ricerca tavolo pensati per picchi di servizio rapidi."

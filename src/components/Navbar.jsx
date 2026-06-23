@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
@@ -64,6 +64,13 @@ function Navbar() {
   const logged = isLoggedIn();
   const isSuperAdmin = Boolean(user?.isSuperAdmin) || role === "superadmin" || location.pathname.startsWith("/super-admin");
   const impersonating = hasPlatformSession() && !isSuperAdmin;
+  const isOperational = ["/cucina", "/bar", "/cassa", "/tavoli"].some((path) => location.pathname.startsWith(path));
+  const [open, setOpen] = useState(() => {
+    const saved = localStorage.getItem("em_sidebar_open");
+    if (saved !== null) return saved === "1";
+    return !isOperational;
+  });
+
   const restaurantName = isSuperAdmin
     ? "Piattaforma SaaS"
     : hasPlatformSession()
@@ -77,9 +84,14 @@ function Navbar() {
 
   useEffect(() => {
     if (!logged) return undefined;
-    document.body.classList.add("em-has-sidebar");
-    return () => document.body.classList.remove("em-has-sidebar");
-  }, [logged]);
+    document.body.classList.add("em-sidebar-ready");
+    document.body.classList.toggle("em-sidebar-open", open);
+    document.body.classList.toggle("em-sidebar-closed", !open);
+    localStorage.setItem("em_sidebar_open", open ? "1" : "0");
+    return () => {
+      document.body.classList.remove("em-sidebar-ready", "em-sidebar-open", "em-sidebar-closed");
+    };
+  }, [logged, open]);
 
   const links = useMemo(() => {
     if (!logged) return [];
@@ -104,23 +116,58 @@ function Navbar() {
     return (link.match || [link.to]).some((path) => location.pathname.startsWith(path));
   }
 
+  function handleNavigate() {
+    if (window.innerWidth <= 1180) setOpen(false);
+  }
+
   return (
     <>
       <style>{`
-        body.em-has-sidebar { padding-left: 244px; }
+        body.em-sidebar-ready { --em-sidebar-width: 248px; }
+        body.em-sidebar-open { padding-left: var(--em-sidebar-width); }
+        body.em-sidebar-closed { padding-left: 0; }
+        .em-menu-toggle {
+          position: fixed;
+          top: 14px;
+          left: 14px;
+          z-index: 1202;
+          width: 46px;
+          height: 46px;
+          border-radius: 16px;
+          border: 1px solid rgba(15,23,42,0.13);
+          background: rgba(255,255,255,0.94);
+          color: #0f172a;
+          box-shadow: 0 16px 34px rgba(15,23,42,0.18);
+          font-size: 22px;
+          font-weight: 950;
+          cursor: pointer;
+        }
+        .em-sidebar-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 1198;
+          background: rgba(2,6,23,0.35);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity .18s ease;
+        }
+        .em-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
         .em-sidebar {
           position: fixed;
           inset: 0 auto 0 0;
-          width: 244px;
-          z-index: 1000;
+          width: var(--em-sidebar-width);
+          z-index: 1200;
           display: flex;
           flex-direction: column;
-          background: #09111f;
+          background: #07111f;
           color: #f8fafc;
           border-right: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 18px 0 45px rgba(2,6,23,0.22);
+          box-shadow: 24px 0 50px rgba(2,6,23,0.28);
+          transform: translateX(-105%);
+          transition: transform .2s ease;
         }
-        .em-sidebar__brand { padding: 18px 16px 14px; display: flex; gap: 12px; align-items: center; }
+        .em-sidebar.is-open { transform: translateX(0); }
+        .em-sidebar__brand { padding: 20px 16px 16px 72px; display: flex; gap: 12px; align-items: center; min-height: 80px; }
         .em-sidebar__logo { width: 42px; height: 42px; border-radius: 14px; background: white; display: grid; place-items: center; padding: 7px; overflow: hidden; flex: 0 0 auto; }
         .em-sidebar__logo img { width: 100%; height: 100%; object-fit: contain; }
         .em-sidebar__name { font-size: 18px; font-weight: 950; letter-spacing: -0.04em; line-height: 1; }
@@ -138,16 +185,22 @@ function Navbar() {
         .em-sidebar__actions { display: grid; grid-template-columns: ${impersonating ? "1fr 1fr" : "1fr"}; gap: 8px; }
         .em-sidebar__btn { border: 1px solid rgba(255,255,255,0.10); border-radius: 13px; padding: 10px 11px; background: rgba(255,255,255,0.07); color: white; font-weight: 900; cursor: pointer; }
         .em-sidebar__btn--green { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.25); }
-        @media (max-width: 900px) {
-          body.em-has-sidebar { padding-left: 0; padding-bottom: 74px; }
-          .em-sidebar { inset: auto 0 0 0; width: 100%; height: 70px; flex-direction: row; align-items: center; border-right: 0; border-top: 1px solid rgba(255,255,255,0.08); }
-          .em-sidebar__brand, .em-sidebar__footer { display: none; }
-          .em-sidebar__nav { width: 100%; padding: 8px; display: flex; gap: 6px; overflow-x: auto; }
-          .em-sidebar__link { flex: 0 0 auto; min-height: 52px; padding: 9px 12px; flex-direction: column; gap: 3px; font-size: 11px; border-radius: 14px; }
+        @media (max-width: 1180px) {
+          body.em-sidebar-open, body.em-sidebar-closed { padding-left: 0; }
+          .em-sidebar { width: min(86vw, 286px); }
+        }
+        @media print {
+          .em-menu-toggle, .em-sidebar, .em-sidebar-backdrop { display: none !important; }
+          body.em-sidebar-open, body.em-sidebar-closed { padding-left: 0 !important; }
         }
       `}</style>
 
-      <aside className="em-sidebar" aria-label="Navigazione EasyMenu">
+      <button className="em-menu-toggle" type="button" aria-label="Apri navigazione" onClick={() => setOpen((prev) => !prev)}>
+        {open ? "×" : "☰"}
+      </button>
+      <div className={open ? "em-sidebar-backdrop is-open" : "em-sidebar-backdrop"} onClick={() => setOpen(false)} />
+
+      <aside className={open ? "em-sidebar is-open" : "em-sidebar"} aria-label="Navigazione EasyMenu">
         <div className="em-sidebar__brand">
           <div className="em-sidebar__logo"><img src={logoEasyMenu} alt="EasyMenu" /></div>
           <div style={{ minWidth: 0 }}>
@@ -158,7 +211,7 @@ function Navbar() {
 
         <nav className="em-sidebar__nav">
           {links.map((link) => (
-            <Link key={link.to} to={link.to} className={isActive(link) ? "em-sidebar__link is-active" : "em-sidebar__link"}>
+            <Link key={link.to} to={link.to} onClick={handleNavigate} className={isActive(link) ? "em-sidebar__link is-active" : "em-sidebar__link"}>
               <span className="em-sidebar__icon">{link.icon}</span>
               <span>{link.label}</span>
             </Link>

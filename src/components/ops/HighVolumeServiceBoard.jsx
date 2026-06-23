@@ -75,13 +75,13 @@ function ServiceOrderCard({ order, itemsKey, updating, onNext, onBack, onReadyAl
 
 export default function HighVolumeServiceBoard({
   title,
-  subtitle,
+  subtitle: _subtitle,
   station = "cucina",
   loading,
   error,
   orders = [],
   itemsKey,
-  totalItems = 0,
+  totalItems: _totalItems = 0,
   newCount = 0,
   inProgressCount = 0,
   readyCount = 0,
@@ -135,13 +135,16 @@ export default function HighVolumeServiceBoard({
 
   return (
     <main className={`hv-board hv-board-${station} hv-density-${density}`}>
-      <section className="hv-commandbar">
-        <div>
-          <span className="hv-eyebrow">Postazione live</span>
-          <h1>{title}</h1>
-          <p>{subtitle}</p>
+      <section className="hv-compact-topbar">
+        <div className="hv-compact-title">
+          <span>{title}</span>
+          <b>{newCount}</b><small>nuovi</small>
+          <b>{inProgressCount}</b><small>in prep</small>
+          <b>{readyCount}</b><small>pronti</small>
+          {urgentCount ? <em>{urgentCount} urgenti</em> : null}
         </div>
-        <div className="hv-command-actions">
+        <div className="hv-compact-actions">
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca tavolo, piatto o nota..." />
           <button onClick={onRefresh}>Aggiorna</button>
           <button onClick={() => setDensity((d) => d === "compact" ? "comfortable" : "compact")}>{density === "compact" ? "Comoda" : "Compatta"}</button>
         </div>
@@ -149,28 +152,18 @@ export default function HighVolumeServiceBoard({
 
       {error ? <div className="hv-error">{error}</div> : null}
 
-      <section className="hv-kpis" aria-label="Sintesi servizio">
-        <div><span>Ordini</span><b>{orders.length}</b></div>
-        <div><span>Articoli</span><b>{totalItems}</b></div>
-        <div><span>Nuovi</span><b>{newCount}</b></div>
-        <div><span>In prep</span><b>{inProgressCount}</b></div>
-        <div><span>Pronti</span><b>{readyCount}</b></div>
-        <div className={urgentCount ? "danger" : ""}><span>Urgenze</span><b>{urgentCount}</b></div>
-      </section>
-
-      <section className="hv-toolbar">
+      <section className="hv-toolbar hv-toolbar-tight">
         <div className="hv-tabs">
           {[
-            ["active", "Attivi"],
-            ["urgent", "Urgenti"],
-            ["new", "Nuovi"],
-            ["progress", "In prep"],
-            ["ready", "Pronti"],
+            ["active", `Tutti ${orders.length}`],
+            ["urgent", `Urgenti ${urgentCount}`],
+            ["new", `Nuovi ${newCount}`],
+            ["progress", `In prep ${inProgressCount}`],
+            ["ready", `Pronti ${readyCount}`],
           ].map(([value, label]) => (
             <button key={value} className={status === value ? "active" : ""} onClick={() => setStatus(value)}>{label}</button>
           ))}
         </div>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca tavolo o piatto..." />
       </section>
 
       {loading ? <div className="hv-empty">Caricamento ordini...</div> : null}
