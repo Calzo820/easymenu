@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import {
   apiPost,
   getAuthToken,
@@ -146,12 +145,9 @@ export default function Login() {
     <div
       style={{
         minHeight: "100vh",
-        background:
-          "linear-gradient(180deg, #eef6ff 0%, #eaf4ff 35%, #f7fbff 100%)",
+        background: "linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%)",
       }}
     >
-      <Navbar />
-
       <div
         style={{
           maxWidth: 1100,
@@ -168,9 +164,13 @@ export default function Login() {
           }}
         >
           <div
-            className="glass-hero"
             style={{
-              padding: 28,
+              padding: 30,
+              borderRadius: 30,
+              background: "#ffffff",
+              border: "1px solid #e5edf8",
+              boxShadow: "0 24px 60px rgba(15,23,42,0.08)",
+              color: "#07111f",
             }}
           >
             <div
@@ -180,8 +180,8 @@ export default function Login() {
                 gap: 10,
                 padding: "8px 12px",
                 borderRadius: 999,
-                background: "rgba(255,255,255,0.15)",
-                color: "white",
+                background: "#eef6ff",
+                color: "#123b6b",
                 fontWeight: 800,
                 marginBottom: 18,
               }}
@@ -197,7 +197,7 @@ export default function Login() {
               style={{
                 marginTop: 14,
                 maxWidth: 640,
-                opacity: 0.95,
+                color: "#475569",
                 lineHeight: 1.7,
                 fontSize: 16,
               }}
@@ -216,7 +216,8 @@ export default function Login() {
             >
               <div
                 style={{
-                  background: "rgba(255,255,255,0.14)",
+                  background: "#f8fbff",
+                  border: "1px solid #e5edf8",
                   borderRadius: 18,
                   padding: 16,
                 }}
@@ -227,7 +228,8 @@ export default function Login() {
 
               <div
                 style={{
-                  background: "rgba(255,255,255,0.14)",
+                  background: "#f8fbff",
+                  border: "1px solid #e5edf8",
                   borderRadius: 18,
                   padding: 16,
                 }}
@@ -238,7 +240,8 @@ export default function Login() {
 
               <div
                 style={{
-                  background: "rgba(255,255,255,0.14)",
+                  background: "#f8fbff",
+                  border: "1px solid #e5edf8",
                   borderRadius: 18,
                   padding: 16,
                 }}
@@ -436,18 +439,6 @@ export default function Login() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  marginBottom: 18,
-                  fontSize: 13,
-                  color: "#64748b",
-                  lineHeight: 1.5,
-                }}
-              >
-                Il login salva automaticamente:
-                <br />
-                `auth_token`, `auth_user`, `auth_restaurant`, `ristorante_attivo`
-              </div>
 
               <button
                 type="submit"
@@ -488,7 +479,7 @@ export default function Login() {
                   textDecoration: "none",
                 }}
               >
-                Registrati
+Scegli un piano e registrati
               </Link>
             </div>
           </div>

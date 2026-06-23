@@ -3,7 +3,6 @@ import Navbar from "../components/Navbar";
 import CommandDock from "../components/CommandDock";
 import Modal from "../components/Modal";
 import OperationalFlowStrip from "../components/ops/OperationalFlowStrip";
-import HighVolumeCashDesk from "../components/ops/HighVolumeCashDesk";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import { createRestaurantSocket } from "../lib/realtime";
 import { API_URL, getAuthHeaders } from "../lib/api";
@@ -50,13 +49,13 @@ function differenzaMinuti(timestamp) {
 }
 
 function getGridConfig(total) {
-  if (total <= 12) return { cols: 4, gap: 14 };
-  if (total <= 20) return { cols: 5, gap: 12 };
-  if (total <= 30) return { cols: 6, gap: 10 };
-  if (total <= 42) return { cols: 7, gap: 9 };
-  if (total <= 56) return { cols: 8, gap: 8 };
-  if (total <= 72) return { cols: 9, gap: 8 };
-  return { cols: 10, gap: 7 };
+  if (total <= 8) return { cols: 4, gap: 12 };
+  if (total <= 20) return { cols: 5, gap: 10 };
+  if (total <= 36) return { cols: 6, gap: 9 };
+  if (total <= 64) return { cols: 8, gap: 8 };
+  if (total <= 100) return { cols: 10, gap: 6 };
+  if (total <= 144) return { cols: 12, gap: 5 };
+  return { cols: 14, gap: 4 };
 }
 
 function isBevanda(categoria) {
@@ -680,103 +679,767 @@ function Cassa() {
   return (
     <div style={glowPageStyle}>
       <Navbar />
+
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+
+          .print-area, .print-area * {
+            visibility: visible !important;
+          }
+
+          .print-area {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            background: white !important;
+            color: black !important;
+            padding: 24px !important;
+          }
+        }
+
+        @keyframes pulseTableRealtime {
+          0% { transform: scale(1); box-shadow: 0 0 0 rgba(59,130,246,0); }
+          50% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(59,130,246,0.14); }
+          100% { transform: scale(1); box-shadow: 0 0 0 rgba(59,130,246,0); }
+        }
+      `}</style>
+
       <div className="em-v2-shell" style={{ paddingBottom: 0 }}>
         <CommandDock compact />
       </div>
+
       <div style={{ ...appShellStyle, paddingTop: 0 }}>
-        <HighVolumeCashDesk
-          loading={loading}
-          error={errore}
-          restaurantName={ristoranteAttivo}
-          totalTables={totaleTavoli}
-          orders={ordiniOrdinati}
-          selectedTable={tavoloSelezionato}
-          setSelectedTable={setTavoloSelezionato}
-          selectedOrder={ordineSelezionato}
-          setModalOpen={setModalAperta}
-          lastEvent={ultimoEvento}
-          counters={{
-            revenue: incassoPotenziale,
-            open: tavoliAperti,
-            bills: contiRichiesti,
-            staff: chiamateCameriere,
-            items: piattiTotaliAperti,
-          }}
-          requestsBill={richiesteConto}
-          requestsStaff={richiesteCameriere}
-          tableState={statoTavolo}
-          totalFinal={totaleFinale}
-          totalPieces={totalePezzi}
-          minutesFrom={differenzaMinuti}
-          formatEuro={formatEuro}
-          onRefresh={syncOrdini}
-          onPrint={stampaPreconto}
-          onCloseBill={chiudiConto}
-          closing={closing}
-        >
-          {modalAperta && ordineSelezionato ? (
-            <div className="hc-modal-content">
-              <div className="hc-modal-header">
-                <div>
-                  <span>Dettaglio conto</span>
-                  <h2>Tavolo {ordineSelezionato.tavolo}</h2>
+        <div className="app-shell">
+          <div className="glass-hero" style={{ marginBottom: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 20,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div className="topbar-chip" style={{ marginBottom: 12 }}>
+                  <span className="status-dot" style={{ background: "#16a34a" }} />
+                  Postazione cassa
                 </div>
-                <strong>{formatEuro(totaleFinale(ordineSelezionato))}</strong>
+
+                <h1 style={{ margin: 0, fontSize: 34 }}>Cassa operativa</h1>
+
+                <p style={{ marginTop: 10, opacity: 0.9 }}>
+                  {ristoranteAttivo || "Nessun ristorante attivo"} — tutti i tavoli visibili in una sola schermata
+                </p>
               </div>
 
-              <div className={tavoloStampa === tavoloSelezionato ? "print-area hc-print-ticket" : "hc-print-ticket"}>
-                <div className="hc-receipt-head">
-                  <b>{ristoranteAttivo || "EasyMenu"}</b>
-                  <span>{formatDateTime(Date.now())}</span>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div className="topbar-chip">Tavoli aperti: {tavoliAperti}</div>
+                <div className="topbar-chip">Conti richiesti: {contiRichiesti}</div>
+                <div className="topbar-chip">Chiamate cameriere: {chiamateCameriere}</div>
+                <div className="topbar-chip">Articoli attivi: {piattiTotaliAperti}</div>
+                <div className="topbar-chip">
+                  Incasso potenziale: {formatEuro(incassoPotenziale)}
                 </div>
-                <div className="hc-receipt-list">
-                  {ordineSelezionato.piatti.map((p, index) => (
-                    <div key={`${p.nome}-${index}`}>
-                      <span>{p.qty}× {p.nome}</span>
-                      <b>{formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty))}</b>
-                    </div>
-                  ))}
-                </div>
-                <div className="hc-receipt-total">
-                  <span>Totale</span>
-                  <b>{formatEuro(totaleFinale(ordineSelezionato))}</b>
-                </div>
-              </div>
-
-              <div className="hc-modal-grid">
-                <section>
-                  <h3>Conto</h3>
-                  <label>Coperti<input type="number" min="0" value={cfgSelezionato.coperti || ""} onChange={(e) => aggiornaConto(tavoloSelezionato, "coperti", e.target.value)} style={inputStyle} /></label>
-                  <label>Costo coperto<input type="number" min="0" step="0.01" value={cfgSelezionato.costoCoperto || ""} onChange={(e) => aggiornaConto(tavoloSelezionato, "costoCoperto", e.target.value)} style={inputStyle} /></label>
-                  <label>Sconto %<input type="number" min="0" max="100" value={cfgSelezionato.sconto || ""} onChange={(e) => aggiornaConto(tavoloSelezionato, "sconto", e.target.value)} style={inputStyle} /></label>
-                  <label>Pagamento
-                    <select value={cfgSelezionato.pagamento || ""} onChange={(e) => aggiornaConto(tavoloSelezionato, "pagamento", e.target.value)} style={inputStyle}>
-                      <option value="">Seleziona</option>
-                      <option value="Contanti">Contanti</option>
-                      <option value="Carta">Carta</option>
-                      <option value="POS">POS</option>
-                      <option value="Satispay">Satispay</option>
-                      <option value="Altro">Altro</option>
-                    </select>
-                  </label>
-                </section>
-
-                <section>
-                  <h3>Extra rapidi</h3>
-                  <input type="text" placeholder="Nome extra" value={extraInputs[tavoloSelezionato]?.nome || ""} onChange={(e) => aggiornaExtra(tavoloSelezionato, "nome", e.target.value)} style={inputStyle} />
-                  <input type="number" step="0.01" placeholder="Prezzo" value={extraInputs[tavoloSelezionato]?.prezzo || ""} onChange={(e) => aggiornaExtra(tavoloSelezionato, "prezzo", e.target.value)} style={inputStyle} />
-                  <button className="hc-modal-secondary" onClick={() => aggiungiPiatto(tavoloSelezionato)}>Aggiungi extra</button>
-                </section>
-
-                <section>
-                  <h3>Azioni</h3>
-                  <button onClick={() => stampaPreconto(tavoloSelezionato)}>Stampa preconto</button>
-                  <button className="success" onClick={() => chiudiConto(tavoloSelezionato)} disabled={closing}>{closing ? "Chiusura..." : "Chiudi tavolo"}</button>
-                </section>
               </div>
             </div>
+
+            {ultimoEvento ? (
+              <div
+                style={{
+                  marginTop: 14,
+                  background: "rgba(255,255,255,0.14)",
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  borderRadius: 16,
+                  padding: 12,
+                  color: "white",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontWeight: 900 }}>Live:</span>
+                <span>
+                  {ultimoEvento.type === "new-order" && "Nuovo ordine ricevuto"}
+                  {ultimoEvento.type === "order-updated" && "Ordine aggiornato"}
+                  {ultimoEvento.type === "order-closed" && "Ordine chiuso"}
+                  {ultimoEvento.type === "table-updated" && "Tavolo aggiornato"}
+                  {ultimoEvento.type === "call-bill" && "Richiesta conto"}
+                  {ultimoEvento.type === "call-staff" && `Cameriere richiesto${ultimoEvento.payload?.reason ? `: ${ultimoEvento.payload.reason}` : ""}`}
+                </span>
+                <span style={{ opacity: 0.85 }}>
+                  {formatDateTime(ultimoEvento.at)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          {errore ? (
+            <div
+              className="section-card"
+              style={{
+                marginBottom: 16,
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                color: "#991b1b",
+              }}
+            >
+              {errore}
+            </div>
           ) : null}
-        </HighVolumeCashDesk>
+
+          <OperationalFlowStrip
+            title="Flusso cassa veloce"
+            subtitle="Azioni ad alto impatto sempre visibili: meno click, meno errori, più tavoli chiusi."
+            stats={[
+              { label: "Da incassare", value: formatEuro(incassoPotenziale), tone: "green" },
+              { label: "Conti", value: contiRichiesti, tone: contiRichiesti ? "amber" : "blue" },
+              { label: "Chiamate", value: chiamateCameriere, tone: chiamateCameriere ? "red" : "blue" },
+              { label: "Articoli", value: piattiTotaliAperti, tone: "dark" },
+            ]}
+            actions={[
+              { label: "Aggiorna live", onClick: syncOrdini, primary: true },
+              {
+                label: tavoloSelezionato ? `Preconto T${tavoloSelezionato}` : "Preconto",
+                onClick: () => tavoloSelezionato && stampaPreconto(tavoloSelezionato),
+                disabled: !tavoloSelezionato,
+              },
+              {
+                label: tavoloSelezionato ? `Chiudi T${tavoloSelezionato}` : "Chiudi conto",
+                onClick: () => tavoloSelezionato && chiudiConto(tavoloSelezionato),
+                disabled: !tavoloSelezionato || closing,
+              },
+            ]}
+          />
+
+          {loading ? (
+            <div className="section-card">Caricamento cassa...</div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${gridConfig.cols}, 1fr)`,
+                gap: gridConfig.gap,
+                height: gridHeight,
+              }}
+            >
+              {Array.from({ length: totaleTavoli }, (_, i) => {
+                const tavolo = i + 1;
+                const stato = statoTavolo(tavolo);
+                const ordine = ordiniOrdinati.find((o) => String(o.tavolo) === String(tavolo));
+                const totale = ordine ? totaleFinale(ordine) : 0;
+                const articoli = ordine ? totalePezzi(ordine) : 0;
+                const minuti = ordine ? differenzaMinuti(ordine.time) : 0;
+                const evidenziato = Boolean(tavoliInEvidenza[String(tavolo)]);
+                const contoRichiesto = Boolean(
+                  ordine?.billRequested ||
+                    ordine?.paymentStatus === "pending" ||
+                    richiesteConto[String(tavolo)]
+                );
+                const cameriereRichiesto = Boolean(richiesteCameriere[String(tavolo)]);
+
+                return (
+                  <button
+                    key={tavolo}
+                    onClick={() => {
+                      setTavoloSelezionato(tavolo);
+                      setModalAperta(true);
+                    }}
+                    className="section-card em-touch-card"
+                    style={{
+                      height: cardHeight,
+                      minHeight: 72,
+                      border: contoRichiesto || cameriereRichiesto
+                        ? "3px solid rgba(255,255,255,0.95)"
+                        : evidenziato
+                          ? "2px solid rgba(255,255,255,0.8)"
+                          : "none",
+                      background: cameriereRichiesto
+                        ? "linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
+                        : contoRichiesto
+                        ? "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)"
+                        : stato.bg,
+                      color: "white",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
+                      transition: "transform 0.18s ease, box-shadow 0.18s ease",
+                      padding: 12,
+                      overflow: "hidden",
+                      animation: evidenziato ? "pulseTableRealtime 1.2s ease-in-out infinite" : "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 14px 22px rgba(15,23,42,0.18)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "";
+                    }}
+                  >
+                    <div style={{ fontSize: 20, fontWeight: 900 }}>T{tavolo}</div>
+
+                    {cameriereRichiesto ? (
+                      <div
+                        style={{
+                          background: "rgba(255,255,255,0.24)",
+                          padding: "5px 9px",
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 900,
+                        }}
+                      >
+                        Cameriere
+                      </div>
+                    ) : contoRichiesto ? (
+                      <div
+                        style={{
+                          background: "rgba(255,255,255,0.24)",
+                          padding: "5px 9px",
+                          borderRadius: 999,
+                          fontSize: 11,
+                          fontWeight: 900,
+                        }}
+                      >
+                        Conto
+                      </div>
+                    ) : null}
+
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 800,
+                        textAlign: "center",
+                        lineHeight: 1.15,
+                      }}
+                    >
+                      {stato.label}
+                    </div>
+
+                    <div
+                      style={{
+                        background: "rgba(255,255,255,0.18)",
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        fontSize: 12,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {ordine ? `${articoli} articoli` : "Libero"}
+                    </div>
+
+                    <div style={{ fontSize: 14, fontWeight: 900 }}>
+                      {ordine ? formatEuro(totale) : "—"}
+                    </div>
+
+                    <div style={{ fontSize: 11, opacity: 0.92 }}>
+                      {ordine ? `${minuti} min fa` : "Nessun ordine"}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {modalAperta && (
+            <Modal
+              onClose={() => {
+                setModalAperta(false);
+                setTavoloSelezionato(null);
+                setTavoloStampa(null);
+              }}
+              maxWidth={1100}
+            >
+              <div style={{ paddingTop: 10 }}>
+                <h2 style={{ marginTop: 0, marginBottom: 10 }}>
+                  Tavolo {tavoloSelezionato}
+                </h2>
+
+                {!ordineSelezionato ? (
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 18,
+                      padding: 18,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, fontSize: 18 }}>Tavolo libero</div>
+                    <div style={{ marginTop: 6, color: "#475569" }}>
+                      Nessun ordine attivo su questo tavolo.
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1.15fr 0.85fr",
+                      gap: 18,
+                      alignItems: "start",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 20,
+                        padding: 18,
+                        boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          marginBottom: 12,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: 22 }}>
+                            Ordine tavolo {ordineSelezionato.tavolo}
+                          </div>
+                          <div style={{ color: "#6b7280", marginTop: 4 }}>
+                            Aperto il {formatDateTime(ordineSelezionato.time)}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: "8px 12px",
+                            borderRadius: 999,
+                            background: "#eff6ff",
+                            color: "#1d4ed8",
+                            fontWeight: 800,
+                          }}
+                        >
+                          {differenzaMinuti(ordineSelezionato.time)} min
+                        </div>
+                      </div>
+
+                      {(ordineSelezionato.billRequested ||
+                        ordineSelezionato.paymentStatus === "pending" ||
+                        richiesteConto[String(tavoloSelezionato)]) ? (
+                        <div
+                          style={{
+                            marginBottom: 14,
+                            background: "#f5f3ff",
+                            border: "1px solid #c4b5fd",
+                            color: "#4c1d95",
+                            borderRadius: 16,
+                            padding: 14,
+                            fontWeight: 800,
+                          }}
+                        >
+                          🔔 Il cliente ha richiesto il conto. Controlla il preconto e chiudi con il metodo di pagamento corretto.
+                        </div>
+                      ) : null}
+
+                      {richiesteCameriere[String(tavoloSelezionato)] ? (
+                        <div
+                          style={{
+                            marginBottom: 14,
+                            background: "#fff7ed",
+                            border: "1px solid #fed7aa",
+                            color: "#9a3412",
+                            borderRadius: 16,
+                            padding: 14,
+                            fontWeight: 800,
+                          }}
+                        >
+                          🛎️ Il cliente ha chiamato il cameriere: {richiesteCameriere[String(tavoloSelezionato)]?.reason || "assistenza"}.
+                        </div>
+                      ) : null}
+
+                      <div
+                        className={tavoloStampa === tavoloSelezionato ? "print-area" : ""}
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 16,
+                          padding: 16,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                            marginBottom: 14,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 900, fontSize: 18 }}>
+                              Preconto tavolo {ordineSelezionato.tavolo}
+                            </div>
+                            <div style={{ color: "#6b7280", marginTop: 4 }}>
+                              {ristoranteAttivo}
+                            </div>
+                          </div>
+
+                          <div style={{ color: "#6b7280", fontSize: 14 }}>
+                            {formatDateTime(Date.now())}
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 10 }}>
+                          {ordineSelezionato.piatti.map((p, index) => (
+                            <div
+                              key={`${p.nome}-${p.servizio}-${p.categoria}-${index}`}
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                background: "white",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: 14,
+                                padding: 12,
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontWeight: 800 }}>
+                                  {p.nome} x{p.qty}
+                                </div>
+
+                                <div
+                                  style={{
+                                    marginTop: 6,
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      padding: "4px 8px",
+                                      borderRadius: 999,
+                                      background: "#f3f4f6",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {p.categoria || "Senza categoria"}
+                                  </span>
+
+                                  <span
+                                    style={{
+                                      padding: "4px 8px",
+                                      borderRadius: 999,
+                                      background: p.servizio === "dopo" ? "#ede9fe" : "#dbeafe",
+                                      color: p.servizio === "dopo" ? "#6d28d9" : "#1d4ed8",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {p.servizio === "dopo" ? "Porta dopo" : "Porta subito"}
+                                  </span>
+
+                                  <span
+                                    style={{
+                                      padding: "4px 8px",
+                                      borderRadius: 999,
+                                      background:
+                                        p.stato === "pronto"
+                                          ? "#dcfce7"
+                                          : p.stato === "preparazione"
+                                          ? "#fef3c7"
+                                          : "#dbeafe",
+                                      color:
+                                        p.stato === "pronto"
+                                          ? "#166534"
+                                          : p.stato === "preparazione"
+                                          ? "#92400e"
+                                          : "#1d4ed8",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {p.stato || "nuovo"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div style={{ fontWeight: 900 }}>
+                                {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {ordineSelezionato.nota ? (
+                          <div
+                            style={{
+                              marginTop: 14,
+                              background: "#fff7ed",
+                              border: "1px solid #fed7aa",
+                              borderRadius: 14,
+                              padding: 12,
+                            }}
+                          >
+                            <b>Nota:</b> {ordineSelezionato.nota}
+                          </div>
+                        ) : null}
+
+                        <div
+                          style={{
+                            marginTop: 16,
+                            borderTop: "1px dashed #cbd5e1",
+                            paddingTop: 14,
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                            }}
+                          >
+                            <span>Subtotale</span>
+                            <b>{formatEuro(subtototaleOrdineSafe(ordineSelezionato))}</b>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                            }}
+                          >
+                            <span>
+                              Coperti ({parseNumber(cfgSelezionato.coperti)} ×{" "}
+                              {formatEuro(parseNumber(cfgSelezionato.costoCoperto))})
+                            </span>
+                            <b>
+                              {formatEuro(
+                                parseNumber(cfgSelezionato.coperti) *
+                                  parseNumber(cfgSelezionato.costoCoperto)
+                              )}
+                            </b>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                            }}
+                          >
+                            <span>Sconto</span>
+                            <b>{parseNumber(cfgSelezionato.sconto)}%</b>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              fontSize: 20,
+                              fontWeight: 900,
+                            }}
+                          >
+                            <span>Totale</span>
+                            <span>{formatEuro(totaleFinale(ordineSelezionato))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 16,
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 20,
+                          padding: 18,
+                          boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>Impostazioni conto</h3>
+
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={{ fontWeight: 700 }}>Numero coperti</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={cfgSelezionato.coperti || ""}
+                              onChange={(e) =>
+                                aggiornaConto(tavoloSelezionato, "coperti", e.target.value)
+                              }
+                              style={inputStyle}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={{ fontWeight: 700 }}>Costo coperto</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={cfgSelezionato.costoCoperto || ""}
+                              onChange={(e) =>
+                                aggiornaConto(tavoloSelezionato, "costoCoperto", e.target.value)
+                              }
+                              style={inputStyle}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={{ fontWeight: 700 }}>Sconto %</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={cfgSelezionato.sconto || ""}
+                              onChange={(e) =>
+                                aggiornaConto(tavoloSelezionato, "sconto", e.target.value)
+                              }
+                              style={inputStyle}
+                            />
+                          </label>
+
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={{ fontWeight: 700 }}>Metodo pagamento</span>
+                            <select
+                              value={cfgSelezionato.pagamento || ""}
+                              onChange={(e) =>
+                                aggiornaConto(tavoloSelezionato, "pagamento", e.target.value)
+                              }
+                              style={inputStyle}
+                            >
+                              <option value="">Seleziona</option>
+                              <option value="Contanti">Contanti</option>
+                              <option value="Carta">Carta</option>
+                              <option value="POS">POS</option>
+                              <option value="Satispay">Satispay</option>
+                              <option value="Altro">Altro</option>
+                            </select>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 20,
+                          padding: 18,
+                          boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>Aggiungi extra</h3>
+
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <input
+                            type="text"
+                            placeholder="Nome extra"
+                            value={extraInputs[tavoloSelezionato]?.nome || ""}
+                            onChange={(e) =>
+                              aggiornaExtra(tavoloSelezionato, "nome", e.target.value)
+                            }
+                            style={inputStyle}
+                          />
+
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="Prezzo"
+                            value={extraInputs[tavoloSelezionato]?.prezzo || ""}
+                            onChange={(e) =>
+                              aggiornaExtra(tavoloSelezionato, "prezzo", e.target.value)
+                            }
+                            style={inputStyle}
+                          />
+
+                          <button
+                            onClick={() => aggiungiPiatto(tavoloSelezionato)}
+                            style={{
+                              border: "none",
+                              borderRadius: 14,
+                              padding: "13px 16px",
+                              background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                              color: "white",
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              boxShadow: "0 12px 22px rgba(37,99,235,0.22)",
+                            }}
+                          >
+                            Aggiungi extra al tavolo
+                          </button>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 20,
+                          padding: 18,
+                          boxShadow: "0 8px 20px rgba(15,23,42,0.05)",
+                        }}
+                      >
+                        <h3 style={{ marginTop: 0 }}>Azioni</h3>
+
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <button
+                            onClick={() => stampaPreconto(tavoloSelezionato)}
+                            style={{
+                              border: "none",
+                              borderRadius: 14,
+                              padding: "13px 16px",
+                              background: "linear-gradient(135deg, #111827 0%, #1f2937 100%)",
+                              color: "white",
+                              fontWeight: 800,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Stampa preconto
+                          </button>
+
+                          <button
+                            onClick={() => chiudiConto(tavoloSelezionato)}
+                            disabled={closing}
+                            style={{
+                              border: "none",
+                              borderRadius: 14,
+                              padding: "13px 16px",
+                              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                              color: "white",
+                              fontWeight: 800,
+                              cursor: closing ? "not-allowed" : "pointer",
+                              boxShadow: "0 12px 22px rgba(22,163,74,0.22)",
+                              opacity: closing ? 0.75 : 1,
+                            }}
+                          >
+                            {closing ? "Chiusura conto..." : "Chiudi conto"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Modal>
+          )}
+        </div>
       </div>
     </div>
   );
