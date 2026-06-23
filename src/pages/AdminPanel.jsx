@@ -34,6 +34,26 @@ const emptyUser = {
   role: "kitchen",
 };
 
+const CATEGORY_PRESETS = ["Antipasti", "Primi", "Secondi", "Contorni", "Dolci", "Bevande"];
+
+function hasText(value) {
+  return String(value || "").trim().length > 0;
+}
+
+function getMenuQualityStats(items) {
+  const total = items.length;
+  const online = items.filter((item) => item.isAvailable).length;
+  const missingPhoto = items.filter((item) => !hasText(item.imageUrl)).length;
+  const missingDescription = items.filter((item) => !hasText(item.shortDescription) && !hasText(item.description)).length;
+  const missingCategory = items.filter((item) => !hasText(item.category)).length;
+  const featured = items.filter((item) => item.isFeatured).length;
+  const avgPrice = total
+    ? items.reduce((sum, item) => sum + Number(item.price || 0), 0) / total
+    : 0;
+
+  return { total, online, missingPhoto, missingDescription, missingCategory, featured, avgPrice };
+}
+
 function formatEuro(value) {
   const amount = Number(value || 0);
   return `€ ${amount.toFixed(2)}`;
@@ -101,6 +121,8 @@ export default function AdminPanel({ embedded = false } = {}) {
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("menu");
   const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [areaFilter, setAreaFilter] = useState("all");
   const [restaurantForm, setRestaurantForm] = useState({
     name: "",
     primaryColor: "#1d4ed8",
@@ -151,15 +173,27 @@ export default function AdminPanel({ embedded = false } = {}) {
     return found.sort((a, b) => a.localeCompare(b));
   }, [menuItems]);
 
+  const categorySuggestions = useMemo(() => {
+    return [...new Set([...CATEGORY_PRESETS, ...categories])];
+  }, [categories]);
+
+  const menuQuality = useMemo(() => getMenuQualityStats(menuItems), [menuItems]);
+
   const filteredMenu = useMemo(() => {
     const term = query.trim().toLowerCase();
     return [...menuItems]
       .sort(bySortThenName)
       .filter((item) => {
+        if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
+        if (areaFilter !== "all" && item.preparationArea !== areaFilter) return false;
         if (!term) return true;
-        return [item.name, item.category, item.preparationArea].filter(Boolean).join(" ").toLowerCase().includes(term);
+        return [item.name, item.category, item.preparationArea, item.shortDescription, item.description]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(term);
       });
-  }, [menuItems, query]);
+  }, [menuItems, query, categoryFilter, areaFilter]);
 
   const tablesByZone = useMemo(() => {
     const map = new Map();
@@ -237,6 +271,31 @@ export default function AdminPanel({ embedded = false } = {}) {
       await loadData();
     } catch (err) {
       setError(err.message || "Errore eliminazione prodotto");
+    }
+  }
+
+  async function duplicateItem(item) {
+    try {
+      setError("");
+      setSuccess("");
+      await apiPost("/menu", {
+        name: `${item.name || "Prodotto"} copia`,
+        shortDescription: item.shortDescription || "",
+        description: item.description || "",
+        price: Number(item.price || 1),
+        category: item.category || "",
+        preparationArea: item.preparationArea || "kitchen",
+        imageUrl: item.imageUrl || "",
+        allergens: Array.isArray(item.allergens) ? item.allergens.join(", ") : item.allergens || "",
+        sortOrder: Number(item.sortOrder || 0) + 1,
+        vatRate: Number(item.vatRate || 10),
+        isAvailable: false,
+        isFeatured: false,
+      });
+      setSuccess("Prodotto duplicato come bozza offline");
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Errore duplicazione prodotto");
     }
   }
 
@@ -366,6 +425,29 @@ export default function AdminPanel({ embedded = false } = {}) {
 
   function renderMenu() {
     return (
+      <>
+      <div className="menu-health-grid">
+        <div className="management-card menu-health-main">
+          <SectionHead
+            title="Qualita menu"
+            subtitle="Controllo rapido di cio che incide su vendite, chiarezza per il cliente e ordine in cucina."
+          />
+          <div className="menu-health-metrics">
+            <div><span>Prodotti</span><strong>{menuQuality.total}</strong></div>
+            <div><span>Online</span><strong>{menuQuality.online}</strong></div>
+            <div><span>Foto mancanti</span><strong>{menuQuality.missingPhoto}</strong></div>
+            <div><span>Descrizioni mancanti</span><strong>{menuQuality.missingDescription}</strong></div>
+            <div><span>Senza categoria</span><strong>{menuQuality.missingCategory}</strong></div>
+            <div><span>In evidenza</span><strong>{menuQuality.featured}</strong></div>
+          </div>
+        </div>
+        <div className="management-card menu-health-side">
+          <div className="management-row-title">Prezzo medio</div>
+          <div className="menu-health-price">{formatEuro(menuQuality.avgPrice)}</div>
+          <p className="management-subtitle">Usalo come spia veloce: se cambia troppo dopo nuove aggiunte, ricontrolla prezzi e porzioni.</p>
+        </div>
+      </div>
+
       <div className="management-grid-2">
         <form className="management-card management-form" onSubmit={handleItemSubmit}>
           <SectionHead
@@ -377,7 +459,7 @@ export default function AdminPanel({ embedded = false } = {}) {
             <Field label="Categoria"><TextInput placeholder="Primi" list="menu-categories" value={itemForm.category} onChange={(e) => setItemForm((prev) => ({ ...prev, category: e.target.value }))} /></Field>
             <Field label="Prezzo"><TextInput placeholder="12.00" type="number" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((prev) => ({ ...prev, price: e.target.value }))} /></Field>
           </div>
-          <datalist id="menu-categories">{categories.map((category) => <option key={category} value={category} />)}</datalist>
+          <datalist id="menu-categories">{categorySuggestions.map((category) => <option key={category} value={category} />)}</datalist>
           <Field label="Preparazione">
             <SelectInput value={itemForm.preparationArea} onChange={(e) => setItemForm((prev) => ({ ...prev, preparationArea: e.target.value }))}>
               <option value="kitchen">Cucina</option>
@@ -385,7 +467,9 @@ export default function AdminPanel({ embedded = false } = {}) {
             </SelectInput>
           </Field>
           <Field label="Descrizione breve"><TextInput placeholder="Una riga sul menu" value={itemForm.shortDescription} onChange={(e) => setItemForm((prev) => ({ ...prev, shortDescription: e.target.value }))} /></Field>
-          <Field label="Note cliente / allergeni"><TextArea placeholder="Ingredienti, allergeni, extra informazioni" value={itemForm.description || itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, description: e.target.value }))} /></Field>
+          <Field label="Ingredienti / descrizione"><TextArea placeholder="Ingredienti, preparazione, dettagli utili al cliente" value={itemForm.description} onChange={(e) => setItemForm((prev) => ({ ...prev, description: e.target.value }))} /></Field>
+          <Field label="Allergeni"><TextInput placeholder="Glutine, lattosio, frutta a guscio" value={itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, allergens: e.target.value }))} /></Field>
+          <Field label="Immagine URL"><TextInput placeholder="https://..." value={itemForm.imageUrl} onChange={(e) => setItemForm((prev) => ({ ...prev, imageUrl: e.target.value }))} /></Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label="Ordine"><TextInput type="number" value={itemForm.sortOrder} onChange={(e) => setItemForm((prev) => ({ ...prev, sortOrder: e.target.value }))} /></Field>
             <Field label="IVA"><TextInput type="number" step="0.01" value={itemForm.vatRate} onChange={(e) => setItemForm((prev) => ({ ...prev, vatRate: e.target.value }))} /></Field>
@@ -404,7 +488,20 @@ export default function AdminPanel({ embedded = false } = {}) {
           <SectionHead
             title="Catalogo"
             subtitle={`${filteredMenu.length} prodotti visibili. Azioni rapide senza aprire modali.`}
-            action={<TextInput placeholder="Cerca prodotto" value={query} onChange={(e) => setQuery(e.target.value)} style={{ minWidth: 240 }} />}
+            action={
+              <div className="management-inline-tools">
+                <TextInput placeholder="Cerca prodotto" value={query} onChange={(e) => setQuery(e.target.value)} />
+                <SelectInput value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                  <option value="all">Tutte le categorie</option>
+                  {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+                </SelectInput>
+                <SelectInput value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)}>
+                  <option value="all">Tutti i reparti</option>
+                  <option value="kitchen">Cucina</option>
+                  <option value="bar">Bar</option>
+                </SelectInput>
+              </div>
+            }
           />
           <div className="management-list">
             {filteredMenu.map((item) => (
@@ -413,10 +510,16 @@ export default function AdminPanel({ embedded = false } = {}) {
                   <div className="management-row-title">{item.name}</div>
                   <div className="management-row-meta">{item.category || "Senza categoria"} · {item.preparationArea === "bar" ? "Bar" : "Cucina"}</div>
                   <div className="management-price">{formatEuro(item.price)}</div>
+                  <div className="management-row" style={{ marginTop: 8 }}>
+                    {item.isFeatured ? <span className="management-badge">In evidenza</span> : null}
+                    {!item.imageUrl ? <span className="management-badge gray">Foto mancante</span> : null}
+                    {!hasText(item.shortDescription) && !hasText(item.description) ? <span className="management-badge red">Descrizione mancante</span> : null}
+                  </div>
                 </div>
                 <div className="management-row" style={{ justifyContent: "flex-end" }}>
                   <span className={`management-badge ${item.isAvailable ? "green" : "red"}`}>{item.isAvailable ? "Online" : "Esaurito"}</span>
                   <button className="management-btn secondary" type="button" onClick={() => toggleItemAvailability(item)}>{item.isAvailable ? "Esaurisci" : "Rimetti"}</button>
+                  <button className="management-btn secondary" type="button" onClick={() => duplicateItem(item)}>Duplica</button>
                   <button className="management-btn secondary" type="button" onClick={() => handleEditItem(item)}>Modifica</button>
                   <button className="management-btn danger" type="button" onClick={() => handleDeleteItem(item.id)}>Elimina</button>
                 </div>
@@ -426,6 +529,7 @@ export default function AdminPanel({ embedded = false } = {}) {
           </div>
         </div>
       </div>
+      </>
     );
   }
 

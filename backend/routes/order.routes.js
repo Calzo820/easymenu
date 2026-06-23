@@ -4,6 +4,7 @@ import {
   closeOrder,
   createPublicOrder,
   getOrders,
+  getServiceOrders,
   getPublicOrderByTokenOrId,
   requestPublicBill,
   requestPublicStaff,
@@ -22,7 +23,7 @@ router.post("/public/:token/request-bill", requestPublicBill);
 router.post("/public/:token/call-staff", requestPublicStaff);
 
 router.get("/", requireAuth, requireActiveSubscription, getOrders);
-router.get("/kitchen/list", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "kitchen", "bar", "cashier"]), getOrders);
+router.get("/kitchen/list", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "kitchen", "bar", "cashier"]), getServiceOrders);
 
 router.patch(
   "/:id/status",

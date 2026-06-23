@@ -94,11 +94,12 @@ function getPrioritaOrdineLabel(ordine) {
 
 function getPrioritaPiatto(piatto, ordine) {
   const minuti = differenzaMinuti(ordine.createdAt);
+  const servizio = piatto?.servizio || mapItemNoteToServizio(piatto);
 
-  if (ordine.status === "pending" && minuti >= 8) return 5;
-  if (ordine.status === "pending") return 4;
-  if (ordine.status === "in_progress" && minuti >= 18) return 3;
-  if (ordine.status === "in_progress") return 2;
+  if (ordine.status === "pending" && minuti >= 8) return servizio === "subito" ? 6 : 4;
+  if (ordine.status === "pending") return servizio === "subito" ? 5 : 3;
+  if (ordine.status === "in_progress" && minuti >= 18) return servizio === "subito" ? 4 : 2;
+  if (ordine.status === "in_progress") return servizio === "subito" ? 3 : 1;
   if (ordine.status === "ready") return 1;
   return 0;
 }
@@ -188,7 +189,6 @@ function mapItemNoteToServizio(item) {
 
 function Cucina() {
   const [ordini, setOrdini] = useState([]);
-  const [ultimoConteggioCucina, setUltimoConteggioCucina] = useState(0);
   const [filtroVista, setFiltroVista] = useState("tutti");
   const [soloUrgenti, setSoloUrgenti] = useState(false);
   const [modalitaVista, setModalitaVista] = useState("tavoli");
@@ -196,6 +196,7 @@ function Cucina() {
   const [loading, setLoading] = useState(true);
   const [updatingIds, setUpdatingIds] = useState([]);
   const audioAbilitato = useRef(false);
+  const ultimoConteggioCucinaRef = useRef(0);
 
   useEffect(() => {
     const abilitaAudio = () => {
@@ -229,14 +230,14 @@ function Cucina() {
 
       if (
         audioAbilitato.current &&
-        ultimoConteggioCucina > 0 &&
-        totalePiattiCucina > ultimoConteggioCucina
+        ultimoConteggioCucinaRef.current > 0 &&
+        totalePiattiCucina > ultimoConteggioCucinaRef.current
       ) {
         const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
         audio.play().catch(() => {});
       }
 
-      setUltimoConteggioCucina(totalePiattiCucina);
+      ultimoConteggioCucinaRef.current = totalePiattiCucina;
       setErrore("");
     } catch (error) {
       setErrore(error.message || "Errore nel caricamento cucina");
@@ -263,7 +264,7 @@ function Cucina() {
       clearInterval(timer);
       socket.disconnect();
     };
-  }, [ultimoConteggioCucina]);
+  }, []);
 
   async function cambiaStatoOrdine(orderId, nuovoStato) {
     try {
@@ -325,7 +326,8 @@ function Cucina() {
           qty: p.quantity,
           stato: ordine.status,
           servizio: mapItemNoteToServizio(p),
-          categoria: p.preparationArea === "bar" ? "Bevande" : "Cucina",
+          categoria: p.categorySnapshot || (p.preparationArea === "bar" ? "Bevande" : "Cucina"),
+          nota: p.notes || "",
         }));
 
         if (filtroVista === "subito") {
@@ -358,9 +360,9 @@ function Cucina() {
           tavolo: ordine.table?.code || ordine.table?.name || "-",
           tavoloNome: ordine.table?.name || "Tavolo",
           piattiCucina: piattiFiltrati.sort((a, b) => {
-            const byStato = statoRank(ordine.status) - statoRank(ordine.status);
-            if (byStato !== 0) return byStato;
-            return servizioRank(a.servizio) - servizioRank(b.servizio);
+            const byServizio = servizioRank(a.servizio) - servizioRank(b.servizio);
+            if (byServizio !== 0) return byServizio;
+            return String(a.nome || "").localeCompare(String(b.nome || ""), "it", { numeric: true });
           }),
           timerMinuti,
           priorita,
@@ -391,6 +393,8 @@ function Cucina() {
           timerMinuti: ordine.timerMinuti,
           priorita: getPrioritaPiatto(piatto, ordine),
           prioritaLabel: getPrioritaPiattoLabel(piatto, ordine),
+          categoria: piatto.categoria || "Cucina",
+          notaPiatto: piatto.notes || piatto.nota || "",
         });
       });
     });

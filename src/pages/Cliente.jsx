@@ -25,6 +25,7 @@ function formatEuro(value) {
   return parsePrezzo(value).toFixed(2);
 }
 
+const FEATURED_CATEGORY = "Consigliati";
 
 const DEMO_SLUG = "demo-restaurant";
 const DEMO_TABLE_TOKEN = "demo-table-1";
@@ -38,6 +39,8 @@ const DEMO_MENU_ITEMS = [
     categoria: "Antipasti",
     categoriaBackend: "Antipasti",
     preparationArea: "kitchen",
+    isFeatured: true,
+    allergens: ["glutine", "lattosio"],
     img: "",
   },
   {
@@ -48,6 +51,8 @@ const DEMO_MENU_ITEMS = [
     categoria: "Primi",
     categoriaBackend: "Primi",
     preparationArea: "kitchen",
+    isFeatured: true,
+    allergens: ["glutine", "uova", "lattosio"],
     img: "",
   },
   {
@@ -58,6 +63,8 @@ const DEMO_MENU_ITEMS = [
     categoria: "Secondi",
     categoriaBackend: "Secondi",
     preparationArea: "kitchen",
+    isFeatured: false,
+    allergens: ["glutine", "lattosio"],
     img: "",
   },
   {
@@ -68,6 +75,8 @@ const DEMO_MENU_ITEMS = [
     categoria: "Dolci",
     categoriaBackend: "Dolci",
     preparationArea: "kitchen",
+    isFeatured: true,
+    allergens: ["uova", "lattosio"],
     img: "",
   },
   {
@@ -78,6 +87,8 @@ const DEMO_MENU_ITEMS = [
     categoria: "Bevande",
     categoriaBackend: "Bevande",
     preparationArea: "bar",
+    isFeatured: false,
+    allergens: [],
     img: "",
   },
   {
@@ -88,6 +99,8 @@ const DEMO_MENU_ITEMS = [
     categoria: "Bevande",
     categoriaBackend: "Bevande",
     preparationArea: "bar",
+    isFeatured: true,
+    allergens: [],
     img: "",
   },
 ];
@@ -105,7 +118,10 @@ function getOrderedCategories(menu, ordineCategorie) {
   const ordinate = ordinePulito.filter((cat) => presentiNelMenu.includes(cat));
   const restanti = presentiNelMenu.filter((cat) => !ordinate.includes(cat));
 
-  return [...ordinate, ...restanti];
+  const base = [...ordinate, ...restanti];
+  const hasFeatured = menu.some((p) => p.isFeatured);
+  if (!hasFeatured || base.includes(FEATURED_CATEGORY)) return base;
+  return [FEATURED_CATEGORY, ...base];
 }
 
 function mapBackendStatusToUi(status, items = []) {
@@ -243,6 +259,26 @@ function ProductSheet({
           {piatto.ingredienti ? (
             <div style={{ marginTop: 8, color: "#5a7497", lineHeight: 1.5 }}>
               {piatto.ingredienti}
+            </div>
+          ) : null}
+
+          {Array.isArray(piatto.allergens) && piatto.allergens.length > 0 ? (
+            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {piatto.allergens.map((allergen) => (
+                <span
+                  key={allergen}
+                  style={{
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    background: "#fff7ed",
+                    color: "#9a3412",
+                    fontWeight: 800,
+                    fontSize: 12,
+                  }}
+                >
+                  {allergen}
+                </span>
+              ))}
             </div>
           ) : null}
 
@@ -386,7 +422,7 @@ function ProductSheet({
 }
 
 function Cliente() {
-  const { slug: slugParam, tableToken: tableTokenParam } = useParams();
+  const { slug: slugParam, tableToken: tableTokenParam, tavolo: tavoloParam } = useParams();
 
   const params = new URLSearchParams(window.location.search);
 
@@ -404,7 +440,7 @@ function Cliente() {
     (slugParam && tavoloParam ? tavoloParam : "") ||
     "";
 
-  const tavoloFallback = params.get("tavolo") || "1";
+  const tavoloFallback = tavoloParam || params.get("tavolo") || "1";
   const tavolo = tavoloFallback;
 
   const activeSlug = slug || DEMO_SLUG;
@@ -523,6 +559,8 @@ function Cliente() {
           categoria: item.category || "Altro",
           categoriaBackend: item.category || "Altro",
           preparationArea: item.preparationArea,
+          isFeatured: Boolean(item.isFeatured),
+          allergens: Array.isArray(item.allergens) ? item.allergens : [],
           img: item.imageUrl || "",
         }));
 
@@ -1033,11 +1071,12 @@ function Cliente() {
   }
 
   const piatti = menu.filter((p) => {
-    const stessaCategoria = p.categoria === categoria;
+    const stessaCategoria = categoria === FEATURED_CATEGORY ? p.isFeatured : p.categoria === categoria;
     const matchRicerca =
       ricerca.trim() === "" ||
       (p.nome || "").toLowerCase().includes(ricerca.toLowerCase()) ||
-      (p.ingredienti || "").toLowerCase().includes(ricerca.toLowerCase());
+      (p.ingredienti || "").toLowerCase().includes(ricerca.toLowerCase()) ||
+      (Array.isArray(p.allergens) ? p.allergens.join(" ") : "").toLowerCase().includes(ricerca.toLowerCase());
 
     return stessaCategoria && matchRicerca;
   });
@@ -1711,6 +1750,40 @@ function Cliente() {
                         }}
                       >
                         {p.ingredienti}
+                      </div>
+                    ) : null}
+
+                    {(p.isFeatured || (Array.isArray(p.allergens) && p.allergens.length > 0)) ? (
+                      <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {p.isFeatured ? (
+                          <span
+                            style={{
+                              borderRadius: 999,
+                              padding: "5px 9px",
+                              background: "#ecfdf5",
+                              color: "#047857",
+                              fontWeight: 900,
+                              fontSize: 12,
+                            }}
+                          >
+                            Consigliato
+                          </span>
+                        ) : null}
+                        {Array.isArray(p.allergens) ? p.allergens.slice(0, 3).map((allergen) => (
+                          <span
+                            key={allergen}
+                            style={{
+                              borderRadius: 999,
+                              padding: "5px 9px",
+                              background: "#fff7ed",
+                              color: "#9a3412",
+                              fontWeight: 800,
+                              fontSize: 12,
+                            }}
+                          >
+                            {allergen}
+                          </span>
+                        )) : null}
                       </div>
                     ) : null}
 

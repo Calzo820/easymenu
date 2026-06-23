@@ -28,8 +28,8 @@ function emitSocket(req, eventName, payload = {}) {
 function canTransitionStatus(currentStatus, nextStatus) {
   const allowedTransitions = {
     pending: ["in_progress", "cancelled", "served"],
-    in_progress: ["ready", "cancelled", "served"],
-    ready: ["served"],
+    in_progress: ["pending", "ready", "cancelled", "served"],
+    ready: ["in_progress", "served"],
     served: [],
     cancelled: [],
   };
@@ -293,6 +293,30 @@ export const getOrders = async (req, res) => {
   }
 };
 
+export const getServiceOrders = async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      where: {
+        restaurantId: req.user.restaurantId,
+        closedAt: null,
+        status: { in: ["pending", "in_progress", "ready"] },
+      },
+      include: { table: true, items: { include: { menuItem: true } } },
+      orderBy: [{ createdAt: "asc" }],
+    });
+
+    return res.json(
+      orders.map((order) => ({
+        ...order,
+        orderNumberLabel: publicOrderNumber(order.orderNumber),
+      }))
+    );
+  } catch (error) {
+    console.error("getServiceOrders error:", error);
+    return res.status(500).json({ message: "Errore durante il recupero ordini servizio" });
+  }
+};
+
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -304,7 +328,12 @@ export const updateOrderStatus = async (req, res) => {
     if (!canTransitionStatus(order.status, status)) return res.status(400).json({ message: `Transizione non consentita da ${order.status} a ${status}` });
 
     const data = { status };
+    if (status === "pending") {
+      data.acceptedAt = null;
+      data.readyAt = null;
+    }
     if (status === "in_progress" && !order.acceptedAt) data.acceptedAt = new Date();
+    if (status === "in_progress") data.readyAt = null;
     if (status === "ready") data.readyAt = new Date();
     if (status === "served") data.servedAt = new Date();
 

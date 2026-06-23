@@ -105,6 +105,7 @@ function Navbar() {
       isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli", "/qr"] },
       isAdmin && { to: "/admin", label: "Menu", icon: "☰", match: ["/admin"] },
       isAdmin && { to: "/statistiche", label: "Report", icon: "↗", match: ["/statistiche", "/storico"] },
+      isAdmin && { to: "/integrazioni", label: "Integrazioni", icon: "◇", match: ["/integrazioni"] },
       isAdmin && { to: "/billing", label: "Piano", icon: "◌", match: ["/billing"] },
       isAdmin && { to: "/errori", label: "Alert", icon: "!", match: ["/errori"] },
     ].filter(Boolean);

@@ -350,3 +350,70 @@
   .management-stats { grid-template-columns: 1fr; }
   .management-list-row { grid-template-columns: 1fr; }
 }
+
+/* Menu quality cockpit */
+.management-inline-tools {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(160px, .85fr) minmax(140px, .7fr);
+  gap: 8px;
+  min-width: min(640px, 100%);
+}
+
+.menu-health-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, .32fr);
+  gap: 16px;
+}
+
+.menu-health-main,
+.menu-health-side {
+  min-height: 100%;
+}
+
+.menu-health-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(96px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.menu-health-metrics div {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+  padding: 13px;
+}
+
+.menu-health-metrics span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.menu-health-metrics strong {
+  display: block;
+  margin-top: 7px;
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.menu-health-price {
+  margin: 10px 0;
+  color: #0f172a;
+  font-size: 34px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+@media (max-width: 980px) {
+  .menu-health-grid { grid-template-columns: 1fr; }
+  .menu-health-metrics { grid-template-columns: repeat(3, 1fr); }
+  .management-inline-tools { grid-template-columns: 1fr; min-width: 100%; }
+}
+
+@media (max-width: 620px) {
+  .menu-health-metrics { grid-template-columns: repeat(2, 1fr); }
+}

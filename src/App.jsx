@@ -9,6 +9,7 @@ import Cliente from "./pages/Cliente.jsx";
 import Cucina from "./pages/Cucina.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Errori from "./pages/Errori.jsx";
+import Integrazioni from "./pages/Integrazioni.jsx";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import QRCodeTavoli from "./pages/QRCodeTavoli.jsx";
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/qr" element={<ProtectedRoute roles={["owner", "admin"]}><QRCodeTavoli /></ProtectedRoute>} />
         <Route path="/storico" element={<ProtectedRoute roles={["owner", "admin"]}><Storico /></ProtectedRoute>} />
         <Route path="/statistiche" element={<ProtectedRoute roles={["owner", "admin"]}><Statistiche /></ProtectedRoute>} />
+        <Route path="/integrazioni" element={<ProtectedRoute roles={["owner", "admin"]}><Integrazioni /></ProtectedRoute>} />
         <Route path="/errori" element={<ProtectedRoute roles={["owner", "admin"]}><Errori /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
