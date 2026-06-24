@@ -1,7 +1,7 @@
 import { loadEnvironment } from "./loadEnv.js";
 
 const REQUIRED_IN_PRODUCTION = ["JWT_SECRET", "DATABASE_URL", "CLIENT_URL", "CORS_ORIGIN"];
-const BILLING_MINIMUM = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_PRICE_STARTER"];
+const BILLING_MINIMUM = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"];
 
 export function validateEnvironment() {
   loadEnvironment({ silent: false });
@@ -9,6 +9,7 @@ export function validateEnvironment() {
   const isProduction = process.env.NODE_ENV === "production";
   const missingRequired = REQUIRED_IN_PRODUCTION.filter((key) => !process.env[key]);
   const missingBilling = BILLING_MINIMUM.filter((key) => !process.env[key]);
+  if (!process.env.STRIPE_PRICE_STARTER && !process.env.STRIPE_PRICE_MONTHLY) missingBilling.push("STRIPE_PRICE_STARTER o STRIPE_PRICE_MONTHLY");
 
   if (isProduction && missingRequired.length > 0) {
     throw new Error(`Variabili ambiente mancanti in produzione: ${missingRequired.join(", ")}`);
@@ -21,17 +22,17 @@ export function validateEnvironment() {
   if (missingBilling.length > 0) {
     console.warn(`Avviso EasyMenu billing: mancano ${missingBilling.join(", ")}. Stripe resta in modalità test/trial locale finché non sono configurate.`);
   } else {
-    console.log("EasyMenu billing: Stripe Starter configurato correttamente.");
+    console.log("EasyMenu billing: Stripe mensile configurato correttamente.");
   }
 
   return {
     nodeEnv: process.env.NODE_ENV || "development",
     paymentsEnabled: Boolean(process.env.STRIPE_SECRET_KEY),
     webhookEnabled: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
-    subscriptionsEnabled: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_STARTER),
-    starterPlanEnabled: Boolean(process.env.STRIPE_PRICE_STARTER),
-    growthPlanEnabled: Boolean(process.env.STRIPE_PRICE_GROWTH),
+    subscriptionsEnabled: Boolean(process.env.STRIPE_SECRET_KEY && (process.env.STRIPE_PRICE_STARTER || process.env.STRIPE_PRICE_MONTHLY)),
+    starterPlanEnabled: Boolean(process.env.STRIPE_PRICE_STARTER || process.env.STRIPE_PRICE_MONTHLY),
+    growthPlanEnabled: Boolean(process.env.STRIPE_PRICE_GROWTH || process.env.STRIPE_PRICE_QUARTERLY),
     semiannualPlanEnabled: Boolean(process.env.STRIPE_PRICE_SEMIANNUAL),
-    enterprisePlanEnabled: Boolean(process.env.STRIPE_PRICE_ENTERPRISE),
+    enterprisePlanEnabled: Boolean(process.env.STRIPE_PRICE_ENTERPRISE || process.env.STRIPE_PRICE_YEARLY),
   };
 }

@@ -3,6 +3,10 @@ import Navbar from "../components/Navbar.jsx";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import { createSubscriptionCheckout, getBillingStatus, openBillingPortal } from "../lib/api";
 
+const WHATSAPP_NUMBER = "3240467723";
+const CHAIN_MESSAGE = "Ciao, ho più ristoranti e vorrei informazioni su EasyMenu per catene o multi-sede.";
+const chainContactUrl = `https://wa.me/39${WHATSAPP_NUMBER}?text=${encodeURIComponent(CHAIN_MESSAGE)}`;
+
 function formatDate(value) {
   if (!value) return "—";
   try {
@@ -15,96 +19,123 @@ function formatDate(value) {
 const planDetails = {
   starter: {
     title: "Mensile",
-    price: "€49,99",
-    cadence: "ogni mese",
-    subtitle: "Perfetto per iniziare subito, testare EasyMenu e disdire quando vuoi.",
-    badge: "1 mese",
-    features: ["Tutte le funzioni operative", "Menu QR", "Cucina, bar e cassa", "Dashboard e report", "Disdici quando vuoi"],
+    price: "49,99 €",
+    period: "/ mese",
+    badge: "Flessibile",
+    saving: "",
+    note: "Parti senza impegno lungo.",
   },
   growth: {
     title: "Trimestrale",
-    price: "€134,99",
-    cadence: "ogni 3 mesi",
-    subtitle: "Per chi vuole usarlo per una stagione intera con un piccolo risparmio.",
+    price: "134,99 €",
+    period: "/ 3 mesi",
     badge: "10% OFF",
-    features: ["Tutto del mensile", "Risparmio vs mese per mese", "Ideale per validare il locale", "Stesso accesso completo", "Aggiornamenti inclusi"],
+    saving: "Risparmi rispetto al mensile",
+    note: "Ideale per una stagione.",
   },
   semiannual: {
     title: "Semestrale",
-    price: "€254,99",
-    cadence: "ogni 6 mesi",
-    subtitle: "La scelta migliore per ristoranti che vogliono stabilizzare EasyMenu nel servizio.",
+    price: "254,99 €",
+    period: "/ 6 mesi",
     badge: "15% OFF",
-    recommended: true,
-    features: ["Tutto incluso", "Risparmio maggiore", "Perfetto per alta stagione", "Setup e ottimizzazioni", "Priorità agli aggiornamenti"],
+    saving: "Più continuità, meno pensieri",
+    note: "Perfetto per stabilizzarlo nel servizio.",
+    highlighted: true,
   },
   enterprise: {
     title: "Annuale",
-    price: "€449,99",
-    cadence: "all'anno",
-    subtitle: "Il prezzo più conveniente per chi adotta EasyMenu come sistema operativo del ristorante.",
+    price: "449,99 €",
+    period: "/ anno",
     badge: "25% OFF",
-    features: ["Tutto incluso", "Prezzo annuale bloccato", "Massimo risparmio", "Setup ristorante completo", "Supporto prioritario"],
+    saving: "Miglior prezzo",
+    note: "La scelta più conveniente.",
   },
 };
 
+const planOrder = ["starter", "growth", "semiannual", "enterprise"];
+const includedPills = ["EasyMenu completo", "Rinnovo automatico", "Disdici quando vuoi"];
+
 function normalizePlan(plan) {
-  return ["starter", "growth", "semiannual", "enterprise"].includes(plan) ? plan : "starter";
+  return planOrder.includes(plan) ? plan : "starter";
 }
 
 function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
   const plan = planDetails[id];
   const active = currentPlan === id;
+  const busy = loadingPlan === id;
 
   return (
-    <div
-      className="section-card"
+    <article
       style={{
-        border: active ? "2px solid #22c55e" : plan.recommended ? "2px solid #2563eb" : "1px solid #e5e7eb",
-        position: "relative",
-        overflow: "hidden",
-        minHeight: 360,
+        ...pricingCardStyle,
+        ...(plan.highlighted ? highlightedCardStyle : {}),
+        ...(active ? activeCardStyle : {}),
       }}
     >
-      <div style={{ ...badgeStyle, background: active ? "#16a34a" : plan.recommended ? "#2563eb" : "#0f172a" }}>
-        {active ? "Attivo" : plan.badge}
+      <div style={cardTopStyle}>
+        <div>
+          <div style={{ ...badgeStyle, ...(plan.highlighted ? highlightedBadgeStyle : {}) }}>{active ? "Attivo" : plan.badge}</div>
+          <h2 style={{ margin: "14px 0 0", color: plan.highlighted ? "white" : "#0f172a", fontSize: 24, letterSpacing: "-0.04em" }}>
+            {plan.title}
+          </h2>
+        </div>
+        {plan.highlighted ? <span style={sparkStyle}>★</span> : null}
       </div>
 
-      <div style={{ fontSize: 24, fontWeight: 950, color: "#111827" }}>{plan.title}</div>
-      <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 34, fontWeight: 950, color: "#0f172a", letterSpacing: "-0.05em" }}>{plan.price}</span>
-        <span style={{ color: "#64748b", fontWeight: 850 }}>{plan.cadence}</span>
+      <div style={{ marginTop: 22 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 38, lineHeight: 1, fontWeight: 950, letterSpacing: "-0.06em", color: plan.highlighted ? "white" : "#0f172a" }}>
+            {plan.price}
+          </span>
+          <span style={{ color: plan.highlighted ? "rgba(255,255,255,0.72)" : "#64748b", fontWeight: 900 }}>{plan.period}</span>
+        </div>
+        <div style={{ marginTop: 7, color: plan.highlighted ? "rgba(255,255,255,0.68)" : "#64748b", fontWeight: 850 }}>+ IVA</div>
       </div>
-      <p style={{ color: "#64748b", lineHeight: 1.55, minHeight: 64 }}>{plan.subtitle}</p>
 
-      <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
-        {plan.features.map((feature) => (
-          <div key={feature} style={{ display: "flex", gap: 8, alignItems: "center", color: "#334155", fontWeight: 700 }}>
-            <span style={{ color: "#16a34a" }}>✓</span>
-            {feature}
-          </div>
+      <p style={{ margin: "18px 0 0", minHeight: 44, color: plan.highlighted ? "rgba(255,255,255,0.78)" : "#475569", lineHeight: 1.45, fontWeight: 800 }}>
+        {plan.saving || plan.note}
+      </p>
+
+      <div style={pillsWrapStyle}>
+        {includedPills.map((pill) => (
+          <span key={pill} style={{ ...pillStyle, ...(plan.highlighted ? darkPillStyle : {}) }}>{pill}</span>
         ))}
       </div>
 
       <button
-        disabled={active || loadingPlan === id}
+        disabled={active || busy}
         onClick={() => onCheckout(id)}
         style={{
-          marginTop: 22,
-          width: "100%",
-          border: "none",
-          borderRadius: 16,
-          padding: "14px 16px",
-          background: active ? "#dcfce7" : plan.recommended ? "#2563eb" : "#111827",
-          color: active ? "#166534" : "white",
-          fontWeight: 950,
-          cursor: active ? "default" : "pointer",
-          opacity: loadingPlan === id ? 0.7 : 1,
+          ...checkoutButtonStyle,
+          ...(plan.highlighted ? highlightedButtonStyle : {}),
+          ...(active ? activeButtonStyle : {}),
+          opacity: busy ? 0.72 : 1,
         }}
       >
-        {active ? "Piano attuale" : loadingPlan === id ? "Apro Stripe..." : "Vai al pagamento"}
+        {active ? "Piano attuale" : busy ? "Apro Stripe..." : `Scegli ${plan.title}`}
       </button>
-    </div>
+
+      <div style={{ marginTop: 12, color: plan.highlighted ? "rgba(255,255,255,0.58)" : "#94a3b8", fontSize: 12, fontWeight: 800, lineHeight: 1.35 }}>
+        Abbonamento automatico. Disdetta sempre disponibile dal portale.
+      </div>
+    </article>
+  );
+}
+
+function ChainCard() {
+  return (
+    <article style={chainCardStyle}>
+      <div>
+        <div style={chainBadgeStyle}>Multi-sede</div>
+        <h2 style={{ margin: "12px 0 8px", fontSize: 28, letterSpacing: "-0.05em", color: "#0f172a" }}>Hai una catena?</h2>
+        <p style={{ margin: 0, color: "#475569", fontWeight: 800, lineHeight: 1.55, maxWidth: 620 }}>
+          Stesse funzioni EasyMenu, con condizioni dedicate per più ristoranti, setup multi-locale e supporto personalizzato.
+        </p>
+      </div>
+      <a href={chainContactUrl} target="_blank" rel="noreferrer" style={chainButtonStyle}>
+        Contattami
+      </a>
+    </article>
   );
 }
 
@@ -175,47 +206,51 @@ export default function Billing() {
       <Navbar />
       <div style={appShellStyle}>
         <div className="app-shell">
-          <div className="glass-hero" style={{ marginBottom: 18 }}>
-            <div className="topbar-chip" style={{ marginBottom: 12 }}>
-              <span className="status-dot" style={{ background: "#22c55e" }} />
-              Abbonamento EasyMenu
+          <section style={pricingHeroStyle}>
+            <div style={heroCopyStyle}>
+              <div className="topbar-chip" style={{ marginBottom: 12, color: "#0f172a", background: "rgba(255,255,255,0.88)" }}>
+                <span className="status-dot" style={{ background: "#22c55e" }} />
+                Abbonamento EasyMenu
+              </div>
+              <h1 style={{ margin: 0, fontSize: "clamp(32px, 4vw, 54px)", letterSpacing: "-0.07em", color: "white", lineHeight: 0.95 }}>
+                Un solo prodotto. Scegli solo la durata.
+              </h1>
+              <p style={{ color: "rgba(255,255,255,0.78)", lineHeight: 1.65, maxWidth: 740, margin: "16px 0 0", fontWeight: 750 }}>
+                Tutti i piani includono le stesse funzioni: QR, ordini live, cucina, bar, cassa, tavoli e report. Prezzi + IVA, rinnovo automatico e disdetta quando vuoi.
+              </p>
             </div>
-            <h1 style={{ margin: 0, fontSize: 38, letterSpacing: "-0.04em" }}>Scegli il piano</h1>
-            <p style={{ color: "rgba(255,255,255,0.88)", lineHeight: 1.65, maxWidth: 760 }}>
-              Tutti i piani includono menu QR, ordini live, cucina, bar, cassa, tavoli e dashboard. Cambia solo la durata e il risparmio.
-            </p>
-          </div>
+          </section>
 
           {queryStatus === "success" ? <div style={successBox}>Pagamento avviato correttamente. Stripe aggiornerà lo stato via webhook.</div> : null}
           {queryStatus === "cancelled" ? <div style={warnBox}>Checkout annullato. Puoi riprovare quando vuoi.</div> : null}
           {error ? <div style={errorBox}>{error}</div> : null}
 
-          <div className="section-card" style={{ marginBottom: 18 }}>
-            <div className="panel-title">Stato attuale</div>
+          <section style={statusStripStyle}>
             {loading ? (
-              <div className="panel-subtitle">Caricamento...</div>
+              <div style={{ color: "#64748b", fontWeight: 850 }}>Caricamento stato abbonamento...</div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: 14 }}>
+              <>
                 <InfoBox label="Ristorante" value={data?.restaurant?.name || "—"} />
                 <InfoBox label="Piano" value={planDetails[currentPlan]?.title || currentPlan || "—"} />
                 <InfoBox label="Stato" value={status} />
                 <InfoBox label="Rinnovo" value={formatDate(data?.subscription?.currentPeriodEnd)} />
-              </div>
+              </>
             )}
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
-              <button onClick={load} style={secondaryBtn}>Aggiorna stato</button>
+            <div style={statusActionsStyle}>
+              <button onClick={load} style={secondaryBtn}>Aggiorna</button>
               <button onClick={handlePortal} disabled={portalLoading} style={primaryBtn}>
-                {portalLoading ? "Apro portale..." : "Apri portale Stripe"}
+                {portalLoading ? "Apro..." : "Gestisci abbonamento"}
               </button>
             </div>
-          </div>
+          </section>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-            {["starter", "growth", "semiannual", "enterprise"].map((id) => (
+          <section style={plansGridStyle}>
+            {planOrder.map((id) => (
               <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} onCheckout={handleCheckout} />
             ))}
-          </div>
+          </section>
+
+          <ChainCard />
         </div>
       </div>
     </div>
@@ -224,44 +259,110 @@ export default function Billing() {
 
 function InfoBox({ label, value }) {
   return (
-    <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 16, padding: 16 }}>
-      <div style={{ color: "#64748b", fontSize: 13, fontWeight: 850 }}>{label}</div>
-      <div style={{ color: "#111827", fontSize: 22, fontWeight: 950, marginTop: 6, textTransform: "capitalize" }}>{value}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
+      <div style={{ color: "#111827", fontSize: 18, fontWeight: 950, marginTop: 4, textTransform: label === "Stato" ? "capitalize" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
     </div>
   );
 }
 
-const badgeStyle = {
-  position: "absolute",
-  right: 14,
-  top: 14,
-  color: "white",
-  borderRadius: 999,
-  padding: "6px 10px",
-  fontSize: 12,
-  fontWeight: 950,
+const pricingHeroStyle = {
+  position: "relative",
+  overflow: "hidden",
+  borderRadius: 32,
+  padding: "clamp(28px, 5vw, 54px)",
+  marginBottom: 18,
+  background: "radial-gradient(circle at 82% 18%, rgba(96,165,250,0.45), transparent 34%), linear-gradient(135deg, #020617 0%, #0f172a 48%, #172554 100%)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  boxShadow: "0 28px 80px rgba(2,6,23,0.24)",
 };
 
-const primaryBtn = {
+const heroCopyStyle = { position: "relative", zIndex: 1 };
+
+const statusStripStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(120px, 1fr)) auto",
+  gap: 16,
+  alignItems: "center",
+  padding: 18,
+  borderRadius: 26,
+  background: "rgba(255,255,255,0.92)",
+  border: "1px solid rgba(226,232,240,0.95)",
+  boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+  marginBottom: 18,
+};
+
+const statusActionsStyle = { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" };
+
+const plansGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: 16,
+};
+
+const pricingCardStyle = {
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 335,
+  padding: 22,
+  borderRadius: 28,
+  background: "rgba(255,255,255,0.96)",
+  border: "1px solid rgba(226,232,240,0.96)",
+  boxShadow: "0 24px 60px rgba(15,23,42,0.10)",
+};
+
+const highlightedCardStyle = {
+  background: "radial-gradient(circle at 90% 5%, rgba(59,130,246,0.52), transparent 36%), linear-gradient(145deg, #020617 0%, #111827 58%, #172554 100%)",
+  border: "1px solid rgba(147,197,253,0.32)",
+  boxShadow: "0 34px 80px rgba(30,64,175,0.26)",
+  transform: "translateY(-6px)",
+};
+
+const activeCardStyle = { border: "2px solid #22c55e", boxShadow: "0 28px 70px rgba(34,197,94,0.18)" };
+const cardTopStyle = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 };
+const badgeStyle = { display: "inline-flex", alignItems: "center", borderRadius: 999, padding: "7px 11px", background: "#eff6ff", color: "#1d4ed8", fontSize: 12, fontWeight: 950 };
+const highlightedBadgeStyle = { background: "rgba(255,255,255,0.14)", color: "white", border: "1px solid rgba(255,255,255,0.18)" };
+const sparkStyle = { width: 34, height: 34, borderRadius: 14, display: "grid", placeItems: "center", background: "rgba(255,255,255,0.12)", color: "#fde68a", fontWeight: 950 };
+const pillsWrapStyle = { display: "grid", gap: 8, marginTop: 18 };
+const pillStyle = { display: "inline-flex", alignItems: "center", width: "fit-content", borderRadius: 999, padding: "7px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#334155", fontSize: 12, fontWeight: 900 };
+const darkPillStyle = { background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.88)" };
+
+const checkoutButtonStyle = {
+  marginTop: "auto",
+  width: "100%",
   border: "none",
-  borderRadius: 14,
-  padding: "12px 16px",
-  background: "#111827",
+  borderRadius: 18,
+  padding: "15px 16px",
+  background: "#0f172a",
   color: "white",
-  fontWeight: 900,
+  fontWeight: 950,
   cursor: "pointer",
+  boxShadow: "0 14px 30px rgba(15,23,42,0.16)",
 };
 
-const secondaryBtn = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 14,
-  padding: "12px 16px",
-  background: "white",
-  color: "#111827",
-  fontWeight: 900,
-  cursor: "pointer",
+const highlightedButtonStyle = { background: "white", color: "#0f172a" };
+const activeButtonStyle = { background: "#dcfce7", color: "#166534", cursor: "default", boxShadow: "none" };
+
+const chainCardStyle = {
+  marginTop: 16,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 18,
+  flexWrap: "wrap",
+  padding: 26,
+  borderRadius: 30,
+  background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)",
+  border: "1px solid #dbeafe",
+  boxShadow: "0 24px 60px rgba(15,23,42,0.08)",
 };
 
+const chainBadgeStyle = { display: "inline-flex", borderRadius: 999, padding: "7px 11px", background: "white", color: "#1d4ed8", fontSize: 12, fontWeight: 950, border: "1px solid #dbeafe" };
+const chainButtonStyle = { textDecoration: "none", borderRadius: 18, padding: "14px 18px", background: "#2563eb", color: "white", fontWeight: 950, boxShadow: "0 18px 34px rgba(37,99,235,0.22)" };
+
+const primaryBtn = { border: "none", borderRadius: 14, padding: "12px 16px", background: "#111827", color: "white", fontWeight: 900, cursor: "pointer" };
+const secondaryBtn = { border: "1px solid #e5e7eb", borderRadius: 14, padding: "12px 16px", background: "white", color: "#111827", fontWeight: 900, cursor: "pointer" };
 const successBox = { marginBottom: 14, padding: 14, borderRadius: 16, background: "#dcfce7", color: "#166534", fontWeight: 850 };
 const warnBox = { marginBottom: 14, padding: 14, borderRadius: 16, background: "#fef3c7", color: "#92400e", fontWeight: 850 };
 const errorBox = { marginBottom: 14, padding: 14, borderRadius: 16, background: "#fee2e2", color: "#991b1b", fontWeight: 850 };

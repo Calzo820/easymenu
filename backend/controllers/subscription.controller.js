@@ -2,20 +2,31 @@ import Stripe from "stripe";
 import prisma from "../lib/prisma.js";
 
 const PLAN_PRICE_ENV = {
-  starter: "STRIPE_PRICE_STARTER",
-  growth: "STRIPE_PRICE_GROWTH",
-  semiannual: "STRIPE_PRICE_SEMIANNUAL",
-  enterprise: "STRIPE_PRICE_ENTERPRISE",
+  starter: ["STRIPE_PRICE_STARTER", "STRIPE_PRICE_MONTHLY"],
+  growth: ["STRIPE_PRICE_GROWTH", "STRIPE_PRICE_QUARTERLY"],
+  semiannual: ["STRIPE_PRICE_SEMIANNUAL"],
+  enterprise: ["STRIPE_PRICE_ENTERPRISE", "STRIPE_PRICE_YEARLY"],
 };
 
+function getPlanPriceId(plan) {
+  const envNames = PLAN_PRICE_ENV[plan] || [];
+  for (const envName of envNames) {
+    const value = process.env[envName];
+    if (value) return value;
+  }
+  return "";
+}
+
+function getPrimaryPlanEnv(plan) {
+  return PLAN_PRICE_ENV[plan]?.[0] || "";
+}
+
 function isBillingCoreConfigured() {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_PRICE_STARTER);
+  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && getPlanPriceId("starter"));
 }
 
 function configuredPlans() {
-  return Object.fromEntries(
-    Object.entries(PLAN_PRICE_ENV).map(([plan, envName]) => [plan, Boolean(process.env[envName])])
-  );
+  return Object.fromEntries(Object.keys(PLAN_PRICE_ENV).map((plan) => [plan, Boolean(getPlanPriceId(plan))]));
 }
 
 function getStripe() {
@@ -34,8 +45,9 @@ function mapStripeStatus(status) {
 }
 
 function getPlanFromPriceId(priceId) {
-  const entries = Object.entries(PLAN_PRICE_ENV);
-  const found = entries.find(([, envName]) => process.env[envName] && process.env[envName] === priceId);
+  const found = Object.entries(PLAN_PRICE_ENV).find(([, envNames]) =>
+    envNames.some((envName) => process.env[envName] && process.env[envName] === priceId)
+  );
   return found?.[0] || "starter";
 }
 
@@ -77,10 +89,10 @@ export async function getBillingStatus(req, res) {
     return res.json({
       ...serializeSubscription(restaurant.subscription, restaurant),
       plans: [
-        { id: "starter", name: "Mensile", priceLabel: "€49,99/mese", recommended: false, envKey: "STRIPE_PRICE_STARTER" },
-        { id: "growth", name: "Trimestrale", priceLabel: "€134,99/3 mesi", discountLabel: "10% OFF", recommended: false, envKey: "STRIPE_PRICE_GROWTH" },
-        { id: "semiannual", name: "Semestrale", priceLabel: "€254,99/6 mesi", discountLabel: "15% OFF", recommended: true, envKey: "STRIPE_PRICE_SEMIANNUAL" },
-        { id: "enterprise", name: "Annuale", priceLabel: "€449,99/anno", discountLabel: "25% OFF", recommended: false, envKey: "STRIPE_PRICE_ENTERPRISE" },
+        { id: "starter", name: "Mensile", priceLabel: "€49,99/mese + IVA", recommended: false, envKey: "STRIPE_PRICE_STARTER" },
+        { id: "growth", name: "Trimestrale", priceLabel: "€134,99/3 mesi + IVA", discountLabel: "10% OFF", recommended: false, envKey: "STRIPE_PRICE_GROWTH" },
+        { id: "semiannual", name: "Semestrale", priceLabel: "€254,99/6 mesi + IVA", discountLabel: "15% OFF", recommended: true, envKey: "STRIPE_PRICE_SEMIANNUAL" },
+        { id: "enterprise", name: "Annuale", priceLabel: "€449,99/anno + IVA", discountLabel: "25% OFF", recommended: false, envKey: "STRIPE_PRICE_ENTERPRISE" },
       ],
       billingConfigured: isBillingCoreConfigured(),
       configuredPlans: configuredPlans(),
@@ -100,10 +112,10 @@ export async function createSubscriptionCheckout(req, res) {
     const plan = String(req.body?.plan || "starter").toLowerCase();
     if (!PLAN_PRICE_ENV[plan]) return res.status(400).json({ message: "Piano non valido" });
 
-    const priceId = process.env[PLAN_PRICE_ENV[plan]];
+    const priceId = getPlanPriceId(plan);
     if (!priceId) {
       return res.status(400).json({
-        message: `Configura ${PLAN_PRICE_ENV[plan]} nel backend/.env o nel .env root prima di vendere questo piano`,
+        message: `Configura ${getPrimaryPlanEnv(plan)} nel backend/.env o nelle variabili Render prima di vendere questo piano`,
       });
     }
 

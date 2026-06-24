@@ -24,13 +24,17 @@ function firstValue(keys = []) {
 function applyEnvAliases() {
   const stripeSecret = firstValue(["STRIPE_SECRET_KEY", "STRIPE_API_KEY", "STRIPE_SECRET"]);
   const webhookSecret = firstValue(["STRIPE_WEBHOOK_SECRET", "STRIPE_ENDPOINT_SECRET"]);
-  const starterPrice = firstValue(["STRIPE_PRICE_STARTER", "STRIPE_STARTER_PRICE_ID", "STRIPE_PRICE_ID", "VITE_STRIPE_PRICE_STARTER"]);
+  const starterPrice = firstValue(["STRIPE_PRICE_STARTER", "STRIPE_PRICE_MONTHLY", "STRIPE_STARTER_PRICE_ID", "STRIPE_PRICE_ID", "VITE_STRIPE_PRICE_STARTER"]);
+  const growthPrice = firstValue(["STRIPE_PRICE_GROWTH", "STRIPE_PRICE_QUARTERLY", "STRIPE_GROWTH_PRICE_ID", "VITE_STRIPE_PRICE_GROWTH"]);
   const semiannualPrice = firstValue(["STRIPE_PRICE_SEMIANNUAL", "STRIPE_SEMIANNUAL_PRICE_ID", "VITE_STRIPE_PRICE_SEMIANNUAL"]);
+  const enterprisePrice = firstValue(["STRIPE_PRICE_ENTERPRISE", "STRIPE_PRICE_YEARLY", "STRIPE_ENTERPRISE_PRICE_ID", "VITE_STRIPE_PRICE_ENTERPRISE"]);
 
   if (stripeSecret) process.env.STRIPE_SECRET_KEY = stripeSecret;
   if (webhookSecret) process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
   if (starterPrice) process.env.STRIPE_PRICE_STARTER = starterPrice;
+  if (growthPrice) process.env.STRIPE_PRICE_GROWTH = growthPrice;
   if (semiannualPrice) process.env.STRIPE_PRICE_SEMIANNUAL = semiannualPrice;
+  if (enterprisePrice) process.env.STRIPE_PRICE_ENTERPRISE = enterprisePrice;
 }
 
 export function loadEnvironment({ silent = true } = {}) {
@@ -49,10 +53,10 @@ export function loadEnvironment({ silent = true } = {}) {
     loadedFiles,
     hasStripeSecret: Boolean(process.env.STRIPE_SECRET_KEY),
     hasStripeWebhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
-    hasStarterPrice: Boolean(process.env.STRIPE_PRICE_STARTER),
-    hasGrowthPrice: Boolean(process.env.STRIPE_PRICE_GROWTH),
+    hasStarterPrice: Boolean(process.env.STRIPE_PRICE_STARTER || process.env.STRIPE_PRICE_MONTHLY),
+    hasGrowthPrice: Boolean(process.env.STRIPE_PRICE_GROWTH || process.env.STRIPE_PRICE_QUARTERLY),
     hasSemiannualPrice: Boolean(process.env.STRIPE_PRICE_SEMIANNUAL),
-    hasEnterprisePrice: Boolean(process.env.STRIPE_PRICE_ENTERPRISE),
+    hasEnterprisePrice: Boolean(process.env.STRIPE_PRICE_ENTERPRISE || process.env.STRIPE_PRICE_YEARLY),
   };
 
   if (!silent) {
