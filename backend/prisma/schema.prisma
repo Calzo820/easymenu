@@ -239,6 +239,7 @@ model OrderCounter {
 enum RestaurantPlan {
   starter
   growth
+  semiannual
   enterprise
 }
 

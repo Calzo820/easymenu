@@ -25,10 +25,12 @@ function applyEnvAliases() {
   const stripeSecret = firstValue(["STRIPE_SECRET_KEY", "STRIPE_API_KEY", "STRIPE_SECRET"]);
   const webhookSecret = firstValue(["STRIPE_WEBHOOK_SECRET", "STRIPE_ENDPOINT_SECRET"]);
   const starterPrice = firstValue(["STRIPE_PRICE_STARTER", "STRIPE_STARTER_PRICE_ID", "STRIPE_PRICE_ID", "VITE_STRIPE_PRICE_STARTER"]);
+  const semiannualPrice = firstValue(["STRIPE_PRICE_SEMIANNUAL", "STRIPE_SEMIANNUAL_PRICE_ID", "VITE_STRIPE_PRICE_SEMIANNUAL"]);
 
   if (stripeSecret) process.env.STRIPE_SECRET_KEY = stripeSecret;
   if (webhookSecret) process.env.STRIPE_WEBHOOK_SECRET = webhookSecret;
   if (starterPrice) process.env.STRIPE_PRICE_STARTER = starterPrice;
+  if (semiannualPrice) process.env.STRIPE_PRICE_SEMIANNUAL = semiannualPrice;
 }
 
 export function loadEnvironment({ silent = true } = {}) {
@@ -49,6 +51,7 @@ export function loadEnvironment({ silent = true } = {}) {
     hasStripeWebhookSecret: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
     hasStarterPrice: Boolean(process.env.STRIPE_PRICE_STARTER),
     hasGrowthPrice: Boolean(process.env.STRIPE_PRICE_GROWTH),
+    hasSemiannualPrice: Boolean(process.env.STRIPE_PRICE_SEMIANNUAL),
     hasEnterprisePrice: Boolean(process.env.STRIPE_PRICE_ENTERPRISE),
   };
 

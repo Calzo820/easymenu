@@ -9,7 +9,14 @@ import {
 } from "../lib/api";
 import "../styles/superadmin.css";
 
-const PLAN_OPTIONS = ["starter", "growth", "enterprise"];
+const PLAN_OPTIONS = ["starter", "growth", "semiannual", "enterprise"];
+
+const PLAN_LABELS = {
+  starter: "Mensile",
+  growth: "Trimestrale",
+  semiannual: "Semestrale",
+  enterprise: "Annuale",
+};
 
 const PLATFORM_ROADMAP = [
   {
@@ -130,13 +137,12 @@ export default function SuperAdmin() {
           acc.total += 1;
           if (restaurant.isActive) acc.active += 1;
           else acc.suspended += 1;
-          acc.orders += restaurant.counts?.orders || 0;
           acc.tables += restaurant.counts?.tables || 0;
           acc.menuItems += restaurant.counts?.menuItems || 0;
           acc.alerts += getAlerts(restaurant).length;
           return acc;
         },
-        { total: 0, active: 0, suspended: 0, orders: 0, tables: 0, menuItems: 0, alerts: 0 }
+        { total: 0, active: 0, suspended: 0, tables: 0, menuItems: 0, alerts: 0 }
       ),
     [restaurants]
   );
@@ -146,7 +152,7 @@ export default function SuperAdmin() {
 
     return restaurants.filter((restaurant) => {
       const owner = `${restaurant.owner?.email || ""} ${restaurant.owner?.name || ""}`;
-      const haystack = `${restaurant.name} ${restaurant.slug} ${owner} ${restaurant.plan}`.toLowerCase();
+      const haystack = `${restaurant.name} ${restaurant.slug} ${owner} ${PLAN_LABELS[restaurant.plan] || restaurant.plan}`.toLowerCase();
 
       if (statusFilter === "active" && !restaurant.isActive) return false;
       if (statusFilter === "suspended" && restaurant.isActive) return false;
@@ -280,8 +286,8 @@ export default function SuperAdmin() {
           <StatCard label="Ristoranti" value={stats.total} hint="Totali in piattaforma" />
           <StatCard label="Attivi" value={stats.active} hint="Utilizzabili dai clienti" />
           <StatCard label="Sospesi" value={stats.suspended} hint="Disattivati" />
-          <StatCard label="Ordini" value={stats.orders} hint="Storico complessivo" />
           <StatCard label="Tavoli" value={stats.tables} hint="QR configurati" />
+          <StatCard label="Privacy" value="ON" hint="Dati economici non aggregati" />
           <StatCard label="Alert" value={stats.alerts} hint="Da controllare" />
         </section>
 
@@ -311,7 +317,7 @@ export default function SuperAdmin() {
             <div>
               <h2 className="superadmin-card-title">Lista ristoranti</h2>
               <p className="superadmin-card-subtitle">
-                Cerca, verifica owner, cambia piano, sospendi account o apri la gestione del locale.
+                Cerca, verifica owner, cambia piano o sospendi account. Per privacy non mostriamo fatturato o dati economici aggregati dei ristoranti.
               </p>
             </div>
             <button className="superadmin-btn" onClick={loadRestaurants} disabled={loading}>
@@ -336,9 +342,10 @@ export default function SuperAdmin() {
               <option value="active">Attivi</option>
               <option value="suspended">Sospesi</option>
               <option value="alerts">Con alert</option>
-              <option value="starter">Starter</option>
-              <option value="growth">Growth</option>
-              <option value="enterprise">Enterprise</option>
+              <option value="starter">Mensile</option>
+              <option value="growth">Trimestrale</option>
+              <option value="semiannual">Semestrale</option>
+              <option value="enterprise">Annuale</option>
             </select>
           </div>
 
@@ -350,7 +357,7 @@ export default function SuperAdmin() {
                   <th>Owner</th>
                   <th>Piano</th>
                   <th>Stato</th>
-                  <th>Numeri</th>
+                  <th>Setup</th>
                   <th>Alert</th>
                   <th>Azioni</th>
                 </tr>
@@ -391,7 +398,7 @@ export default function SuperAdmin() {
                           >
                             {PLAN_OPTIONS.map((plan) => (
                               <option key={plan} value={plan}>
-                                {plan}
+                                {PLAN_LABELS[plan] || plan}
                               </option>
                             ))}
                           </select>
@@ -402,8 +409,7 @@ export default function SuperAdmin() {
                           </span>
                         </td>
                         <td>
-                          Menu {restaurant.counts?.menuItems || 0} · Tavoli {restaurant.counts?.tables || 0} · Ordini{" "}
-                          {restaurant.counts?.orders || 0}
+                          Menu {restaurant.counts?.menuItems || 0} · Tavoli {restaurant.counts?.tables || 0}
                         </td>
                         <td>
                           {alerts.length ? (
@@ -496,10 +502,9 @@ export default function SuperAdmin() {
               </div>
             ))}
 
-            <h3>Numeri</h3>
+            <h3>Setup</h3>
             <p>
-              Menu: {selected.counts?.menuItems || 0} · Tavoli: {selected.counts?.tables || 0} · Ordini:{" "}
-              {selected.counts?.orders || 0} · Utenti: {selected.counts?.users || 0}
+              Menu: {selected.counts?.menuItems || 0} · Tavoli: {selected.counts?.tables || 0} · Utenti: {selected.counts?.users || 0}
             </p>
           </div>
         </div>
@@ -573,7 +578,7 @@ export default function SuperAdmin() {
                 >
                   {PLAN_OPTIONS.map((plan) => (
                     <option key={plan} value={plan}>
-                      {plan}
+                      {PLAN_LABELS[plan] || plan}
                     </option>
                   ))}
                 </select>

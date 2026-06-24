@@ -1,6 +1,7 @@
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
 function euro(value) {
+  if (value === null || value === undefined) return "importo nascosto";
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
 }
 

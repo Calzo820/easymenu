@@ -14,34 +14,42 @@ function formatDate(value) {
 
 const planDetails = {
   starter: {
-    title: "1 mese",
+    title: "Mensile",
     price: "€49,99",
-    cadence: "al mese",
-    subtitle: "Per provare EasyMenu senza impegno e usarlo subito durante il servizio.",
-    badge: "Mensile",
+    cadence: "ogni mese",
+    subtitle: "Perfetto per iniziare subito, testare EasyMenu e disdire quando vuoi.",
+    badge: "1 mese",
     features: ["Tutte le funzioni operative", "Menu QR", "Cucina, bar e cassa", "Dashboard e report", "Disdici quando vuoi"],
   },
   growth: {
-    title: "3 mesi",
-    price: "€119,99",
+    title: "Trimestrale",
+    price: "€134,99",
     cadence: "ogni 3 mesi",
-    subtitle: "La scelta migliore per validare EasyMenu nel ristorante con un risparmio concreto.",
-    badge: "20% OFF",
+    subtitle: "Per chi vuole usarlo per una stagione intera con un piccolo risparmio.",
+    badge: "10% OFF",
+    features: ["Tutto del mensile", "Risparmio vs mese per mese", "Ideale per validare il locale", "Stesso accesso completo", "Aggiornamenti inclusi"],
+  },
+  semiannual: {
+    title: "Semestrale",
+    price: "€254,99",
+    cadence: "ogni 6 mesi",
+    subtitle: "La scelta migliore per ristoranti che vogliono stabilizzare EasyMenu nel servizio.",
+    badge: "15% OFF",
     recommended: true,
-    features: ["Tutto del mensile", "Risparmio vs pagamento mese per mese", "Ideale per beta e primi clienti", "Stesso accesso completo", "Priorità agli aggiornamenti"],
+    features: ["Tutto incluso", "Risparmio maggiore", "Perfetto per alta stagione", "Setup e ottimizzazioni", "Priorità agli aggiornamenti"],
   },
   enterprise: {
-    title: "1 anno",
+    title: "Annuale",
     price: "€449,99",
     cadence: "all'anno",
-    subtitle: "Per chi vuole adottare EasyMenu stabilmente e bloccare il prezzo migliore.",
+    subtitle: "Il prezzo più conveniente per chi adotta EasyMenu come sistema operativo del ristorante.",
     badge: "25% OFF",
     features: ["Tutto incluso", "Prezzo annuale bloccato", "Massimo risparmio", "Setup ristorante completo", "Supporto prioritario"],
   },
 };
 
 function normalizePlan(plan) {
-  return ["starter", "growth", "enterprise"].includes(plan) ? plan : "starter";
+  return ["starter", "growth", "semiannual", "enterprise"].includes(plan) ? plan : "starter";
 }
 
 function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
@@ -204,7 +212,7 @@ export default function Billing() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-            {["starter", "growth", "enterprise"].map((id) => (
+            {["starter", "growth", "semiannual", "enterprise"].map((id) => (
               <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} onCheckout={handleCheckout} />
             ))}
           </div>

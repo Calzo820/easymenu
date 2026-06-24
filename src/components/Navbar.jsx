@@ -104,8 +104,7 @@ export default function Navbar() {
       canCashier && { to: "/cassa", label: "Cassa", icon: "▣", match: ["/cassa"] },
       isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli"] },
       isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "☰", match: ["/admin"], adminTab: "menu" },
-      isAdmin && { to: "/statistiche", label: "Report", icon: "↗", match: ["/statistiche", "/storico"] },
-      isAdmin && { to: "/admin?tab=settings", label: "Impostazioni", icon: "⚙", match: ["/admin", "/billing", "/qr", "/errori"], adminTab: "settings" },
+      isAdmin && { to: "/admin?tab=settings", label: "Impostazioni", icon: "⚙", match: ["/admin", "/billing", "/qr", "/errori", "/statistiche", "/storico"], adminTab: "settings" },
     ].filter(Boolean);
   }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 
@@ -115,7 +114,7 @@ export default function Navbar() {
     if (link.adminTab && location.pathname.startsWith("/admin")) {
       return getAdminTabFromSearch(location.search) === link.adminTab;
     }
-    if (link.label === "Impostazioni" && ["/billing", "/qr", "/errori"].some((path) => location.pathname.startsWith(path))) {
+    if (link.label === "Impostazioni" && ["/billing", "/qr", "/errori", "/statistiche", "/storico"].some((path) => location.pathname.startsWith(path))) {
       return true;
     }
     if (link.label === "Menu" && location.pathname.startsWith("/admin")) {

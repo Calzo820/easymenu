@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
 function euro(value) {
+  if (value === null || value === undefined) return "Nascosto";
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
 }
 

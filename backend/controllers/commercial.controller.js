@@ -242,6 +242,9 @@ export const getCommercialGrowth = async (req, res) => {
   try {
     const restaurantId = req.user?.restaurantId;
     if (!restaurantId) return res.status(401).json({ message: "Ristorante non autorizzato" });
+    if (req.user?.impersonating) {
+      return res.status(403).json({ message: "Report commerciali nascosti in modalità assistenza SuperAdmin per privacy." });
+    }
 
     const from = req.query.from ? new Date(req.query.from) : daysAgo(30);
     const to = req.query.to ? new Date(req.query.to) : new Date();

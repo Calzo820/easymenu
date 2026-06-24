@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
 
-const ALLOWED_PLANS = new Set(["starter", "growth", "enterprise"]);
+const ALLOWED_PLANS = new Set(["starter", "growth", "semiannual", "enterprise"]);
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
 
 function buildSlug(value) {
@@ -77,7 +77,7 @@ async function getRestaurantForSuperAdmin(id) {
         orderBy: [{ role: "asc" }, { createdAt: "asc" }],
       },
       subscription: true,
-      _count: { select: { users: true, menuItems: true, tables: true, orders: true } },
+      _count: { select: { users: true, menuItems: true, tables: true } },
     },
   });
 }
@@ -94,7 +94,7 @@ export const listRestaurantsForSuperAdmin = async (req, res) => {
           orderBy: [{ role: "asc" }, { createdAt: "asc" }],
         },
         subscription: true,
-        _count: { select: { menuItems: true, tables: true, orders: true, users: true } },
+        _count: { select: { menuItems: true, tables: true, users: true } },
       },
     });
 

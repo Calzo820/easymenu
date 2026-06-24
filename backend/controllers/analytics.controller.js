@@ -105,6 +105,7 @@ export const getAnalyticsSummary = async (req, res) => {
     }
 
     const restaurantId = req.user?.restaurantId;
+    const privacyMode = Boolean(req.user?.impersonating);
 
     if (!restaurantId) {
       return res.status(401).json({
@@ -336,13 +337,22 @@ export const getAnalyticsSummary = async (req, res) => {
     const topProductsRange = buildProductStats(paidRange).slice(0, 10);
     const topProductsToday = buildProductStats(paidToday).slice(0, 10);
 
+    const hideMoney = (value) => (privacyMode ? null : value);
+    const hideRevenueRows = (rows = []) => rows.map((row) => ({
+      ...row,
+      revenue: hideMoney(row.revenue),
+      averageTicket: hideMoney(row.averageTicket),
+    }));
+    const hideProductMoney = (rows = []) => rows.map((row) => ({ ...row, revenue: hideMoney(row.revenue) }));
+
     return res.json({
       range,
       generatedAt: new Date().toISOString(),
+      privacyMode,
 
       kpis: {
-        revenueToday,
-        revenueRange,
+        revenueToday: hideMoney(revenueToday),
+        revenueRange: hideMoney(revenueRange),
 
         ordersToday: ordersToday.length,
         completedOrdersToday: completedToday.length,
@@ -350,8 +360,8 @@ export const getAnalyticsSummary = async (req, res) => {
         ordersRange: ordersInRange.length,
         completedOrdersRange: completedRange.length,
 
-        averageTicketToday: paidToday.length ? revenueToday / paidToday.length : 0,
-        averageTicketRange: paidRange.length ? revenueRange / paidRange.length : 0,
+        averageTicketToday: hideMoney(paidToday.length ? revenueToday / paidToday.length : 0),
+        averageTicketRange: hideMoney(paidRange.length ? revenueRange / paidRange.length : 0),
 
         openOrders: activeOrders.length,
 
@@ -374,7 +384,7 @@ export const getAnalyticsSummary = async (req, res) => {
           orderNumber: order.orderNumber,
           status: order.status,
           table: order.table?.name || order.table?.code || "Tavolo",
-          totalAmount: order.totalAmount,
+          totalAmount: hideMoney(order.totalAmount),
           createdAt: order.createdAt,
           itemsCount: (order.items || []).reduce(
             (sum, item) => sum + toNumber(item.quantity),
@@ -403,7 +413,7 @@ export const getAnalyticsSummary = async (req, res) => {
         paymentAlerts: failedPayments.map((payment) => ({
           id: payment.id,
           status: payment.status,
-          amount: payment.amount,
+          amount: hideMoney(payment.amount),
           createdAt: payment.createdAt,
           orderId: payment.orderId,
           table:
@@ -420,11 +430,11 @@ export const getAnalyticsSummary = async (req, res) => {
       },
 
       charts: {
-        byDay: [...byDayMap.values()],
-        byHourToday: buildHourlyToday(ordersToday),
-        topProducts: topProductsRange,
-        topProductsToday,
-        byPayment: [...byPaymentMap.values()],
+        byDay: hideRevenueRows([...byDayMap.values()]),
+        byHourToday: hideRevenueRows(buildHourlyToday(ordersToday)),
+        topProducts: hideProductMoney(topProductsRange),
+        topProductsToday: hideProductMoney(topProductsToday),
+        byPayment: hideRevenueRows([...byPaymentMap.values()]),
       },
     });
   } catch (error) {

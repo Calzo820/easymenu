@@ -31,6 +31,7 @@ export function validateEnvironment() {
     subscriptionsEnabled: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_STARTER),
     starterPlanEnabled: Boolean(process.env.STRIPE_PRICE_STARTER),
     growthPlanEnabled: Boolean(process.env.STRIPE_PRICE_GROWTH),
+    semiannualPlanEnabled: Boolean(process.env.STRIPE_PRICE_SEMIANNUAL),
     enterprisePlanEnabled: Boolean(process.env.STRIPE_PRICE_ENTERPRISE),
   };
 }

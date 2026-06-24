@@ -39,7 +39,7 @@ function Dashboard() {
   const [liveBadge, setLiveBadge] = useState("connessione live...");
 
   const restaurantName = getRestaurantName();
-  const isSuperAdminMode = localStorage.getItem("superadmin_mode") === "1";
+  const isSuperAdminMode = localStorage.getItem("superadmin_mode") === "1" || Boolean(localStorage.getItem("superadmin_platform_session"));
 
   const load = useCallback(async (manual = false) => {
     try {
@@ -96,6 +96,7 @@ function Dashboard() {
   const busyTables = num(kpis.activeTables);
   const freeTables = num(kpis.freeTables);
   const openOrders = num(kpis.openOrders);
+  const moneyHidden = Boolean(data?.privacyMode);
 
   if (!restaurantName) {
     return (
@@ -118,14 +119,17 @@ function Dashboard() {
       <main className="dash-os-shell">
         {isSuperAdminMode ? (
           <div className="dash-super-banner">
-            <div><b>Modalità Super Admin</b> · stai modificando questo ristorante con permessi completi.</div>
+            <div><b>Modalità assistenza SuperAdmin</b> · valori economici nascosti per privacy del ristorante.</div>
             <button
               type="button"
               onClick={() => {
-                const original = localStorage.getItem("superadmin_original_token");
-                if (original) localStorage.setItem("auth_token", original);
+                const snapshot = JSON.parse(localStorage.getItem("superadmin_platform_session") || "null");
+                if (snapshot?.token) localStorage.setItem("auth_token", snapshot.token);
+                if (snapshot?.user) localStorage.setItem("auth_user", snapshot.user);
+                if (snapshot?.restaurant) localStorage.setItem("auth_restaurant", snapshot.restaurant);
                 localStorage.removeItem("superadmin_mode");
                 localStorage.removeItem("superadmin_original_token");
+                localStorage.removeItem("superadmin_platform_session");
                 window.location.href = "/super-admin";
               }}
             >
@@ -141,11 +145,17 @@ function Dashboard() {
           onRefresh={() => load(true)}
         />
 
+        {data?.privacyMode ? (
+          <div className="dash-super-banner">
+            <div><b>Privacy attiva</b> · incasso, ticket medio e importi ordine sono oscurati durante l'assistenza SuperAdmin.</div>
+          </div>
+        ) : null}
+
         <section className="dash-kpi-grid">
-          <DashboardStat label="Incasso oggi" value={euro(kpis.revenueToday)} detail={`${num(kpis.completedOrdersToday)} ordini completati`} tone="money" />
+          <DashboardStat label="Incasso oggi" value={moneyHidden ? "Nascosto" : euro(kpis.revenueToday)} detail={`${num(kpis.completedOrdersToday)} ordini completati`} tone="money" />
           <DashboardStat label="Ordini attivi" value={num(kpis.openOrders)} detail="Da cucina, bar e cassa" tone="live" />
           <DashboardStat label="Tavoli occupati" value={`${num(kpis.activeTables)}/${num(kpis.totalTables)}`} detail={`${num(kpis.freeTables)} tavoli liberi`} />
-          <DashboardStat label="Ticket medio" value={euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
+          <DashboardStat label="Ticket medio" value={moneyHidden ? "Nascosto" : euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
         </section>
 
         <section className="dash-service-strip">

@@ -114,6 +114,20 @@ function TextArea(props) {
   return <textarea className="management-textarea" {...props} />;
 }
 
+
+function SettingsCard({ icon, title, subtitle, action, tone = "default", onClick }) {
+  return (
+    <button type="button" className={`settings-card ${tone}`} onClick={onClick}>
+      <span className="settings-card-icon">{icon}</span>
+      <span className="settings-card-copy">
+        <strong>{title}</strong>
+        <small>{subtitle}</small>
+      </span>
+      <span className="settings-card-action">{action || "Apri"}</span>
+    </button>
+  );
+}
+
 export default function AdminPanel({ embedded = false } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -669,25 +683,68 @@ export default function AdminPanel({ embedded = false } = {}) {
   }
 
   function renderSettings() {
+    const privacyItems = [
+      "SuperAdmin: dati economici nascosti in modalità assistenza",
+      "Accesso ai dati del ristorante solo per supporto tecnico",
+      "Documenti legali da completare prima della vendita pubblica",
+    ];
+
     return (
-      <div className="management-grid-2">
-        <form className="management-card management-form" onSubmit={handleRestaurantSubmit}>
-          <SectionHead title="Brand ristorante" subtitle="Nome, logo e colore usati su menu cliente, dashboard e QR." />
+      <div className="settings-os-grid">
+        <form className="management-card management-form settings-brand-panel" onSubmit={handleRestaurantSubmit}>
+          <SectionHead
+            title="Profilo ristorante"
+            subtitle="Le informazioni principali che compaiono su menu cliente, QR e dashboard."
+          />
           <Field label="Nome ristorante"><TextInput value={restaurantForm.name} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
-          <Field label="Colore primario"><TextInput value={restaurantForm.primaryColor} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, primaryColor: e.target.value }))} /></Field>
+          <div className="settings-brand-row">
+            <Field label="Colore primario"><TextInput value={restaurantForm.primaryColor} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, primaryColor: e.target.value }))} /></Field>
+            <Field label="Valuta"><TextInput value={restaurantForm.currency} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))} /></Field>
+          </div>
           <Field label="Logo URL"><TextInput value={restaurantForm.logoUrl} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, logoUrl: e.target.value }))} /></Field>
-          <Field label="Valuta"><TextInput value={restaurantForm.currency} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))} /></Field>
           <label className="management-badge green" style={{ width: "fit-content" }}><input type="checkbox" checked={restaurantForm.isActive} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, isActive: e.target.checked }))} /> Ristorante attivo</label>
-          <button className="management-btn" type="submit" disabled={savingRestaurant}>{savingRestaurant ? "Salvataggio..." : "Salva impostazioni"}</button>
+          <button className="management-btn" type="submit" disabled={savingRestaurant}>{savingRestaurant ? "Salvataggio..." : "Salva profilo"}</button>
         </form>
 
-        <div className="management-card">
-          <SectionHead title="Centro controllo" subtitle="Le funzioni avanzate restano raggiungibili, ma fuori dal flusso quotidiano." />
-          <div className="management-list">
-            <div className="management-list-row"><div><div className="management-row-title">QR tavoli</div><div className="management-row-meta">Stampa e rigenera QR quando serve.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/qr"}>Apri</button></div>
-            <div className="management-list-row"><div><div className="management-row-title">Abbonamento</div><div className="management-row-meta">Piano attuale: {restaurant?.plan || "starter"}</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/billing"}>Gestisci</button></div>
-            <div className="management-list-row"><div><div className="management-row-title">Storico ordini</div><div className="management-row-meta">Archivio completo fuori dalla dashboard.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/storico"}>Apri</button></div>
-            <div className="management-list-row"><div><div className="management-row-title">Alert tecnici</div><div className="management-row-meta">Errori e diagnostica avanzata.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/errori"}>Apri</button></div>
+        <div className="settings-os-stack">
+          <div className="management-card settings-group-card">
+            <SectionHead
+              title="Impostazioni operative"
+              subtitle="Tutto quello che non serve ogni minuto resta ordinato qui, senza sporcare la sidebar."
+            />
+            <div className="settings-card-grid">
+              <SettingsCard icon="📈" title="Report" subtitle="Statistiche, storico e andamento vendite." onClick={() => window.location.href = "/statistiche"} />
+              <SettingsCard icon="🧾" title="Storico ordini" subtitle="Archivio completo degli ordini serviti." onClick={() => window.location.href = "/storico"} />
+              <SettingsCard icon="▦" title="QR tavoli" subtitle="Stampa, rigenera e controlla i QR." onClick={() => window.location.href = "/qr"} />
+              <SettingsCard icon="⚠" title="Alert tecnici" subtitle="Errori, log e diagnostica avanzata." onClick={() => window.location.href = "/errori"} />
+            </div>
+          </div>
+
+          <div className="management-card settings-group-card">
+            <SectionHead title="Account, pagamenti e accessi" subtitle="Gestione amministrativa del ristorante." />
+            <div className="settings-card-grid two">
+              <SettingsCard icon="💳" title="Abbonamento" subtitle={`Piano attuale: ${restaurant?.plan || "mensile"}`} action="Gestisci" tone="billing" onClick={() => window.location.href = "/billing"} />
+              <SettingsCard icon="👥" title="Staff" subtitle="Crea accessi cucina, bar, cassa e admin." action="Vai" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }} />
+            </div>
+          </div>
+
+          <div className="management-card settings-privacy-panel">
+            <SectionHead title="Privacy e documenti" subtitle="Prima della vendita pubblica serve separare bene supporto tecnico, dati cliente e documentazione legale." />
+            <div className="settings-privacy-layout">
+              <div>
+                <div className="settings-privacy-title">Modalità privacy attiva</div>
+                <p className="management-subtitle">Quando accedi come SuperAdmin dentro un ristorante, i valori economici sono oscurati per ridurre l'accesso non necessario ai dati operativi del cliente.</p>
+                <ul className="settings-checklist">
+                  {privacyItems.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </div>
+              <div className="settings-doc-list">
+                <div><strong>Privacy Policy</strong><span>Da completare con consulente/privacy tool</span></div>
+                <div><strong>Termini di servizio</strong><span>Condizioni commerciali e uso piattaforma</span></div>
+                <div><strong>DPA / Nomina responsabile</strong><span>Da preparare per clienti business</span></div>
+                <div><strong>Cookie policy</strong><span>Necessaria se usi cookie non tecnici</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
