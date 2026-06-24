@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
@@ -66,6 +67,12 @@ function bySortThenName(a, b) {
   return String(a?.name || a?.code || "").localeCompare(String(b?.name || b?.code || ""), "it", { numeric: true });
 }
 
+
+function getInitialTab(search = window.location.search) {
+  const tab = new URLSearchParams(search || "").get("tab") || "menu";
+  return ["menu", "tables", "staff", "settings"].includes(tab) ? tab : "menu";
+}
+
 function roleLabel(role) {
   if (role === "kitchen") return "Cucina";
   if (role === "bar") return "Bar";
@@ -108,6 +115,8 @@ function TextArea(props) {
 }
 
 export default function AdminPanel({ embedded = false } = {}) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [tables, setTables] = useState([]);
@@ -119,7 +128,7 @@ export default function AdminPanel({ embedded = false } = {}) {
   const [savingUser, setSavingUser] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [activeTab, setActiveTab] = useState("menu");
+  const [activeTab, setActiveTab] = useState(() => getInitialTab(location.search));
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [areaFilter, setAreaFilter] = useState("all");
@@ -168,6 +177,10 @@ export default function AdminPanel({ embedded = false } = {}) {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    setActiveTab(getInitialTab(location.search));
+  }, [location.search]);
 
   const categories = useMemo(() => {
     const found = [...new Set(menuItems.map((item) => item.category).filter(Boolean))];
@@ -710,7 +723,7 @@ export default function AdminPanel({ embedded = false } = {}) {
 
           <div className="management-tabs">
             {tabs.map((tab) => (
-              <button key={tab.id} className={`management-tab ${activeTab === tab.id ? "is-active" : ""}`} type="button" onClick={() => setActiveTab(tab.id)}>
+              <button key={tab.id} className={`management-tab ${activeTab === tab.id ? "is-active" : ""}`} type="button" onClick={() => { setActiveTab(tab.id); navigate(`/admin?tab=${tab.id}`, { replace: true }); }}>
                 <strong>{tab.title}</strong>
                 <span>{tab.subtitle}</span>
               </button>

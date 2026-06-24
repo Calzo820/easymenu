@@ -227,7 +227,7 @@ export const getAnalyticsSummary = async (req, res) => {
         where: {
           restaurantId,
           status: {
-            in: ["unpaid", "pending", "failed"],
+            in: ["unpaid", "pending"],
           },
           createdAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
@@ -431,7 +431,7 @@ export const getAnalyticsSummary = async (req, res) => {
     console.error("getAnalyticsSummary error:", error);
 
     return res.status(500).json({
-      message: "Errore durante recupero analytics",
+      message: "Analytics temporaneamente non disponibili",
     });
   }
 };

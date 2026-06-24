@@ -76,9 +76,9 @@ export async function getBillingStatus(req, res) {
     return res.json({
       ...serializeSubscription(restaurant.subscription, restaurant),
       plans: [
-        { id: "starter", name: "Starter", priceLabel: "€49/mese", recommended: false, envKey: "STRIPE_PRICE_STARTER" },
-        { id: "growth", name: "Growth", priceLabel: "€99/mese", recommended: true, envKey: "STRIPE_PRICE_GROWTH" },
-        { id: "enterprise", name: "Enterprise", priceLabel: "Su misura", recommended: false, envKey: "STRIPE_PRICE_ENTERPRISE" },
+        { id: "starter", name: "1 mese", priceLabel: "€49,99/mese", recommended: false, envKey: "STRIPE_PRICE_STARTER" },
+        { id: "growth", name: "3 mesi", priceLabel: "€119,99/3 mesi", discountLabel: "20% OFF", recommended: true, envKey: "STRIPE_PRICE_GROWTH" },
+        { id: "enterprise", name: "1 anno", priceLabel: "€449,99/anno", discountLabel: "25% OFF", recommended: false, envKey: "STRIPE_PRICE_ENTERPRISE" },
       ],
       billingConfigured: isBillingCoreConfigured(),
       configuredPlans: configuredPlans(),

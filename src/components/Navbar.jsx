@@ -57,6 +57,11 @@ function initials(user) {
   return source.slice(0, 2).toUpperCase();
 }
 
+function getAdminTabFromSearch(search) {
+  const tab = new URLSearchParams(search || "").get("tab") || "menu";
+  return ["menu", "tables", "staff", "settings"].includes(tab) ? tab : "menu";
+}
+
 export default function Navbar() {
   const location = useLocation();
   const user = getUser();
@@ -97,17 +102,25 @@ export default function Navbar() {
       canKitchen && { to: "/cucina", label: "Cucina", icon: "◴", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", icon: "◷", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", icon: "▣", match: ["/cassa"] },
-      isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli", "/qr"] },
-      isAdmin && { to: "/admin", label: "Menu", icon: "☰", match: ["/admin"] },
+      isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli"] },
+      isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "☰", match: ["/admin"], adminTab: "menu" },
       isAdmin && { to: "/statistiche", label: "Report", icon: "↗", match: ["/statistiche", "/storico"] },
-      isAdmin && { to: "/billing", label: "Piano", icon: "◌", match: ["/billing"] },
-      isAdmin && { to: "/errori", label: "Alert", icon: "!", match: ["/errori"] },
+      isAdmin && { to: "/admin?tab=settings", label: "Impostazioni", icon: "⚙", match: ["/admin", "/billing", "/qr", "/errori"], adminTab: "settings" },
     ].filter(Boolean);
   }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 
   if (!logged) return null;
 
   function isActive(link) {
+    if (link.adminTab && location.pathname.startsWith("/admin")) {
+      return getAdminTabFromSearch(location.search) === link.adminTab;
+    }
+    if (link.label === "Impostazioni" && ["/billing", "/qr", "/errori"].some((path) => location.pathname.startsWith(path))) {
+      return true;
+    }
+    if (link.label === "Menu" && location.pathname.startsWith("/admin")) {
+      return getAdminTabFromSearch(location.search) === "menu";
+    }
     return (link.match || [link.to]).some((path) => location.pathname.startsWith(path));
   }
 
@@ -150,7 +163,7 @@ export default function Navbar() {
         .em-sidebar {
           position: fixed;
           inset: 0 auto 0 0;
-          width: min(286px, 88vw);
+          width: min(268px, 86vw);
           z-index: 1200;
           display: flex;
           flex-direction: column;
@@ -169,7 +182,7 @@ export default function Navbar() {
         .em-sidebar__restaurant { margin-top: 6px; color: #9fb0c7; font-size: 12px; font-weight: 750; display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .em-sidebar__dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,0.12); }
         .em-sidebar__nav { display: grid; gap: 6px; padding: 14px; overflow: auto; }
-        .em-sidebar__link { display: flex; align-items: center; gap: 14px; min-height: 48px; padding: 0 14px; border-radius: 16px; color: #cbd5e1; text-decoration: none; font-weight: 900; }
+        .em-sidebar__link { display: flex; align-items: center; gap: 14px; min-height: 46px; padding: 0 14px; border-radius: 16px; color: #cbd5e1; text-decoration: none; font-weight: 900; }
         .em-sidebar__link:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .em-sidebar__link.is-active { background: #fff; color: #07111f; }
         .em-sidebar__icon { width: 20px; display: inline-grid; place-items: center; font-size: 15px; }

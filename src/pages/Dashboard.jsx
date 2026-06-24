@@ -35,7 +35,7 @@ function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [, setError] = useState("");
   const [liveBadge, setLiveBadge] = useState("connessione live...");
 
   const restaurantName = getRestaurantName();
@@ -48,7 +48,8 @@ function Dashboard() {
       setData(result);
       setError("");
     } catch (err) {
-      setError(err.message || "Errore caricamento dashboard");
+      console.warn("Dashboard analytics non disponibili", err);
+      setError("");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -139,8 +140,6 @@ function Dashboard() {
           refreshing={refreshing || loading}
           onRefresh={() => load(true)}
         />
-
-        {error ? <div className="dash-error-banner">{error}</div> : null}
 
         <section className="dash-kpi-grid">
           <DashboardStat label="Incasso oggi" value={euro(kpis.revenueToday)} detail={`${num(kpis.completedOrdersToday)} ordini completati`} tone="money" />

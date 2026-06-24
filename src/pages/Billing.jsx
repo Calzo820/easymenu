@@ -14,41 +14,60 @@ function formatDate(value) {
 
 const planDetails = {
   starter: {
-    title: "Ristorante",
-    price: "€49,99/mese",
-    subtitle: "Piano unico per locali singoli: menu QR, ordini live, cucina, bar, cassa e dashboard.",
-    features: ["Menu digitale responsive", "QR per tavolo", "Ordini live", "Cucina/bar/cassa", "Gestione menu e tavoli"],
+    title: "1 mese",
+    price: "€49,99",
+    cadence: "al mese",
+    subtitle: "Per provare EasyMenu senza impegno e usarlo subito durante il servizio.",
+    badge: "Mensile",
+    features: ["Tutte le funzioni operative", "Menu QR", "Cucina, bar e cassa", "Dashboard e report", "Disdici quando vuoi"],
+  },
+  growth: {
+    title: "3 mesi",
+    price: "€119,99",
+    cadence: "ogni 3 mesi",
+    subtitle: "La scelta migliore per validare EasyMenu nel ristorante con un risparmio concreto.",
+    badge: "20% OFF",
+    recommended: true,
+    features: ["Tutto del mensile", "Risparmio vs pagamento mese per mese", "Ideale per beta e primi clienti", "Stesso accesso completo", "Priorità agli aggiornamenti"],
   },
   enterprise: {
-    title: "Catene e gruppi",
-    price: "Su misura",
-    subtitle: "Per più sedi, brand con esigenze avanzate, ruoli, supporto e setup dedicato.",
-    features: ["Multi-ristorante", "Supporto configurazione", "Ruoli avanzati", "Integrazioni personalizzate"],
+    title: "1 anno",
+    price: "€449,99",
+    cadence: "all'anno",
+    subtitle: "Per chi vuole adottare EasyMenu stabilmente e bloccare il prezzo migliore.",
+    badge: "25% OFF",
+    features: ["Tutto incluso", "Prezzo annuale bloccato", "Massimo risparmio", "Setup ristorante completo", "Supporto prioritario"],
   },
 };
+
+function normalizePlan(plan) {
+  return ["starter", "growth", "enterprise"].includes(plan) ? plan : "starter";
+}
 
 function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
   const plan = planDetails[id];
   const active = currentPlan === id;
-  const recommended = id === "starter";
 
   return (
     <div
       className="section-card"
       style={{
-        border: active ? "2px solid #22c55e" : recommended ? "2px solid #2563eb" : "1px solid #e5e7eb",
+        border: active ? "2px solid #22c55e" : plan.recommended ? "2px solid #2563eb" : "1px solid #e5e7eb",
         position: "relative",
         overflow: "hidden",
+        minHeight: 360,
       }}
     >
-      {recommended ? (
-        <div style={badgeStyle}>Consigliato</div>
-      ) : null}
-      {active ? <div style={{ ...badgeStyle, background: "#16a34a" }}>Attivo</div> : null}
+      <div style={{ ...badgeStyle, background: active ? "#16a34a" : plan.recommended ? "#2563eb" : "#0f172a" }}>
+        {active ? "Attivo" : plan.badge}
+      </div>
 
       <div style={{ fontSize: 24, fontWeight: 950, color: "#111827" }}>{plan.title}</div>
-      <div style={{ marginTop: 8, fontSize: 30, fontWeight: 950, color: "#0f172a" }}>{plan.price}</div>
-      <p style={{ color: "#64748b", lineHeight: 1.55, minHeight: 48 }}>{plan.subtitle}</p>
+      <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 34, fontWeight: 950, color: "#0f172a", letterSpacing: "-0.05em" }}>{plan.price}</span>
+        <span style={{ color: "#64748b", fontWeight: 850 }}>{plan.cadence}</span>
+      </div>
+      <p style={{ color: "#64748b", lineHeight: 1.55, minHeight: 64 }}>{plan.subtitle}</p>
 
       <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
         {plan.features.map((feature) => (
@@ -61,21 +80,21 @@ function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
 
       <button
         disabled={active || loadingPlan === id}
-        onClick={() => id === "enterprise" ? window.open("https://wa.me/3240467723?text=Ciao%2C%20vorrei%20informazioni%20su%20EasyMenu%20per%20catene%20o%20pi%C3%B9%20ristoranti.", "_blank") : onCheckout(id)}
+        onClick={() => onCheckout(id)}
         style={{
           marginTop: 22,
           width: "100%",
           border: "none",
           borderRadius: 16,
           padding: "14px 16px",
-          background: active ? "#dcfce7" : recommended ? "#2563eb" : "#111827",
+          background: active ? "#dcfce7" : plan.recommended ? "#2563eb" : "#111827",
           color: active ? "#166534" : "white",
           fontWeight: 950,
           cursor: active ? "default" : "pointer",
           opacity: loadingPlan === id ? 0.7 : 1,
         }}
       >
-        {id === "enterprise" ? "Parla con noi" : active ? "Piano attuale" : loadingPlan === id ? "Apro Stripe..." : "Vai al pagamento"}
+        {active ? "Piano attuale" : loadingPlan === id ? "Apro Stripe..." : "Vai al pagamento"}
       </button>
     </div>
   );
@@ -90,7 +109,7 @@ export default function Billing() {
 
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const queryStatus = searchParams.get("billing");
-  const requestedPlan = searchParams.get("plan");
+  const requestedPlan = normalizePlan(searchParams.get("plan") || "");
 
   async function load() {
     try {
@@ -110,16 +129,16 @@ export default function Billing() {
   }, []);
 
   useEffect(() => {
-    if (requestedPlan === "starter") {
-      handleCheckout("starter");
-    }
+    const planFromUrl = searchParams.get("plan");
+    if (planFromUrl) handleCheckout(requestedPlan);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedPlan]);
+  }, []);
 
   async function handleCheckout(plan) {
     try {
-      setLoadingPlan(plan);
-      const res = await createSubscriptionCheckout(plan);
+      const safePlan = normalizePlan(plan);
+      setLoadingPlan(safePlan);
+      const res = await createSubscriptionCheckout(safePlan);
       if (res?.checkoutUrl) window.location.href = res.checkoutUrl;
     } catch (err) {
       setError(err.message || "Errore apertura checkout");
@@ -151,15 +170,15 @@ export default function Billing() {
           <div className="glass-hero" style={{ marginBottom: 18 }}>
             <div className="topbar-chip" style={{ marginBottom: 12 }}>
               <span className="status-dot" style={{ background: "#22c55e" }} />
-              SaaS billing
+              Abbonamento EasyMenu
             </div>
-            <h1 style={{ margin: 0, fontSize: 38, letterSpacing: "-0.04em" }}>Abbonamento ristorante</h1>
+            <h1 style={{ margin: 0, fontSize: 38, letterSpacing: "-0.04em" }}>Scegli il piano</h1>
             <p style={{ color: "rgba(255,255,255,0.88)", lineHeight: 1.65, maxWidth: 760 }}>
-              Gestisci il piano del ristoratore, attiva prova gratuita, upgrade, downgrade e portale Stripe per fatture e metodo di pagamento.
+              Tutti i piani includono menu QR, ordini live, cucina, bar, cassa, tavoli e dashboard. Cambia solo la durata e il risparmio.
             </p>
           </div>
 
-          {queryStatus === "success" ? <div style={successBox}>Pagamento abbonamento avviato correttamente. Stripe aggiornerà lo stato via webhook.</div> : null}
+          {queryStatus === "success" ? <div style={successBox}>Pagamento avviato correttamente. Stripe aggiornerà lo stato via webhook.</div> : null}
           {queryStatus === "cancelled" ? <div style={warnBox}>Checkout annullato. Puoi riprovare quando vuoi.</div> : null}
           {error ? <div style={errorBox}>{error}</div> : null}
 
@@ -170,7 +189,7 @@ export default function Billing() {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: 14 }}>
                 <InfoBox label="Ristorante" value={data?.restaurant?.name || "—"} />
-                <InfoBox label="Piano" value={currentPlan} />
+                <InfoBox label="Piano" value={planDetails[currentPlan]?.title || currentPlan || "—"} />
                 <InfoBox label="Stato" value={status} />
                 <InfoBox label="Rinnovo" value={formatDate(data?.subscription?.currentPeriodEnd)} />
               </div>
@@ -184,8 +203,8 @@ export default function Billing() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-            {["starter", "enterprise"].map((id) => (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+            {["starter", "growth", "enterprise"].map((id) => (
               <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} onCheckout={handleCheckout} />
             ))}
           </div>
@@ -208,7 +227,6 @@ const badgeStyle = {
   position: "absolute",
   right: 14,
   top: 14,
-  background: "#2563eb",
   color: "white",
   borderRadius: 999,
   padding: "6px 10px",
