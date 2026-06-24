@@ -22,8 +22,8 @@
 
 ## Stripe
 
-1. Crea prodotti/prezzi SaaS per piani Starter/Growth/Enterprise.
-2. Copia i price id in `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_ENTERPRISE`.
+1. Crea prodotti/prezzi SaaS per piani mensile, trimestrale, semestrale e annuale.
+2. Copia i price id in `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_SEMIANNUAL`, `STRIPE_PRICE_ENTERPRISE`.
 3. Webhook endpoint: `https://URL-BACKEND/payments/webhook`.
 4. Eventi minimi:
    - `checkout.session.completed`

@@ -8,12 +8,15 @@ import Cassa from "./pages/Cassa.jsx";
 import Cliente from "./pages/Cliente.jsx";
 import Cucina from "./pages/Cucina.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import Demo from "./pages/Demo.jsx";
 import Errori from "./pages/Errori.jsx";
 import Integrazioni from "./pages/Integrazioni.jsx";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
+import Onboarding from "./pages/Onboarding.jsx";
 import QRCodeTavoli from "./pages/QRCodeTavoli.jsx";
 import Register from "./pages/Register.jsx";
+import ServiceUnavailable from "./pages/ServiceUnavailable.jsx";
 import Statistiche from "./pages/Statistiche.jsx";
 import Storico from "./pages/Storico.jsx";
 import SuperAdmin from "./pages/SuperAdmin.jsx";
@@ -26,6 +29,10 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/demo" element={<Demo />} />
+        <Route path="/demo-ristorante" element={<Demo />} />
+        <Route path="/demo-commerciale" element={<Demo />} />
+        <Route path="/servizio-non-disponibile" element={<ServiceUnavailable />} />
 
         <Route path="/menu" element={<Cliente />} />
         <Route path="/menu/:tavolo" element={<Cliente />} />
@@ -34,6 +41,8 @@ export default function App() {
         <Route path="/cliente/menu/:tavolo" element={<Cliente />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute roles={["owner", "admin"]}><Onboarding /></ProtectedRoute>} />
+        <Route path="/setup" element={<ProtectedRoute roles={["owner", "admin"]}><Onboarding /></ProtectedRoute>} />
         <Route path="/billing" element={<ProtectedRoute roles={["owner", "admin"]}><Billing /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute roles={["owner", "admin"]}><AdminPanel /></ProtectedRoute>} />
         <Route path="/super-admin" element={<ProtectedRoute roles={["superadmin"]}><SuperAdmin /></ProtectedRoute>} />

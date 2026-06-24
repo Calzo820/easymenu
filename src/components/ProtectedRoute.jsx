@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { apiGet, clearAuthSession, getAuthToken } from "../lib/api";
+import ServiceUnavailable from "../pages/ServiceUnavailable.jsx";
 
 function ProtectedRoute({ children, roles = [] }) {
   const token = getAuthToken();
-  const [state, setState] = useState({ loading: true, allowed: false, user: null });
+  const [state, setState] = useState({ loading: true, allowed: false, user: null, serviceError: "" });
 
   const normalizedRoles = useMemo(() => roles.map((role) => String(role || "").toLowerCase()), [roles]);
 
@@ -13,7 +14,7 @@ function ProtectedRoute({ children, roles = [] }) {
 
     async function verify() {
       if (!token) {
-        if (active) setState({ loading: false, allowed: false, user: null });
+        if (active) setState({ loading: false, allowed: false, user: null, serviceError: "" });
         return;
       }
 
@@ -37,10 +38,16 @@ function ProtectedRoute({ children, roles = [] }) {
           normalizedRoles.length === 0 ||
           normalizedRoles.includes(userRole) ||
           (isSuperAdmin && normalizedRoles.includes("superadmin"));
-        if (active) setState({ loading: false, allowed, user });
-      } catch {
+        if (active) setState({ loading: false, allowed, user, serviceError: "" });
+      } catch (error) {
+        const message = error?.message || "";
+        const temporaryFailure = /server temporaneamente|server non raggiungibile|connessione lenta/i.test(message);
+        if (temporaryFailure) {
+          if (active) setState({ loading: false, allowed: false, user: null, serviceError: message });
+          return;
+        }
         clearAuthSession();
-        if (active) setState({ loading: false, allowed: false, user: null });
+        if (active) setState({ loading: false, allowed: false, user: null, serviceError: "" });
       }
     }
 
@@ -51,6 +58,8 @@ function ProtectedRoute({ children, roles = [] }) {
   }, [token, normalizedRoles]);
 
   if (!token) return <Navigate to="/login" replace />;
+
+  if (state.serviceError) return <ServiceUnavailable message={state.serviceError} />;
 
   if (state.loading) {
     return (

@@ -713,10 +713,13 @@ export default function AdminPanel({ embedded = false } = {}) {
               subtitle="Tutto quello che non serve ogni minuto resta ordinato qui, senza sporcare la sidebar."
             />
             <div className="settings-card-grid">
+              <SettingsCard icon="5m" title="Setup guidato" subtitle="Completa logo, categorie, prodotti, QR e staff." action="Apri" onClick={() => window.location.href = "/onboarding"} />
               <SettingsCard icon="📈" title="Report" subtitle="Statistiche, storico e andamento vendite." onClick={() => window.location.href = "/statistiche"} />
               <SettingsCard icon="🧾" title="Storico ordini" subtitle="Archivio completo degli ordini serviti." onClick={() => window.location.href = "/storico"} />
-              <SettingsCard icon="▦" title="QR tavoli" subtitle="Stampa, rigenera e controlla i QR." onClick={() => window.location.href = "/qr"} />
+              <SettingsCard icon="▦" title="Tavoli e QR" subtitle="Crea tavoli, stampa QR e prepara prenotazioni." onClick={() => window.location.href = "/tavoli"} />
               <SettingsCard icon="⚠" title="Alert tecnici" subtitle="Errori, log e diagnostica avanzata." onClick={() => window.location.href = "/errori"} />
+              <SettingsCard icon="POS" title="Stampante / cassa" subtitle="Collegamenti fiscali e stampanti: area pronta per integrazioni." action="In arrivo" onClick={() => window.location.href = "/integrazioni"} />
+              <SettingsCard icon="ON" title="Notifiche" subtitle="Avvisi pagamento, ordine, cucina e assistenza tavolo." action="In arrivo" onClick={() => window.location.href = "/errori"} />
             </div>
           </div>
 
@@ -725,6 +728,8 @@ export default function AdminPanel({ embedded = false } = {}) {
             <div className="settings-card-grid two">
               <SettingsCard icon="💳" title="Abbonamento" subtitle={`Piano attuale: ${restaurant?.plan || "mensile"}`} action="Gestisci" tone="billing" onClick={() => window.location.href = "/billing"} />
               <SettingsCard icon="👥" title="Staff" subtitle="Crea accessi cucina, bar, cassa e admin." action="Vai" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }} />
+              <SettingsCard icon="DOC" title="Privacy e documenti" subtitle="Policy, termini, cookie e trattamento dati." action="Apri" onClick={() => document.querySelector(".settings-privacy-panel")?.scrollIntoView({ behavior: "smooth" })} />
+              <SettingsCard icon="VAT" title="IVA e fatture" subtitle="Checkout + IVA configurati su Stripe Tax." action="Verifica" onClick={() => window.location.href = "/billing"} />
             </div>
           </div>
 

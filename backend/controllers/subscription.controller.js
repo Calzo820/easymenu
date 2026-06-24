@@ -44,6 +44,13 @@ function mapStripeStatus(status) {
   return allowed.has(status) ? status : "incomplete";
 }
 
+function isOperationalSubscription(data) {
+  if (!["trialing", "active"].includes(data.status)) return false;
+  const validUntil = data.currentPeriodEnd || data.trialEndsAt;
+  if (validUntil && validUntil.getTime() < Date.now()) return false;
+  return true;
+}
+
 function getPlanFromPriceId(priceId) {
   const found = Object.entries(PLAN_PRICE_ENV).find(([, envNames]) =>
     envNames.some((envName) => process.env[envName] && process.env[envName] === priceId)
@@ -59,6 +66,7 @@ function serializeSubscription(subscription, restaurant) {
           name: restaurant.name,
           slug: restaurant.slug,
           plan: restaurant.plan,
+          isActive: restaurant.isActive,
           stripeCustomerId: restaurant.stripeCustomerId,
         }
       : null,
@@ -96,7 +104,7 @@ export async function getBillingStatus(req, res) {
       ],
       billingConfigured: isBillingCoreConfigured(),
       configuredPlans: configuredPlans(),
-      webhookUrlHint: "/api/billing/webhook",
+      webhookUrlHint: "/payments/webhook",
     });
   } catch (error) {
     console.error("getBillingStatus error:", error);
@@ -140,6 +148,7 @@ export async function createSubscriptionCheckout(req, res) {
     }
 
     const clientUrl = getClientUrl();
+    const automaticTaxEnabled = String(process.env.STRIPE_AUTOMATIC_TAX || "").toLowerCase() === "true";
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -147,6 +156,9 @@ export async function createSubscriptionCheckout(req, res) {
       success_url: `${clientUrl}/billing?billing=success`,
       cancel_url: `${clientUrl}/billing?billing=cancelled`,
       allow_promotion_codes: true,
+      automatic_tax: { enabled: automaticTaxEnabled },
+      tax_id_collection: { enabled: true },
+      customer_update: { name: "auto", address: "auto" },
       metadata: { restaurantId: restaurant.id, plan },
       subscription_data: {
         trial_period_days: Number(process.env.STRIPE_TRIAL_DAYS || 14),
@@ -218,6 +230,7 @@ export async function syncSubscriptionFromStripe(sessionOrSubscription) {
     cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
     trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
   };
+  const restaurantIsActive = isOperationalSubscription(data);
 
   const updated = await prisma.$transaction(async (tx) => {
     const subscription = await tx.saaSSubscription.upsert({
@@ -228,7 +241,7 @@ export async function syncSubscriptionFromStripe(sessionOrSubscription) {
 
     const restaurant = await tx.restaurant.update({
       where: { id: resolvedRestaurantId },
-      data: { plan, stripeCustomerId: customerId || undefined },
+      data: { plan, stripeCustomerId: customerId || undefined, isActive: restaurantIsActive },
     });
 
     return { subscription, restaurant };

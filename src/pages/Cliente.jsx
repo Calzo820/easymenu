@@ -27,82 +27,29 @@ function formatEuro(value) {
 
 const FEATURED_CATEGORY = "Consigliati";
 
-const DEMO_SLUG = "demo-restaurant";
+const DEMO_SLUG = "demo";
+const LEGACY_DEMO_SLUG = "demo-restaurant";
 const DEMO_TABLE_TOKEN = "demo-table-1";
 
 const DEMO_MENU_ITEMS = [
-  {
-    id: "demo-antipasto-1",
-    nome: "Tagliere della casa",
-    ingredienti: "Salumi, formaggi, focaccia calda e confettura",
-    prezzo: 12,
-    categoria: "Antipasti",
-    categoriaBackend: "Antipasti",
-    preparationArea: "kitchen",
-    isFeatured: true,
-    allergens: ["glutine", "lattosio"],
-    img: "",
-  },
-  {
-    id: "demo-primo-1",
-    nome: "Carbonara",
-    ingredienti: "Guanciale croccante, pecorino romano, uovo e pepe",
-    prezzo: 12,
-    categoria: "Primi",
-    categoriaBackend: "Primi",
-    preparationArea: "kitchen",
-    isFeatured: true,
-    allergens: ["glutine", "uova", "lattosio"],
-    img: "",
-  },
-  {
-    id: "demo-secondo-1",
-    nome: "Burger EasyMenu",
-    ingredienti: "Pane artigianale, manzo, cheddar, bacon e salsa della casa",
-    prezzo: 15,
-    categoria: "Secondi",
-    categoriaBackend: "Secondi",
-    preparationArea: "kitchen",
-    isFeatured: false,
-    allergens: ["glutine", "lattosio"],
-    img: "",
-  },
-  {
-    id: "demo-dolce-1",
-    nome: "Tiramisù",
-    ingredienti: "Mascarpone, caffè espresso e cacao",
-    prezzo: 6,
-    categoria: "Dolci",
-    categoriaBackend: "Dolci",
-    preparationArea: "kitchen",
-    isFeatured: true,
-    allergens: ["uova", "lattosio"],
-    img: "",
-  },
-  {
-    id: "demo-bevanda-1",
-    nome: "Acqua frizzante",
-    ingredienti: "Bottiglia 75cl",
-    prezzo: 2,
-    categoria: "Bevande",
-    categoriaBackend: "Bevande",
-    preparationArea: "bar",
-    isFeatured: false,
-    allergens: [],
-    img: "",
-  },
-  {
-    id: "demo-bevanda-2",
-    nome: "Spritz",
-    ingredienti: "Aperol, prosecco, soda e arancia",
-    prezzo: 7,
-    categoria: "Bevande",
-    categoriaBackend: "Bevande",
-    preparationArea: "bar",
-    isFeatured: true,
-    allergens: [],
-    img: "",
-  },
+  { id: "demo-antipasto-1", nome: "Tartare mediterranea", ingredienti: "Manzo battuto, capperi, limone, olio EVO e chips croccanti", prezzo: 14, categoria: "Antipasti", categoriaBackend: "Antipasti", preparationArea: "kitchen", isFeatured: true, allergens: ["senape"], img: "" },
+  { id: "demo-antipasto-2", nome: "Burrata e pomodorini", ingredienti: "Burrata fresca, pomodorini confit, basilico e pane tostato", prezzo: 11, categoria: "Antipasti", categoriaBackend: "Antipasti", preparationArea: "kitchen", isFeatured: false, allergens: ["latte", "glutine"], img: "" },
+  { id: "demo-antipasto-3", nome: "Calamaro croccante", ingredienti: "Calamaro fritto leggero, maionese al lime e insalata di campo", prezzo: 13, categoria: "Antipasti", categoriaBackend: "Antipasti", preparationArea: "kitchen", isFeatured: true, allergens: ["pesce", "uova", "glutine"], img: "" },
+  { id: "demo-primo-1", nome: "Carbonara croccante", ingredienti: "Guanciale, pecorino romano, uovo e pepe tostato", prezzo: 13, categoria: "Primi", categoriaBackend: "Primi", preparationArea: "kitchen", isFeatured: true, allergens: ["glutine", "uova", "latte"], img: "" },
+  { id: "demo-primo-2", nome: "Risotto limone e gambero", ingredienti: "Riso mantecato, limone, gambero rosso e polvere di cappero", prezzo: 18, categoria: "Primi", categoriaBackend: "Primi", preparationArea: "kitchen", isFeatured: true, allergens: ["crostacei", "latte"], img: "" },
+  { id: "demo-primo-3", nome: "Pacchero al ragu bianco", ingredienti: "Pacchero, vitello, rosmarino, fondo bruno e parmigiano", prezzo: 15, categoria: "Primi", categoriaBackend: "Primi", preparationArea: "kitchen", isFeatured: false, allergens: ["glutine", "latte"], img: "" },
+  { id: "demo-secondo-1", nome: "Filetto al pepe verde", ingredienti: "Filetto di manzo, salsa al pepe verde e patata fondente", prezzo: 24, categoria: "Secondi", categoriaBackend: "Secondi", preparationArea: "kitchen", isFeatured: true, allergens: ["latte"], img: "" },
+  { id: "demo-secondo-2", nome: "Branzino alle erbe", ingredienti: "Branzino, erbe fini, verdure arrosto e salsa agrumata", prezzo: 21, categoria: "Secondi", categoriaBackend: "Secondi", preparationArea: "kitchen", isFeatured: true, allergens: ["pesce"], img: "" },
+  { id: "demo-secondo-3", nome: "Parmigiana leggera", ingredienti: "Melanzana, pomodoro San Marzano, provola e basilico", prezzo: 12, categoria: "Secondi", categoriaBackend: "Secondi", preparationArea: "kitchen", isFeatured: false, allergens: ["latte"], img: "" },
+  { id: "demo-contorno-1", nome: "Patate fondenti", ingredienti: "Patate, burro chiarificato, rosmarino e sale affumicato", prezzo: 5, categoria: "Contorni", categoriaBackend: "Contorni", preparationArea: "kitchen", isFeatured: false, allergens: ["latte"], img: "" },
+  { id: "demo-contorno-2", nome: "Verdure di stagione", ingredienti: "Verdure grigliate, olio EVO e vinaigrette alle erbe", prezzo: 6, categoria: "Contorni", categoriaBackend: "Contorni", preparationArea: "kitchen", isFeatured: false, allergens: [], img: "" },
+  { id: "demo-dolce-1", nome: "Tiramisu espresso", ingredienti: "Mascarpone, caffe espresso, cacao e biscotto leggero", prezzo: 7, categoria: "Dolci", categoriaBackend: "Dolci", preparationArea: "kitchen", isFeatured: true, allergens: ["uova", "latte", "glutine"], img: "" },
+  { id: "demo-dolce-2", nome: "Cheesecake agrumi", ingredienti: "Crema al formaggio, crumble e gel agli agrumi", prezzo: 7, categoria: "Dolci", categoriaBackend: "Dolci", preparationArea: "kitchen", isFeatured: false, allergens: ["latte", "glutine"], img: "" },
+  { id: "demo-bar-1", nome: "Acqua frizzante", ingredienti: "Bottiglia 75cl", prezzo: 2.5, categoria: "Bevande", categoriaBackend: "Bevande", preparationArea: "bar", isFeatured: false, allergens: [], img: "" },
+  { id: "demo-bar-2", nome: "Spritz Signature", ingredienti: "Aperol, prosecco, soda e arancia", prezzo: 8, categoria: "Cocktail", categoriaBackend: "Cocktail", preparationArea: "bar", isFeatured: true, allergens: ["solfiti"], img: "" },
+  { id: "demo-bar-3", nome: "Gin tonic botanico", ingredienti: "Gin dry, tonica premium, ginepro e scorza di limone", prezzo: 10, categoria: "Cocktail", categoriaBackend: "Cocktail", preparationArea: "bar", isFeatured: true, allergens: [], img: "" },
+  { id: "demo-vino-1", nome: "Calice Etna rosso", ingredienti: "Selezione cantina, calice 12cl", prezzo: 7, categoria: "Vini", categoriaBackend: "Vini", preparationArea: "bar", isFeatured: false, allergens: ["solfiti"], img: "" },
+  { id: "demo-vino-2", nome: "Calice Franciacorta", ingredienti: "Metodo classico, calice 10cl", prezzo: 9, categoria: "Vini", categoriaBackend: "Vini", preparationArea: "bar", isFeatured: true, allergens: ["solfiti"], img: "" },
 ];
 
 function normalizeCategorieOrdine(list) {
@@ -444,7 +391,9 @@ function Cliente() {
 
   const activeSlug = slug || DEMO_SLUG;
   const activeTableToken = tableToken || DEMO_TABLE_TOKEN;
-  const isDemoMode = activeSlug === DEMO_SLUG && activeTableToken === DEMO_TABLE_TOKEN;
+  const isDemoMode =
+    [DEMO_SLUG, LEGACY_DEMO_SLUG].includes(activeSlug) &&
+    String(activeTableToken || "").startsWith("demo-table");
 
   const [menu, setMenu] = useState([]);
   const [ordineCategorie, setOrdineCategorie] = useState([]);
@@ -492,6 +441,7 @@ function Cliente() {
   const ristoranteAttivo =
     ordineAttivo?.restaurantName ||
     ordineInviato?.restaurantName ||
+    (isDemoMode ? "EasyMenu Demo" : "") ||
     slug ||
     "Ristorante";
 
@@ -846,29 +796,33 @@ function Cliente() {
       let backendOrder = null;
 
       if (restaurantSlug && tableTokenFinal && validItemsPayload.length > 0) {
-        const clientRequestId = `${restaurantSlug}:${tableTokenFinal}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
-        const response = await fetch(`${API_URL}/orders/public`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            restaurantSlug,
-            tableToken: tableTokenFinal,
-            customerName: "",
-            notes: nota.trim(),
-            clientRequestId,
-            items: validItemsPayload,
-          }),
-        });
+        try {
+          const clientRequestId = `${restaurantSlug}:${tableTokenFinal}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+          const response = await fetch(`${API_URL}/orders/public`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              restaurantSlug,
+              tableToken: tableTokenFinal,
+              customerName: "",
+              notes: nota.trim(),
+              clientRequestId,
+              items: validItemsPayload,
+            }),
+          });
 
-        const data = await response.json();
+          const data = await response.json().catch(() => null);
 
-        if (!response.ok) {
-          throw new Error(data?.message || "Errore creazione ordine backend");
+          if (!response.ok) {
+            throw new Error(data?.message || "Errore creazione ordine backend");
+          }
+
+          backendOrder = data.order || data;
+        } catch (error) {
+          if (!isDemoMode) throw error;
         }
-
-        backendOrder = data.order || data;
       }
 
       const key = ordiniKey(ristoranteAttivo);
@@ -1591,6 +1545,36 @@ function Cliente() {
           </div>
         </div>
 
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
+          {[
+            ["Categorie chiare", `${categorieDisponibili.length} sezioni`],
+            ["Allergeni visibili", "Sempre sotto al prodotto"],
+            ["Ordine live", statoOrdine.label],
+            ["Carrello rapido", `${totalePezzi()} articoli`],
+          ].map(([title, value]) => (
+            <div
+              key={title}
+              style={{
+                background: "rgba(255,255,255,0.92)",
+                border: "1px solid rgba(219,231,245,0.95)",
+                borderRadius: 20,
+                padding: 14,
+                boxShadow: "0 12px 26px rgba(18,59,107,0.07)",
+              }}
+            >
+              <div style={{ color: "#64748b", fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</div>
+              <div style={{ marginTop: 7, color: "#0b2e59", fontSize: 18, fontWeight: 950 }}>{value}</div>
+            </div>
+          ))}
+        </div>
+
         {errore ? (
           <div
             className="section-card"
@@ -2087,7 +2071,7 @@ function Cliente() {
               boxShadow: "0 16px 26px rgba(37,99,235,0.20)",
             }}
           >
-            {sending ? "Invio in corso..." : "Invia ordine"}
+            {sending ? "Invio in corso..." : "Ordina ora"}
           </button>
         </div>
       </div>
@@ -2125,23 +2109,41 @@ function Cliente() {
               <div style={{ opacity: 0.92 }}>Totale € {formatEuro(totale())}</div>
             </div>
 
-            <button
-              onClick={() => {
-                const riepilogo = document.getElementById("riepilogo-ordine-anchor");
-                if (riepilogo) riepilogo.scrollIntoView({ behavior: "smooth" });
-              }}
-              style={{
-                border: "none",
-                borderRadius: 14,
-                padding: "12px 16px",
-                background: "white",
-                color: "#123b6b",
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              Vedi ordine
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => {
+                  const riepilogo = document.getElementById("riepilogo-ordine-anchor");
+                  if (riepilogo) riepilogo.scrollIntoView({ behavior: "smooth" });
+                }}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.35)",
+                  borderRadius: 14,
+                  padding: "12px 16px",
+                  background: "rgba(255,255,255,0.12)",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                Riepilogo
+              </button>
+              <button
+                onClick={ordina}
+                disabled={sending}
+                style={{
+                  border: "none",
+                  borderRadius: 14,
+                  padding: "12px 18px",
+                  background: "white",
+                  color: "#123b6b",
+                  fontWeight: 950,
+                  cursor: sending ? "not-allowed" : "pointer",
+                  opacity: sending ? 0.72 : 1,
+                }}
+              >
+                {sending ? "Invio..." : "Ordina ora"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

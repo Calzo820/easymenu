@@ -184,11 +184,19 @@ export default function SuperAdmin() {
 
   async function openManagement(restaurant, targetPath = "/dashboard") {
     try {
+      const supportReason = window.prompt(
+        `Motivo supporto per ${restaurant.name}: inserisci ticket, richiesta o consenso del ristorante.`
+      );
+      if (!supportReason || supportReason.trim().length < 8) {
+        setErrore("Accesso supporto annullato: serve un motivo chiaro o consenso esplicito.");
+        return;
+      }
+
       setSavingId(restaurant.id);
       setErrore("");
       setSuccesso("");
 
-      const data = await apiPost(`/restaurants/super-admin/${restaurant.id}/impersonate`, {});
+      const data = await apiPost(`/restaurants/super-admin/${restaurant.id}/impersonate`, { supportReason: supportReason.trim() });
 
       if (!data?.token || !data?.restaurant) {
         throw new Error("Risposta impersonificazione non valida");
@@ -429,7 +437,7 @@ export default function SuperAdmin() {
                               onClick={() => openManagement(restaurant, "/dashboard")}
                               disabled={savingId === restaurant.id}
                             >
-                              {savingId === restaurant.id ? "Apro..." : "Apri gestione"}
+                              {savingId === restaurant.id ? "Apro..." : "Apri supporto"}
                             </button>
                             <button
                               className="superadmin-btn"
@@ -495,12 +503,13 @@ export default function SuperAdmin() {
               </label>
             </div>
 
-            <h3>Utenti</h3>
+            <h3>Owner visibile</h3>
             {(selected.users || []).map((user) => (
               <div key={user.id} style={{ padding: "10px 0", borderTop: "1px solid #e2e8f0" }}>
                 <strong>{user.name}</strong> · {user.email} · {user.role} · {user.isActive ? "attivo" : "disattivo"}
               </div>
             ))}
+            <p className="superadmin-muted">Gli utenti staff restano nascosti al superadmin, salvo accesso supporto motivato.</p>
 
             <h3>Setup</h3>
             <p>

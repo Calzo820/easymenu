@@ -99,6 +99,7 @@ export default function Navbar() {
 
     return [
       isAdmin && { to: "/dashboard", label: "Dashboard", icon: "⌂", match: ["/dashboard"] },
+      isAdmin && { to: "/onboarding", label: "Setup 5 min", icon: "OK", match: ["/onboarding", "/setup"] },
       canKitchen && { to: "/cucina", label: "Cucina", icon: "◴", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", icon: "◷", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", icon: "▣", match: ["/cassa"] },

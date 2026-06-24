@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
+import { logError } from "../lib/logger.js";
 
 const ALLOWED_PLANS = new Set(["starter", "growth", "semiannual", "enterprise"]);
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
@@ -42,6 +43,16 @@ function serializeRestaurant(restaurant) {
     restaurant.users?.find((user) => user.role === "owner") ||
     restaurant.users?.[0] ||
     null;
+  const safeOwner = owner
+    ? {
+        id: owner.id,
+        name: owner.name,
+        email: owner.email,
+        role: owner.role,
+        isActive: owner.isActive,
+        createdAt: owner.createdAt,
+      }
+    : null;
 
   return {
     id: restaurant.id,
@@ -63,8 +74,8 @@ function serializeRestaurant(restaurant) {
         }
       : null,
     counts: restaurant._count || {},
-    owner,
-    users: restaurant.users || [],
+    owner: safeOwner,
+    users: safeOwner ? [safeOwner] : [],
   };
 }
 
@@ -262,6 +273,24 @@ export const impersonateRestaurantForSuperAdmin = async (req, res) => {
     const restaurantId = String(req.params.restaurantId || "");
     const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
     if (!restaurant) return res.status(404).json({ message: "Ristorante non trovato" });
+
+    const supportReason = String(req.body?.supportReason || "").trim();
+    if (supportReason.length < 8) {
+      return res.status(400).json({ message: "Serve un motivo supporto o consenso esplicito del ristorante" });
+    }
+
+    await logError({
+      restaurantId: restaurant.id,
+      source: "superadmin-support-access",
+      level: "audit",
+      message: "Accesso superadmin in modalita supporto",
+      metadata: {
+        supportReason,
+        superAdminEmail: req.user?.email,
+        platformUserId: req.user?.userId,
+        restaurantName: restaurant.name,
+      },
+    });
 
     const token = jwt.sign(
       {

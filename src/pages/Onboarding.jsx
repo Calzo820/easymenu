@@ -126,9 +126,9 @@ export default function Onboarding() {
         <div className="app-shell onb-shell">
           <section className="onb-hero">
             <div>
-              <span className="onb-pill">🚀 Setup ristorante guidato</span>
-              <h1>Onboarding rapido per {restaurant?.name || "il tuo locale"}</h1>
-              <p>Configura tavoli, QR, menu demo/import e checklist in pochi minuti, pronto per il primo servizio reale.</p>
+              <span className="onb-pill">Setup ristorante guidato</span>
+              <h1>Completa EasyMenu in 5 minuti</h1>
+              <p>Logo, categorie, prodotti, QR tavoli e inviti staff in una sola schermata, pronta per il primo servizio reale di {restaurant?.name || "il tuo locale"}.</p>
             </div>
             <div className="onb-progress-box">
               <div className="onb-progress-number">{progress}%</div>
@@ -142,24 +142,24 @@ export default function Onboarding() {
           {loading ? <div className="onb-card">Caricamento onboarding...</div> : null}
 
           <div className="onb-grid">
-            <StepCard done={checks.profile} title="1. Profilo locale" text="Nome, slug e dati base del ristorante già collegati all’account.">
+            <StepCard done={checks.profile} title="1. Carica logo" text="Controlla identita del ristorante, colore principale e logo usati nel menu cliente.">
               <div className="onb-summary">
                 <b>{restaurant?.name}</b>
                 <span>Slug pubblico: /menu/{restaurant?.slug || "slug"}</span>
               </div>
             </StepCard>
 
-            <StepCard done={checks.tables} title="2. Tavoli automatici" text="Crea subito tavoli numerati con token QR univoco.">
+            <StepCard done={checks.tables} title="2. Crea tavoli" text="Prepara tavoli numerati, coperti e zone pronte per sala e prenotazioni.">
               <div className="onb-form-row">
                 <label>Numero tavoli<input type="number" min="1" max="200" value={tablesCount} onChange={(e) => setTablesCount(e.target.value)} /></label>
                 <label>Coperti default<input type="number" min="1" max="20" value={seats} onChange={(e) => setSeats(e.target.value)} /></label>
                 <label>Zone<select value={zoneMode} onChange={(e) => setZoneMode(e.target.value)}><option value="sala">Solo sala</option><option value="zones">Sala + dehors</option></select></label>
               </div>
-              <button className="onb-primary" disabled={working} onClick={runAutoSetup}>{working ? "Configuro..." : "Crea tavoli + menu demo"}</button>
+              <button className="onb-primary" disabled={working} onClick={runAutoSetup}>{working ? "Configuro..." : "Crea tavoli e prodotti base"}</button>
               <small>{counts.activeTables || 0} tavoli attivi ora.</small>
             </StepCard>
 
-            <StepCard done={checks.qr} title="3. QR PDF" text="Genera una stampa PDF con un QR grande per ogni tavolo.">
+            <StepCard done={checks.qr} title="3. Genera QR tavoli" text="Stampa un QR grande per ogni tavolo e collegalo subito al menu cliente.">
               <div className="onb-actions">
                 <button className="onb-secondary" onClick={() => setShowQrPreview((v) => !v)}>{showQrPreview ? "Nascondi anteprima" : "Anteprima QR"}</button>
                 <button className="onb-primary" disabled={!qrLinks.length} onClick={printQrPdf}>Genera/Stampa PDF QR</button>
@@ -167,16 +167,17 @@ export default function Onboarding() {
               <small>{qrLinks.length} QR pronti. In stampa scegli “Salva come PDF”.</small>
             </StepCard>
 
-            <StepCard done={checks.menu} title="4. Menu demo precompilato" text="Il setup automatico inserisce prodotti reali divisi tra cucina e bar.">
+            <StepCard done={checks.menu} title="4. Crea categorie e aggiungi prodotti" text="Menu ordinato per categoria, area di preparazione, prezzo, descrizione e allergeni.">
               <div className="onb-summary"><b>{counts.menuItems || 0} prodotti menu</b><span>Pizze, primi, secondi, bevande, cocktail e caffetteria.</span></div>
             </StepCard>
 
-            <StepCard done={checks.import} title="5. Import veloce menu" text="Incolla righe CSV/Excel: nome;prezzo;categoria;area;descrizione;allergeni.">
+            <StepCard done={checks.import} title="5. Invita cucina, bar e cassa" text="Importa il menu e poi crea gli accessi operativi dalla sezione Staff.">
               <textarea className="onb-textarea" value={importText} onChange={(e) => setImportText(e.target.value)} rows={8} />
-              <button className="onb-primary" disabled={working} onClick={importMenu}>{working ? "Importo..." : "Importa menu"}</button>
+              <button className="onb-primary" disabled={working} onClick={importMenu}>{working ? "Importo..." : "Importa prodotti e allergeni"}</button>
+              <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=staff"; }}>Apri inviti staff</button>
             </StepCard>
 
-            <StepCard done={checks.reviewed} title="6. Completamento setup" text="Conferma quando tavoli, QR e menu sono pronti per lo staff.">
+            <StepCard done={checks.reviewed} title="6. Pronto per il servizio" text="Conferma quando tavoli, QR, menu e staff sono pronti per il ristorante.">
               <div className="onb-checklist">
                 <span className={checks.tables ? "ok" : ""}>Tavoli creati</span>
                 <span className={checks.qr ? "ok" : ""}>QR disponibili</span>

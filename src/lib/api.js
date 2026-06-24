@@ -95,6 +95,9 @@ async function performFetch(endpoint, options = {}, withAuth = true) {
     if (error?.name === "AbortError") {
       throw new Error("Connessione lenta o server non raggiungibile. Riprova tra poco.");
     }
+    if (error?.name === "TypeError" || /failed to fetch|network/i.test(error?.message || "")) {
+      throw new Error("Server temporaneamente non disponibile. Se Render si sta riavviando, riprova tra qualche secondo.");
+    }
     throw error;
   } finally {
     clearTimeout(timeout);

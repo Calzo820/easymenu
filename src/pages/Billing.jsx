@@ -59,7 +59,7 @@ function normalizePlan(plan) {
   return planOrder.includes(plan) ? plan : "starter";
 }
 
-function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
+function PlanCard({ id, currentPlan, loadingPlan, configured = true, onCheckout }) {
   const plan = planDetails[id];
   const active = currentPlan === id;
   const busy = loadingPlan === id;
@@ -103,7 +103,7 @@ function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
       </div>
 
       <button
-        disabled={active || busy}
+        disabled={active || busy || !configured}
         onClick={() => onCheckout(id)}
         style={{
           ...checkoutButtonStyle,
@@ -112,11 +112,11 @@ function PlanCard({ id, currentPlan, loadingPlan, onCheckout }) {
           opacity: busy ? 0.72 : 1,
         }}
       >
-        {active ? "Piano attuale" : busy ? "Apro Stripe..." : `Scegli ${plan.title}`}
+        {!configured ? "Price ID mancante" : active ? "Piano attuale" : busy ? "Apro Stripe..." : `Scegli ${plan.title}`}
       </button>
 
       <div style={{ marginTop: 12, color: plan.highlighted ? "rgba(255,255,255,0.58)" : "#94a3b8", fontSize: 12, fontWeight: 800, lineHeight: 1.35 }}>
-        Abbonamento automatico. Disdetta sempre disponibile dal portale.
+        {configured ? "Abbonamento automatico. Disdetta sempre disponibile dal portale." : "Configura la variabile Stripe price su Render prima della vendita."}
       </div>
     </article>
   );
@@ -200,6 +200,9 @@ export default function Billing() {
 
   const currentPlan = data?.subscription?.plan || data?.restaurant?.plan || "";
   const status = data?.subscription?.status || "trialing";
+  const configuredPlans = data?.configuredPlans || {};
+  const missingPlans = planOrder.filter((id) => data && !configuredPlans[id]);
+  const billingWarning = data && (!data.billingConfigured || missingPlans.length > 0);
 
   return (
     <div style={glowPageStyle}>
@@ -224,6 +227,12 @@ export default function Billing() {
           {queryStatus === "success" ? <div style={successBox}>Pagamento avviato correttamente. Stripe aggiornerà lo stato via webhook.</div> : null}
           {queryStatus === "cancelled" ? <div style={warnBox}>Checkout annullato. Puoi riprovare quando vuoi.</div> : null}
           {error ? <div style={errorBox}>{error}</div> : null}
+          {billingWarning ? (
+            <div style={warnBox}>
+              Stripe non e ancora completo: verifica webhook <b>{data?.webhookUrlHint || "/payments/webhook"}</b>
+              {missingPlans.length ? ` e price ID mancanti per ${missingPlans.map((id) => planDetails[id]?.title || id).join(", ")}.` : "."}
+            </div>
+          ) : null}
 
           <section style={statusStripStyle}>
             {loading ? (
@@ -246,7 +255,7 @@ export default function Billing() {
 
           <section style={plansGridStyle}>
             {planOrder.map((id) => (
-              <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} onCheckout={handleCheckout} />
+              <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} configured={!data || Boolean(configuredPlans[id])} onCheckout={handleCheckout} />
             ))}
           </section>
 

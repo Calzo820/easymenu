@@ -275,6 +275,19 @@ export async function handleStripeWebhook(req, res) {
       const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
       if (subscriptionId) {
         const synced = await syncSubscriptionFromStripe({ object: "subscription", id: subscriptionId });
+        if (event.type === "invoice.payment_failed") {
+          await logPaymentProblem({
+            restaurantId: synced?.restaurant?.id || invoice.metadata?.restaurantId || null,
+            message: "Rinnovo abbonamento Stripe fallito",
+            metadata: {
+              invoiceId: invoice.id,
+              subscriptionId,
+              customerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id,
+              amountDue: invoice.amount_due,
+              hostedInvoiceUrl: invoice.hosted_invoice_url,
+            },
+          });
+        }
         const io = req.app.get("io");
         if (io && synced?.restaurant) {
           io.to(`restaurant:${synced.restaurant.id}`).emit("subscription-updated", {

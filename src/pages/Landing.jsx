@@ -35,7 +35,7 @@ export default function Landing() {
             <span>EasyMenu</span>
           </div>
           <div className="landing-nav-actions">
-            <Link to="/demo-ristorante">Demo</Link>
+            <Link to="/demo">Demo</Link>
             <Link to="/login">Login</Link>
             <a className="landing-nav-cta" href={whatsappUrl} target="_blank" rel="noreferrer">Analisi ROI</a>
           </div>
@@ -50,7 +50,7 @@ export default function Landing() {
             </p>
             <div className="landing-cta-row">
               <a className="landing-primary" href={whatsappUrl} target="_blank" rel="noreferrer">Calcola il ROI del locale</a>
-              <Link className="landing-secondary" to="/demo-commerciale">Guarda demo commerciale</Link>
+              <Link className="landing-secondary" to="/demo">Guarda demo pubblica</Link>
             </div>
             <p className="landing-proof">Posizionamento aggiornato: prima risultati economici, poi software.</p>
           </div>
