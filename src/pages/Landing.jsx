@@ -36,6 +36,7 @@ export default function Landing() {
           </div>
           <div className="landing-nav-actions">
             <Link to="/demo">Demo</Link>
+            <Link to="/privacy">Privacy</Link>
             <Link to="/login">Login</Link>
             <a className="landing-nav-cta" href={whatsappUrl} target="_blank" rel="noreferrer">Analisi ROI</a>
           </div>

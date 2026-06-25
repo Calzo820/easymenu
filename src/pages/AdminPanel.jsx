@@ -684,9 +684,9 @@ export default function AdminPanel({ embedded = false } = {}) {
 
   function renderSettings() {
     const privacyItems = [
-      "SuperAdmin: dati economici nascosti in modalità assistenza",
-      "Accesso ai dati del ristorante solo per supporto tecnico",
-      "Documenti legali da completare prima della vendita pubblica",
+      "SuperAdmin: dati economici nascosti in modalita assistenza",
+      "Accesso al ristorante solo con motivo supporto o consenso",
+      "Pagine pubbliche privacy, termini e cookie gia disponibili",
     ];
 
     return (
@@ -694,7 +694,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         <form className="management-card management-form settings-brand-panel" onSubmit={handleRestaurantSubmit}>
           <SectionHead
             title="Profilo ristorante"
-            subtitle="Le informazioni principali che compaiono su menu cliente, QR e dashboard."
+            subtitle="Identita pubblica, brand, valuta e stato del locale."
           />
           <Field label="Nome ristorante"><TextInput value={restaurantForm.name} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
           <div className="settings-brand-row">
@@ -709,45 +709,44 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="settings-os-stack">
           <div className="management-card settings-group-card">
             <SectionHead
-              title="Impostazioni operative"
-              subtitle="Tutto quello che non serve ogni minuto resta ordinato qui, senza sporcare la sidebar."
+              title="Sezioni principali"
+              subtitle="Poche aree, nomi chiari e pulsanti diretti."
             />
             <div className="settings-card-grid">
-              <SettingsCard icon="5m" title="Setup guidato" subtitle="Completa logo, categorie, prodotti, QR e staff." action="Apri" onClick={() => window.location.href = "/onboarding"} />
-              <SettingsCard icon="📈" title="Report" subtitle="Statistiche, storico e andamento vendite." onClick={() => window.location.href = "/statistiche"} />
-              <SettingsCard icon="🧾" title="Storico ordini" subtitle="Archivio completo degli ordini serviti." onClick={() => window.location.href = "/storico"} />
-              <SettingsCard icon="▦" title="Tavoli e QR" subtitle="Crea tavoli, stampa QR e prepara prenotazioni." onClick={() => window.location.href = "/tavoli"} />
-              <SettingsCard icon="⚠" title="Alert tecnici" subtitle="Errori, log e diagnostica avanzata." onClick={() => window.location.href = "/errori"} />
-              <SettingsCard icon="POS" title="Stampante / cassa" subtitle="Collegamenti fiscali e stampanti: area pronta per integrazioni." action="In arrivo" onClick={() => window.location.href = "/integrazioni"} />
-              <SettingsCard icon="ON" title="Notifiche" subtitle="Avvisi pagamento, ordine, cucina e assistenza tavolo." action="In arrivo" onClick={() => window.location.href = "/errori"} />
+              <SettingsCard icon="SET" title="Setup guidato" subtitle="Completa EasyMenu passo passo." action="Apri" onClick={() => window.location.href = "/onboarding"} />
+              <SettingsCard icon="BRD" title="Brand e colori" subtitle="Logo, colore primario e valuta del menu." action="Modifica" onClick={() => document.querySelector(".settings-brand-panel")?.scrollIntoView({ behavior: "smooth" })} />
+              <SettingsCard icon="MNU" title="Menu" subtitle="Categorie, prodotti, allergeni e disponibilita." action="Apri" onClick={() => { setActiveTab("menu"); navigate("/admin?tab=menu", { replace: true }); }} />
+              <SettingsCard icon="TBL" title="Tavoli e QR" subtitle="Tavoli, prenotazioni e stampa QR." action="Apri" onClick={() => window.location.href = "/tavoli"} />
+              <SettingsCard icon="USR" title="Staff e ruoli" subtitle="Accessi cucina, bar, cassa e admin." action="Apri" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }} />
+              <SettingsCard icon="INT" title="Integrazioni" subtitle="POS, stampanti, delivery e prenotazioni." action="Apri" onClick={() => window.location.href = "/integrazioni"} />
             </div>
           </div>
 
           <div className="management-card settings-group-card">
-            <SectionHead title="Account, pagamenti e accessi" subtitle="Gestione amministrativa del ristorante." />
+            <SectionHead title="Amministrazione" subtitle="Billing, report, documenti e diagnostica." />
             <div className="settings-card-grid two">
-              <SettingsCard icon="💳" title="Abbonamento" subtitle={`Piano attuale: ${restaurant?.plan || "mensile"}`} action="Gestisci" tone="billing" onClick={() => window.location.href = "/billing"} />
-              <SettingsCard icon="👥" title="Staff" subtitle="Crea accessi cucina, bar, cassa e admin." action="Vai" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }} />
+              <SettingsCard icon="PAY" title="Abbonamento" subtitle={`Piano attuale: ${restaurant?.plan || "mensile"}`} action="Gestisci" tone="billing" onClick={() => window.location.href = "/billing"} />
+              <SettingsCard icon="RPT" title="Report" subtitle="Statistiche, storico e andamento vendite." action="Apri" onClick={() => window.location.href = "/statistiche"} />
               <SettingsCard icon="DOC" title="Privacy e documenti" subtitle="Policy, termini, cookie e trattamento dati." action="Apri" onClick={() => document.querySelector(".settings-privacy-panel")?.scrollIntoView({ behavior: "smooth" })} />
-              <SettingsCard icon="VAT" title="IVA e fatture" subtitle="Checkout + IVA configurati su Stripe Tax." action="Verifica" onClick={() => window.location.href = "/billing"} />
+              <SettingsCard icon="LOG" title="Errori e log" subtitle="Problemi tecnici, webhook e pagamenti falliti." action="Apri" onClick={() => window.location.href = "/errori"} />
             </div>
           </div>
 
           <div className="management-card settings-privacy-panel">
-            <SectionHead title="Privacy e documenti" subtitle="Prima della vendita pubblica serve separare bene supporto tecnico, dati cliente e documentazione legale." />
+            <SectionHead title="Privacy e documenti" subtitle="Prima della vendita pubblica serve separare supporto tecnico, dati cliente e documentazione legale." />
             <div className="settings-privacy-layout">
               <div>
-                <div className="settings-privacy-title">Modalità privacy attiva</div>
-                <p className="management-subtitle">Quando accedi come SuperAdmin dentro un ristorante, i valori economici sono oscurati per ridurre l'accesso non necessario ai dati operativi del cliente.</p>
+                <div className="settings-privacy-title">Privacy mode attivo</div>
+                <p className="management-subtitle">Quando accedi come SuperAdmin dentro un ristorante, i valori economici sono oscurati per ridurre l'accesso non necessario ai dati operativi.</p>
                 <ul className="settings-checklist">
                   {privacyItems.map((item) => <li key={item}>{item}</li>)}
                 </ul>
               </div>
               <div className="settings-doc-list">
-                <div><strong>Privacy Policy</strong><span>Da completare con consulente/privacy tool</span></div>
-                <div><strong>Termini di servizio</strong><span>Condizioni commerciali e uso piattaforma</span></div>
-                <div><strong>DPA / Nomina responsabile</strong><span>Da preparare per clienti business</span></div>
-                <div><strong>Cookie policy</strong><span>Necessaria se usi cookie non tecnici</span></div>
+                <div><strong>Privacy Policy</strong><span><a href="/privacy" target="_blank" rel="noreferrer">Apri pagina pubblica</a></span></div>
+                <div><strong>Termini di servizio</strong><span><a href="/termini" target="_blank" rel="noreferrer">Apri pagina pubblica</a></span></div>
+                <div><strong>DPA / Nomina responsabile</strong><span>Bozza in docs/legal da validare</span></div>
+                <div><strong>Cookie policy</strong><span><a href="/cookie" target="_blank" rel="noreferrer">Apri pagina pubblica</a></span></div>
               </div>
             </div>
           </div>

@@ -12,6 +12,7 @@ import Demo from "./pages/Demo.jsx";
 import Errori from "./pages/Errori.jsx";
 import Integrazioni from "./pages/Integrazioni.jsx";
 import Landing from "./pages/Landing.jsx";
+import LegalPage from "./pages/LegalPage.jsx";
 import Login from "./pages/Login.jsx";
 import Onboarding from "./pages/Onboarding.jsx";
 import QRCodeTavoli from "./pages/QRCodeTavoli.jsx";
@@ -32,6 +33,9 @@ export default function App() {
         <Route path="/demo" element={<Demo />} />
         <Route path="/demo-ristorante" element={<Demo />} />
         <Route path="/demo-commerciale" element={<Demo />} />
+        <Route path="/privacy" element={<LegalPage />} />
+        <Route path="/termini" element={<LegalPage />} />
+        <Route path="/cookie" element={<LegalPage />} />
         <Route path="/servizio-non-disponibile" element={<ServiceUnavailable />} />
 
         <Route path="/menu" element={<Cliente />} />

@@ -43,26 +43,28 @@ function parseMenuImport(raw) {
 }
 
 async function buildStatus(restaurantId) {
-  const [restaurant, tablesCount, activeTablesCount, menuCount] = await Promise.all([
-    prisma.restaurant.findUnique({ where: { id: restaurantId } }),
+  const [restaurant, tablesCount, activeTablesCount, menuCount, staffCount] = await Promise.all([
+    prisma.restaurant.findUnique({ where: { id: restaurantId }, include: { subscription: true } }),
     prisma.table.count({ where: { restaurantId } }),
     prisma.table.count({ where: { restaurantId, isActive: true } }),
     prisma.menuItem.count({ where: { restaurantId, isDeleted: false } }),
+    prisma.user.count({ where: { restaurantId, role: { in: ["kitchen", "bar", "cashier"] }, isActive: true } }),
   ]);
   const settings = restaurant?.settingsJson && typeof restaurant.settingsJson === "object" ? restaurant.settingsJson : {};
   const onboarding = settings.onboarding || {};
+  const subscriptionStatus = restaurant?.subscription?.status || "incomplete";
   const checks = {
     profile: Boolean(restaurant?.name && restaurant?.slug),
     tables: activeTablesCount > 0,
-    qr: activeTablesCount > 0,
     menu: menuCount > 0,
-    import: Boolean(onboarding.importCompleted || menuCount > DEMO_MENU.length),
-    reviewed: Boolean(onboarding.reviewed),
+    staff: staffCount > 0,
+    qr: activeTablesCount > 0,
+    billing: ["trialing", "active"].includes(subscriptionStatus) && Boolean(restaurant?.isActive),
   };
   const completedCount = Object.values(checks).filter(Boolean).length;
   return {
-    restaurant: restaurant ? { id: restaurant.id, name: restaurant.name, slug: restaurant.slug, primaryColor: restaurant.primaryColor, currency: restaurant.currency, settingsJson: restaurant.settingsJson } : null,
-    counts: { tables: tablesCount, activeTables: activeTablesCount, menuItems: menuCount },
+    restaurant: restaurant ? { id: restaurant.id, name: restaurant.name, slug: restaurant.slug, primaryColor: restaurant.primaryColor, currency: restaurant.currency, settingsJson: restaurant.settingsJson, isActive: restaurant.isActive, subscriptionStatus } : null,
+    counts: { tables: tablesCount, activeTables: activeTablesCount, menuItems: menuCount, staff: staffCount },
     checks,
     progress: Math.round((completedCount / Object.keys(checks).length) * 100),
     completed: completedCount === Object.keys(checks).length,

@@ -111,8 +111,9 @@ export default function Demo() {
           <span>EasyMenu Demo</span>
         </Link>
         <div className="demo-actions">
-          <Link to="/menu/demo/demo-table-1">Menu cliente</Link>
-          <Link to="/login">Login demo</Link>
+          <Link to="/menu/demo/demo-table-1">Prova cliente</Link>
+          <button type="button" onClick={() => setView("cucina")}>Prova cucina</button>
+          <button type="button" onClick={() => setView("cassa")}>Prova cassa</button>
         </div>
       </header>
 
@@ -120,6 +121,7 @@ export default function Demo() {
         <div>
           <span className="demo-kicker">Prova pubblica</span>
           <h1>Ristorante demo pronto per sala, cucina, bar e cassa.</h1>
+          <p className="demo-hero-copy">Tre percorsi, zero registrazione: scegli come cliente, guarda la cucina, controlla la cassa.</p>
         </div>
         <div className="demo-kpis">
           <div><span>Tavoli</span><strong>20</strong></div>
@@ -127,6 +129,24 @@ export default function Demo() {
           <div><span>Ordini</span><strong>{demoOrders.length}</strong></div>
           <div><span>Totale live</span><strong>EUR {stats.total.toFixed(0)}</strong></div>
         </div>
+      </section>
+
+      <section className="demo-choice-grid" aria-label="Percorsi demo">
+        <Link to="/menu/demo/demo-table-1">
+          <span>1</span>
+          <strong>Prova come cliente</strong>
+          <small>Menu QR, prodotti, allergeni e ordine dal tavolo.</small>
+        </Link>
+        <button type="button" onClick={() => setView("cucina")}>
+          <span>2</span>
+          <strong>Prova cucina</strong>
+          <small>Comande live divise tra cucina e bar.</small>
+        </button>
+        <button type="button" onClick={() => setView("cassa")}>
+          <span>3</span>
+          <strong>Prova cassa</strong>
+          <small>Tavoli colorati, preconto e incasso.</small>
+        </button>
       </section>
 
       <nav className="demo-tabs" aria-label="Viste demo">
