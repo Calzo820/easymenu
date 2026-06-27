@@ -71,6 +71,7 @@ export default function Navbar() {
   const impersonating = hasPlatformSession() && !isSuperAdmin;
   const isOperational = ["/cucina", "/bar", "/cassa", "/tavoli"].some((path) => location.pathname.startsWith(path));
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const restaurantName = isSuperAdmin
     ? "Piattaforma SaaS"
@@ -99,15 +100,34 @@ export default function Navbar() {
 
     return [
       isAdmin && { to: "/dashboard", label: "Dashboard", icon: "⌂", match: ["/dashboard"] },
-      isAdmin && { to: "/onboarding", label: "Setup 5 min", icon: "OK", match: ["/onboarding", "/setup"] },
       canKitchen && { to: "/cucina", label: "Cucina", icon: "◴", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", icon: "◷", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", icon: "▣", match: ["/cassa"] },
       isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli"] },
       isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "☰", match: ["/admin"], adminTab: "menu" },
-      isAdmin && { to: "/admin?tab=settings", label: "Impostazioni", icon: "⚙", match: ["/admin", "/billing", "/qr", "/errori", "/statistiche", "/storico"], adminTab: "settings" },
     ].filter(Boolean);
   }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
+
+  const settingsLinks = useMemo(() => {
+    if (!logged || !isAdmin || isSuperAdmin) return [];
+    return [
+      { to: "/onboarding", label: "Setup guidato", icon: "✓", match: ["/onboarding", "/setup"] },
+      { to: "/admin?tab=settings", label: "Profilo e brand", icon: "◆", match: ["/admin"], adminTab: "settings" },
+      { to: "/admin?tab=staff", label: "Staff e ruoli", icon: "👥", match: ["/admin"], adminTab: "staff" },
+      { to: "/billing", label: "Abbonamento", icon: "€", match: ["/billing"] },
+      { to: "/statistiche", label: "Report", icon: "↗", match: ["/statistiche"] },
+      { to: "/storico", label: "Storico", icon: "☷", match: ["/storico"] },
+      { to: "/qr", label: "QR tavoli", icon: "▦", match: ["/qr"] },
+      { to: "/integrazioni", label: "Integrazioni", icon: "⚡", match: ["/integrazioni"] },
+      { to: "/errori", label: "Errori e log", icon: "!", match: ["/errori"] },
+    ];
+  }, [logged, isAdmin, isSuperAdmin]);
+
+  const settingsActive = settingsLinks.some((link) => isActive(link));
+
+  useEffect(() => {
+    if (settingsActive) setSettingsOpen(true);
+  }, [settingsActive]);
 
   if (!logged) return null;
 
@@ -185,6 +205,50 @@ export default function Navbar() {
         .em-sidebar__link { display: flex; align-items: center; gap: 14px; min-height: 46px; padding: 0 14px; border-radius: 16px; color: #cbd5e1; text-decoration: none; font-weight: 900; }
         .em-sidebar__link:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .em-sidebar__link.is-active { background: #fff; color: #07111f; }
+        .em-sidebar__settings { display: grid; gap: 6px; }
+        .em-sidebar__settings-toggle {
+          width: 100%;
+          min-height: 46px;
+          border: 0;
+          border-radius: 16px;
+          padding: 0 14px;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          background: transparent;
+          color: #cbd5e1;
+          font: inherit;
+          font-weight: 900;
+          cursor: pointer;
+          text-align: left;
+        }
+        .em-sidebar__settings-toggle:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .em-sidebar__settings-toggle.is-active { background: rgba(255,255,255,0.12); color: #fff; }
+        .em-sidebar__settings-label { flex: 1; }
+        .em-sidebar__chevron { font-size: 13px; transition: transform .18s ease; opacity: .72; }
+        .em-sidebar__chevron.is-open { transform: rotate(180deg); }
+        .em-sidebar__submenu {
+          margin-left: 14px;
+          padding-left: 13px;
+          display: grid;
+          gap: 5px;
+          border-left: 1px solid rgba(255,255,255,0.10);
+        }
+        .em-sidebar__sublink {
+          min-height: 37px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 11px;
+          border-radius: 13px;
+          color: #9fb0c7;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 850;
+        }
+        .em-sidebar__sublink:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .em-sidebar__sublink.is-active { background: rgba(255,255,255,0.95); color: #07111f; }
+        .em-sidebar__sublink-icon { width: 17px; display: inline-grid; place-items: center; font-size: 12px; }
         .em-sidebar__icon { width: 20px; display: inline-grid; place-items: center; font-size: 15px; }
         .em-sidebar__footer { margin-top: auto; padding: 14px; display: grid; gap: 10px; }
         .em-sidebar__user { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 18px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); }
@@ -219,6 +283,32 @@ export default function Navbar() {
               <span>{link.label}</span>
             </Link>
           ))}
+
+          {settingsLinks.length ? (
+            <div className="em-sidebar__settings">
+              <button
+                type="button"
+                className={settingsActive ? "em-sidebar__settings-toggle is-active" : "em-sidebar__settings-toggle"}
+                onClick={() => setSettingsOpen((prev) => !prev)}
+                aria-expanded={settingsOpen}
+              >
+                <span className="em-sidebar__icon">⚙</span>
+                <span className="em-sidebar__settings-label">Impostazioni</span>
+                <span className={settingsOpen ? "em-sidebar__chevron is-open" : "em-sidebar__chevron"}>⌄</span>
+              </button>
+
+              {settingsOpen ? (
+                <div className="em-sidebar__submenu">
+                  {settingsLinks.map((link) => (
+                    <Link key={link.to} to={link.to} onClick={handleNavigate} className={isActive(link) ? "em-sidebar__sublink is-active" : "em-sidebar__sublink"}>
+                      <span className="em-sidebar__sublink-icon">{link.icon}</span>
+                      <span>{link.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </nav>
 
         <div className="em-sidebar__footer">
