@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
 function timeAgo(value) {

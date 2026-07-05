@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import { createSubscriptionCheckout, getBillingStatus, openBillingPortal } from "../lib/api";
@@ -19,7 +19,7 @@ function formatDate(value) {
 const planDetails = {
   starter: {
     title: "Mensile",
-    price: "49,99 EUR",
+    price: "49,99 €",
     period: "/mese + IVA",
     badge: "Flessibile",
     saving: "",
@@ -27,7 +27,7 @@ const planDetails = {
   },
   growth: {
     title: "Trimestrale",
-    price: "134,99 EUR",
+    price: "134,99 €",
     period: "/3 mesi + IVA",
     badge: "10% OFF",
     saving: "Risparmi rispetto al mensile",
@@ -35,7 +35,7 @@ const planDetails = {
   },
   semiannual: {
     title: "Semestrale",
-    price: "254,99 EUR",
+    price: "254,99 €",
     period: "/6 mesi + IVA",
     badge: "15% OFF",
     saving: "Piu continuita, meno pensieri",
@@ -44,7 +44,7 @@ const planDetails = {
   },
   enterprise: {
     title: "Annuale",
-    price: "449,99 EUR",
+    price: "449,99 €",
     period: "/anno + IVA",
     badge: "25% OFF",
     saving: "Miglior prezzo",

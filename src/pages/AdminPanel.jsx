@@ -57,7 +57,7 @@ function getMenuQualityStats(items) {
 
 function formatEuro(value) {
   const amount = Number(value || 0);
-  return `€ ${amount.toFixed(2)}`;
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number.isFinite(amount) ? amount : 0);
 }
 
 function bySortThenName(a, b) {
@@ -356,7 +356,7 @@ export default function AdminPanel({ embedded = false } = {}) {
       await apiPatch(`/menu/${item.id}`, { isAvailable: !item.isAvailable });
       await loadData();
     } catch (err) {
-      setError(err.message || "Errore aggiornamento disponibilità");
+      setError(err.message || "Errore aggiornamento disponibilita");
     }
   }
 
@@ -567,7 +567,7 @@ export default function AdminPanel({ embedded = false } = {}) {
               <div key={item.id} className="management-list-row">
                 <div>
                   <div className="management-row-title">{item.name}</div>
-                  <div className="management-row-meta">{item.category || "Senza categoria"} · {item.preparationArea === "bar" ? "Bar" : "Cucina"}</div>
+                  <div className="management-row-meta">{item.category || "Senza categoria"} - {item.preparationArea === "bar" ? "Bar" : "Cucina"}</div>
                   <div className="management-price">{formatEuro(item.price)}</div>
                   <div className="management-row" style={{ marginTop: 8 }}>
                     {item.isFeatured ? <span className="management-badge">In evidenza</span> : null}
@@ -596,7 +596,7 @@ export default function AdminPanel({ embedded = false } = {}) {
     return (
       <div className="management-grid-2">
         <form className="management-card management-form" onSubmit={handleTableSubmit}>
-          <SectionHead title="Nuovo tavolo" subtitle="Creazione veloce per sala, terrazza, privé o dehors." />
+          <SectionHead title="Nuovo tavolo" subtitle="Creazione veloce per sala, terrazza, prive o dehors." />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label="Nome"><TextInput placeholder="Tavolo 24" value={tableForm.name} onChange={(e) => setTableForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
             <Field label="Codice"><TextInput placeholder="24" value={tableForm.code} onChange={(e) => setTableForm((prev) => ({ ...prev, code: e.target.value }))} /></Field>
@@ -666,7 +666,7 @@ export default function AdminPanel({ embedded = false } = {}) {
               <div key={user.id} className="management-list-row">
                 <div>
                   <div className="management-row-title">{user.name || user.email}</div>
-                  <div className="management-row-meta">{user.email} · {roleLabel(user.role)}</div>
+                  <div className="management-row-meta">{user.email} - {roleLabel(user.role)}</div>
                 </div>
                 <div className="management-row" style={{ justifyContent: "flex-end" }}>
                   <span className={`management-badge ${user.isActive ? "green" : "red"}`}>{user.isActive ? "Attivo" : "Disattivo"}</span>
@@ -762,8 +762,8 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="app-shell management-os">
           <div className="management-hero">
             <div className="management-hero-main">
-              <div className="management-kicker">EasyMenu · gestione</div>
-              <h1 className="management-hero-title">Meno pagine, più controllo.</h1>
+              <div className="management-kicker">EasyMenu - gestione</div>
+              <h1 className="management-hero-title">Meno pagine, piu controllo.</h1>
               <p className="management-hero-subtitle">
                 Menu, sala, staff e impostazioni in un unico hub. Le funzioni che usi ogni giorno sono davanti, quelle rare restano ordinate nelle impostazioni.
               </p>

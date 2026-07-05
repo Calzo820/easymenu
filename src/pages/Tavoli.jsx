@@ -42,7 +42,8 @@ function normalizeStatusResponse(data) {
 }
 
 function formatEuro(value) {
-  return `EUR ${Number(value || 0).toFixed(2)}`;
+  const amount = Number(value || 0);
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number.isFinite(amount) ? amount : 0);
 }
 
 function makeLocalTables(total = 12) {
@@ -182,7 +183,7 @@ export default function Tavoli() {
         localStorage.setItem("easymenu_local_tables", JSON.stringify(fallbackTables));
         setTables(fallbackTables);
         setLocalMode(true);
-        setError(tablesResult.reason?.message || "Account scaduto o tavoli non raggiungibili: mostro una mappa locale provvisoria.");
+        setError(tablesResult.reason?.message || "Tavoli non raggiungibili: attivo una mappa locale di emergenza.");
       } else {
         setTables(Array.isArray(tablesData) ? tablesData : []);
         setLocalMode(false);
@@ -199,7 +200,7 @@ export default function Tavoli() {
       const fallbackTables = makeLocalTables(12);
       setTables(fallbackTables);
       setLocalMode(true);
-      setError(err.message || "Errore caricamento tavoli: mostro una mappa locale provvisoria.");
+      setError(err.message || "Errore caricamento tavoli: attivo una mappa locale di emergenza.");
     } finally {
       setLoading(false);
     }
@@ -458,7 +459,7 @@ export default function Tavoli() {
           <div className="tables-alert">
             <b>Attenzione</b>
             <span>{error}</span>
-            {localMode ? <small>Modalita locale provvisoria: le prenotazioni rimangono su questo dispositivo.</small> : null}
+            {localMode ? <small>Modalita locale di emergenza: le prenotazioni rimangono su questo dispositivo finche il backend torna disponibile.</small> : null}
           </div>
         ) : null}
 

@@ -1,12 +1,13 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { API_URL } from "../lib/api";
+import { publicApiGet, publicApiPost } from "../lib/api";
 import "../styles/customer-menu.css";
 
 const DEMO_SLUG = "demo";
 const LEGACY_DEMO_SLUG = "demo-restaurant";
 const DEMO_TABLE_TOKEN = "demo-table-1";
 const FEATURED_CATEGORY = "Consigliati";
+const MONEY_FORMATTER = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
 const DEMO_MENU_ITEMS = [
   { id: "demo-antipasto-1", name: "Tartare mediterranea", shortDescription: "Manzo battuto, capperi, limone, olio EVO e chips croccanti", price: 14, category: "Antipasti", preparationArea: "kitchen", isFeatured: true, allergens: ["senape"] },
@@ -24,7 +25,7 @@ const DEMO_MENU_ITEMS = [
 
 function money(value) {
   const amount = Number(value || 0);
-  return `EUR ${Number.isFinite(amount) ? amount.toFixed(2) : "0.00"}`;
+  return MONEY_FORMATTER.format(Number.isFinite(amount) ? amount : 0);
 }
 
 function cartKey(slug, token) {
@@ -212,11 +213,11 @@ export default function Cliente() {
       try {
         setLoading(true);
         setError("");
-        const response = await fetch(`${API_URL}/tables/public/${encodeURIComponent(slug)}/${encodeURIComponent(tableToken)}`);
-        const data = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          if (!isDemo) throw new Error(data?.message || "Menu non disponibile");
+        let data = null;
+        try {
+          data = await publicApiGet(`/tables/public/${encodeURIComponent(slug)}/${encodeURIComponent(tableToken)}`);
+        } catch (err) {
+          if (!isDemo) throw err;
           const demoItems = DEMO_MENU_ITEMS.map(normalizeItem);
           if (!active) return;
           setRestaurant({ name: "EasyMenu Demo", slug: DEMO_SLUG, logoUrl: "", primaryColor: "#0f172a" });
@@ -267,9 +268,8 @@ export default function Cliente() {
     let active = true;
     const sync = async () => {
       try {
-        const response = await fetch(`${API_URL}/orders/public/${encodeURIComponent(token)}`);
-        const data = await response.json().catch(() => null);
-        if (response.ok && data && active) {
+        const data = await publicApiGet(`/orders/public/${encodeURIComponent(token)}`);
+        if (data && active) {
           setOrder((prev) => {
             const next = { ...(prev || {}), ...data };
             localStorage.setItem(orderKey(slug, tableToken), JSON.stringify(next));
@@ -365,13 +365,7 @@ export default function Cliente() {
       let createdOrder = null;
 
       try {
-        const response = await fetch(`${API_URL}/orders/public`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(data?.message || "Ordine non inviato");
+        const data = await publicApiPost("/orders/public", payload);
         createdOrder = data.order || data;
       } catch (err) {
         if (!isDemo) throw err;
@@ -423,13 +417,8 @@ export default function Cliente() {
 
     try {
       setPayment({ loading: true, error: "" });
-      const response = await fetch(`${API_URL}/payments/public/${encodeURIComponent(token)}/checkout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ splitCount: 1, payerIndex: 1 }),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.checkoutUrl) throw new Error(data?.message || "Pagamento non disponibile");
+      const data = await publicApiPost(`/payments/public/${encodeURIComponent(token)}/checkout`, { splitCount: 1, payerIndex: 1 });
+      if (!data?.checkoutUrl) throw new Error("Pagamento non disponibile");
       window.location.href = data.checkoutUrl;
     } catch (err) {
       setPayment({ loading: false, error: err.message || "Pagamento non disponibile" });
@@ -449,13 +438,10 @@ export default function Cliente() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/orders/public/${encodeURIComponent(token)}/${isBill ? "request-bill" : "call-staff"}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isBill ? {} : { reason: "Richiesta dal menu cliente" }),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(data?.message || "Richiesta non inviata");
+      const data = await publicApiPost(
+        `/orders/public/${encodeURIComponent(token)}/${isBill ? "request-bill" : "call-staff"}`,
+        isBill ? {} : { reason: "Richiesta dal menu cliente" }
+      );
       setServiceMessage(data?.message || (isBill ? "Richiesta conto inviata." : "Cameriere avvisato."));
     } catch (err) {
       setServiceMessage(err.message || "Richiesta non inviata. Riprova tra poco.");

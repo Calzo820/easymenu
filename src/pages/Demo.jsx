@@ -60,6 +60,17 @@ const demoLogins = [
   ["Cassa", "cassa@demo.test"],
 ];
 
+function money(value, options = {}) {
+  const amount = Number(value || 0);
+  const maximumFractionDigits = options.compact ? 0 : 2;
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: maximumFractionDigits,
+    maximumFractionDigits,
+  }).format(Number.isFinite(amount) ? amount : 0);
+}
+
 function DemoTable({ table }) {
   const meta = tableStatuses[table.status] || tableStatuses.free;
 
@@ -71,7 +82,7 @@ function DemoTable({ table }) {
       </div>
       <div className="demo-table-bottom">
         <span>{meta.label}</span>
-        <b>{table.total ? `EUR ${table.total.toFixed(2)}` : table.time}</b>
+        <b>{table.total ? money(table.total) : table.time}</b>
       </div>
     </article>
   );
@@ -88,7 +99,7 @@ function DemoMenuCard({ item }) {
         </div>
         <h3>{item.name}</h3>
         <p>Allergeni: {item.allergens}</p>
-        <strong>EUR {item.price.toFixed(2)}</strong>
+        <strong>{money(item.price)}</strong>
       </div>
     </article>
   );
@@ -127,7 +138,7 @@ export default function Demo() {
           <div><span>Tavoli</span><strong>20</strong></div>
           <div><span>Occupati</span><strong>{stats.occupied}</strong></div>
           <div><span>Ordini</span><strong>{demoOrders.length}</strong></div>
-          <div><span>Totale live</span><strong>EUR {stats.total.toFixed(0)}</strong></div>
+          <div><span>Totale live</span><strong>{money(stats.total, { compact: true })}</strong></div>
         </div>
       </section>
 
@@ -184,9 +195,9 @@ export default function Demo() {
           </div>
           <aside className="demo-side-panel">
             <h2>Carrello demo</h2>
-            <div className="demo-check-row"><span>Risotto limone e gambero</span><b>EUR 18.00</b></div>
-            <div className="demo-check-row"><span>Spritz Signature</span><b>EUR 8.00</b></div>
-            <div className="demo-total"><span>Totale</span><strong>EUR 26.00</strong></div>
+            <div className="demo-check-row"><span>Risotto limone e gambero</span><b>{money(18)}</b></div>
+            <div className="demo-check-row"><span>Spritz Signature</span><b>{money(8)}</b></div>
+            <div className="demo-total"><span>Totale</span><strong>{money(26)}</strong></div>
             <Link className="demo-primary" to="/menu/demo/demo-table-1">Apri menu tavolo 1</Link>
           </aside>
         </section>
@@ -215,7 +226,7 @@ export default function Demo() {
             {demoTables.filter((table) => table.total > 0).map((table) => (
               <article key={table.id} className="demo-cash-row">
                 <div><strong>{table.name}</strong><span>{tableStatuses[table.status].label} da {table.time}</span></div>
-                <b>EUR {table.total.toFixed(2)}</b>
+                <b>{money(table.total)}</b>
                 <button type="button">Preconto</button>
               </article>
             ))}

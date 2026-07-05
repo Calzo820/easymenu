@@ -160,7 +160,7 @@ function Dashboard() {
       <main className="dash-os-shell">
         {isSuperAdminMode ? (
           <div className="dash-super-banner">
-            <div><b>Modalità assistenza SuperAdmin</b> · valori economici nascosti per privacy del ristorante.</div>
+            <div><b>Modalita assistenza SuperAdmin</b> - valori economici nascosti per privacy del ristorante.</div>
             <button
               type="button"
               onClick={() => {
@@ -190,7 +190,7 @@ function Dashboard() {
 
         {data?.privacyMode ? (
           <div className="dash-super-banner">
-            <div><b>Privacy attiva</b> · incasso, ticket medio e importi ordine sono oscurati durante l'assistenza SuperAdmin.</div>
+            <div><b>Privacy attiva</b> - incasso, ticket medio e importi ordine sono oscurati durante l'assistenza SuperAdmin.</div>
           </div>
         ) : null}
 

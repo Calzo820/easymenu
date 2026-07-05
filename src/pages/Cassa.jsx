@@ -450,11 +450,11 @@ function Cassa() {
     };
 
     socket.on("connect", () => {
-      console.log("Socket cassa connesso:", socket.id);
+      if (import.meta.env.DEV) console.info("Socket cassa connesso:", socket.id);
     });
 
     socket.on("disconnect", () => {
-      console.log("Socket cassa disconnesso");
+      if (import.meta.env.DEV) console.info("Socket cassa disconnesso");
     });
 
     socket.on("new-order", (payload) => handleRefresh("new-order", payload));

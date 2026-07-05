@@ -24,7 +24,7 @@ const pages = {
       ["Servizio", "EasyMenu include menu QR, ordini al tavolo, cucina, bar, cassa, tavoli, staff, report, demo e billing."],
       ["Responsabilita ristorante", "Il ristorante e responsabile di prezzi, menu, allergeni, accessi staff, obblighi fiscali e uso corretto dei QR."],
       ["Abbonamento", "I piani sono mensile, trimestrale, semestrale e annuale. Il rinnovo e automatico tramite Stripe, con gestione e disdetta dal portale abbonamento."],
-      ["Prezzi", "I prezzi pubblicati sono 49,99 EUR/mese + IVA, 134,99 EUR/3 mesi + IVA, 254,99 EUR/6 mesi + IVA e 449,99 EUR/anno + IVA. Eventuali promozioni o setup assistito vanno confermati per iscritto."],
+      ["Prezzi", "I prezzi pubblicati sono 49,99 €/mese + IVA, 134,99 €/3 mesi + IVA, 254,99 €/6 mesi + IVA e 449,99 €/anno + IVA. Eventuali promozioni o setup assistito vanno confermati per iscritto."],
       ["Limitazioni", "EasyMenu non sostituisce consulenza fiscale, registratore telematico, HACCP o consulenza legale/privacy."],
     ],
   },

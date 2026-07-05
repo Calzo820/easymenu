@@ -30,6 +30,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const envStatus = validateEnvironment();
+const isProduction = process.env.NODE_ENV === "production";
+
+function devLog(...args) {
+  if (!isProduction) console.log(...args);
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -54,7 +59,7 @@ const io = new Server(server, {
 app.set("io", io);
 
 io.on("connection", (socket) => {
-  console.log(`Socket connesso: ${socket.id}`);
+  devLog(`Socket connesso: ${socket.id}`);
 
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   if (token) {
@@ -75,7 +80,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log(`Socket disconnesso: ${socket.id}`);
+    devLog(`Socket disconnesso: ${socket.id}`);
   });
 });
 
@@ -104,10 +109,12 @@ function createRateLimiter({ windowMs, maxRequests }) {
 app.disable("x-powered-by");
 
 app.use((req, res, next) => {
+  const requestId = crypto.randomUUID();
+  req.requestId = requestId;
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
-  res.setHeader("X-Request-Id", crypto.randomUUID());
+  res.setHeader("X-Request-Id", requestId);
   next();
 });
 
@@ -126,7 +133,7 @@ app.post("/payments/webhook", express.raw({ type: "application/json" }), handleS
 app.use(express.json({ limit: "200kb" }));
 
 app.use((req, _res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  devLog(`${new Date().toISOString()} ${req.method} ${req.path}`);
   next();
 });
 
@@ -136,7 +143,7 @@ app.use("/orders/public", createRateLimiter({ windowMs: 5 * 60 * 1000, maxReques
 
 app.get("/", (_req, res) => {
   res.json({
-    message: "Backend EasyMenu attivo 🚀",
+    message: "Backend EasyMenu attivo",
     environment: envStatus.nodeEnv,
     paymentsEnabled: envStatus.paymentsEnabled,
     webhookEnabled: envStatus.webhookEnabled,

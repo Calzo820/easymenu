@@ -18,7 +18,7 @@ async function processQueue() {
   const job = queue.shift();
 
   try {
-    console.log(`[PRINT] ${job.type}:`, job.payload);
+    if (import.meta.env.DEV) console.info(`[PRINT] ${job.type}:`, job.payload);
     await new Promise((resolve) => setTimeout(resolve, 400));
   } catch {
     if (job.retries < 3) {
