@@ -20,10 +20,11 @@ function getPiattiBar(ordine) {
 
 function getPrioritaOrdineBar(ordine) {
   const minuti = differenzaMinuti(ordine.createdAt);
-  if (ordine.status === "pending" && minuti >= 5) return 4;
+  if (ordine.status === "pending" && minuti >= 5) return 5;
+  if (ordine.status === "in_progress" && minuti >= 10) return 4;
   if (ordine.status === "pending") return 3;
-  if (ordine.status === "in_progress" && minuti >= 10) return 2;
-  if (ordine.status === "in_progress") return 1;
+  if (ordine.status === "in_progress") return 2;
+  if (ordine.status === "ready") return 1;
   return 0;
 }
 
@@ -185,7 +186,7 @@ export default function Bar() {
   const nuoviCount = ordiniBar.filter((o) => o.status === "pending").length;
   const preparazioneCount = ordiniBar.filter((o) => o.status === "in_progress").length;
   const prontiCount = ordiniBar.filter((o) => o.status === "ready").length;
-  const urgentiCount = ordiniBar.filter((o) => o.priorita >= 3).length;
+  const urgentiCount = ordiniBar.filter((o) => o.prioritaLabel === "Urgente").length;
 
   return (
     <div style={glowPageStyle}>
@@ -203,6 +204,8 @@ export default function Bar() {
           inProgressCount={preparazioneCount}
           readyCount={prontiCount}
           urgentCount={urgentiCount}
+          warnAfter={5}
+          lateAfter={10}
           updatingIds={updatingIds}
           onRefresh={syncOrdini}
           onNext={cambiaStato}

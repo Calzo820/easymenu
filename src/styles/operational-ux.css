@@ -1738,7 +1738,7 @@ input:focus, select:focus, textarea:focus {
 
 .kds-topbar__stats b { font-size: 20px; line-height: 1; }
 .kds-topbar__stats span,
-.kds-topbar__stats small { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+.kds-topbar__stats small { font-size: 10px; text-transform: uppercase; letter-spacing: 0; }
 
 .kds-topbar__tools {
   display: flex;
@@ -1765,6 +1765,59 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
 }
 
+.kds-pass-strip {
+  display: grid;
+  grid-template-columns: 1.2fr .9fr .9fr;
+  gap: 10px;
+}
+
+.kds-pass-strip > div {
+  min-height: 76px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, .065);
+}
+
+.kds-pass-strip span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.kds-pass-strip strong {
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.kds-pass-strip small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.kds-pass-strip .is-warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.kds-pass-strip .is-hot {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.kds-pass-strip .is-ready {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
 .kds-error,
 .kds-empty {
   border-radius: 16px;
@@ -1779,7 +1832,7 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 10px;
-  height: calc(100vh - 102px);
+  height: calc(100vh - 190px);
 }
 
 .kds-column {
@@ -1809,7 +1862,7 @@ input:focus, select:focus, textarea:focus {
 .kds-column--in_progress .kds-column__head { background: #b45309; }
 .kds-column--ready .kds-column__head { background: #15803d; }
 
-.kds-column__head strong { font-size: 15px; text-transform: uppercase; letter-spacing: .05em; }
+.kds-column__head strong { font-size: 15px; text-transform: uppercase; letter-spacing: 0; }
 .kds-column__head span { min-width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; background: rgba(255,255,255,.18); font-weight: 950; }
 
 .kds-column__list {
@@ -1866,6 +1919,43 @@ input:focus, select:focus, textarea:focus {
 .kds-ticket__sla--late { background: #fee2e2; color: #991b1b; }
 .kds-ticket__sla--ready { background: #dcfce7; color: #166534; }
 
+.kds-ticket__meter {
+  height: 7px;
+  overflow: hidden;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.kds-ticket__meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+}
+
+.kds-ticket__meter--warn i { background: #f59e0b; }
+.kds-ticket__meter--late i { background: #ef4444; }
+.kds-ticket__meter--ready i { background: #16a34a; }
+
+.kds-ticket__badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.kds-ticket__badges span {
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
 .kds-ticket__items {
   display: grid;
   gap: 5px;
@@ -1908,6 +1998,7 @@ input:focus, select:focus, textarea:focus {
 .kds-board.is-dense .kds-ticket__head strong { font-size: 18px; }
 .kds-board.is-dense .kds-ticket__item { padding: 7px 8px; }
 .kds-board.is-dense .kds-ticket__actions button { min-height: 38px; }
+.kds-board.is-dense .kds-ticket__badges span { padding-block: 4px; }
 
 /* POS cashdesk */
 .cashdesk-workspace { max-width: 1920px; }
@@ -2117,6 +2208,7 @@ input:focus, select:focus, textarea:focus {
   .tables-controlbar { grid-template-columns: 1fr; align-items: stretch; }
   .kds-topbar__stats { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .kds-topbar__tools input { width: 100%; flex: 1; }
+  .kds-pass-strip { grid-template-columns: 1fr; }
   .kds-columns { height: auto; grid-template-columns: 1fr; }
   .kds-column__list { max-height: none; }
   .pos-layout,

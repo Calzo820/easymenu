@@ -93,11 +93,19 @@ function getCategories(items) {
   return items.some((item) => item.isFeatured) ? [FEATURED_CATEGORY, ...base] : base;
 }
 
+function getCategoryCounts(items) {
+  return items.reduce((acc, item) => {
+    if (item.isFeatured) acc[FEATURED_CATEGORY] = Number(acc[FEATURED_CATEGORY] || 0) + 1;
+    acc[item.category] = Number(acc[item.category] || 0) + 1;
+    return acc;
+  }, {});
+}
+
 function ProductCard({ item, quantity, note, onAdd, onRemove, onNoteChange }) {
   const hasImage = Boolean(item.imageUrl);
 
   return (
-    <article className={`cm-product ${hasImage ? "with-image" : ""}`}>
+    <article className={`cm-product ${hasImage ? "with-image" : ""} ${quantity > 0 ? "is-selected" : ""}`}>
       {hasImage ? <img className="cm-product-image" src={item.imageUrl} alt={item.name} /> : null}
       <div className="cm-product-body">
         <div className="cm-product-top">
@@ -142,17 +150,20 @@ function ProductCard({ item, quantity, note, onAdd, onRemove, onNoteChange }) {
   );
 }
 
-function CartBar({ totalItems, totalAmount, loading, onOrder, onToggle, open }) {
+function CartBar({ totalItems, totalAmount, loading, onOrder, onToggle, open, tableName }) {
   if (totalItems <= 0) return null;
 
   return (
     <div className="cm-cartbar">
       <button className="cm-cart-summary" type="button" onClick={onToggle}>
-        <span>{totalItems} prodotti</span>
+        <span>
+          <b>{open ? "Riepilogo ordine" : `${totalItems} prodotti nel carrello`}</b>
+          <small>{tableName || "Tavolo"}</small>
+        </span>
         <strong>{money(totalAmount)}</strong>
       </button>
       <button className="cm-order-button" type="button" disabled={loading} onClick={onOrder}>
-        {loading ? "Invio..." : open ? "Ordina adesso" : "Ordina"}
+        {loading ? "Invio..." : open ? "Invia ordine" : "Ordina"}
       </button>
     </div>
   );
@@ -279,6 +290,7 @@ export default function Cliente() {
   }, [order?.id, order?.publicToken, slug, tableToken]);
 
   const categories = useMemo(() => getCategories(items), [items]);
+  const categoryCounts = useMemo(() => getCategoryCounts(items), [items]);
 
   const visibleItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -549,6 +561,7 @@ export default function Cliente() {
           <div>
             <span>Ordine attivo</span>
             <strong>{statusTitle}</strong>
+            <small>Puoi aggiungere altri piatti: partiranno come nuovo ordine.</small>
           </div>
           <button type="button" onClick={() => setShowMenuAfterOrder(false)}>Stato ordine</button>
         </section>
@@ -571,12 +584,21 @@ export default function Cliente() {
             className={category === activeCategory ? "active" : ""}
             onClick={() => setActiveCategory(category)}
           >
-            {category}
+            <span>{category}</span>
+            <small>{categoryCounts[category] || 0}</small>
           </button>
         ))}
       </nav>
 
       {error ? <div className="cm-error">{error}</div> : null}
+
+      <section className="cm-section-head">
+        <div>
+          <span>Menu</span>
+          <h2>{activeCategory}</h2>
+        </div>
+        <small>{visibleItems.length} prodotti</small>
+      </section>
 
       <section className="cm-products" aria-label={activeCategory}>
         {visibleItems.length ? visibleItems.map((item) => (
@@ -597,7 +619,10 @@ export default function Cliente() {
       {cartOpen ? (
         <section className="cm-cart-detail">
           <div className="cm-cart-head">
-            <strong>Carrello</strong>
+            <div>
+              <strong>Riepilogo ordine</strong>
+              <span>{table.name || "Tavolo"}</span>
+            </div>
             <button type="button" onClick={() => setCartOpen(false)}>Chiudi</button>
           </div>
           {cartItems.map((item) => (
@@ -613,6 +638,11 @@ export default function Cliente() {
               </div>
             </div>
           ))}
+          <div className="cm-cart-total">
+            <span>Totale</span>
+            <strong>{money(totalAmount)}</strong>
+          </div>
+          <p className="cm-cart-hint">Controlla quantita e note prima di inviare alla cucina.</p>
         </section>
       ) : null}
 
@@ -621,8 +651,9 @@ export default function Cliente() {
         totalAmount={totalAmount}
         loading={sending}
         open={cartOpen}
+        tableName={table.name}
         onToggle={() => setCartOpen((value) => !value)}
-        onOrder={submitOrder}
+        onOrder={cartOpen ? submitOrder : () => setCartOpen(true)}
       />
     </main>
   );

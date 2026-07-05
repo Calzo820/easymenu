@@ -37,16 +37,31 @@ function getOrderStatus(order) {
 }
 
 function getActionLabel(status, readyLabel) {
-  if (status === "pending") return "Prendi";
+  if (status === "pending") return "Inizia";
   if (status === "in_progress") return readyLabel || "Pronto";
   return "Al pass";
 }
 
-function getSlaTone(minutes, status) {
+function getSlaTone(minutes, status, warnAfter, lateAfter) {
   if (status === "ready") return "ready";
-  if (minutes >= 18) return "late";
-  if (minutes >= 10) return "warn";
+  if (minutes >= lateAfter) return "late";
+  if (minutes >= warnAfter) return "warn";
   return "ok";
+}
+
+function isOrderUrgent(order, lateAfter) {
+  const status = getOrderStatus(order);
+  const label = normalize(order.prioritaLabel);
+  return status !== "ready" && (label === "urgente" || Number(order.timerMinuti || 0) >= lateAfter);
+}
+
+function getTableLabel(order) {
+  return order.tavolo || order.table?.code || order.table?.name || "?";
+}
+
+function formatTableTitle(order) {
+  const label = String(getTableLabel(order));
+  return /^tavolo/i.test(label) ? label : `Tavolo ${label}`;
 }
 
 function serviceSummary(items) {
@@ -57,35 +72,46 @@ function serviceSummary(items) {
     .filter((item) => getItemService(item) === "dopo")
     .reduce((sum, item) => sum + getItemQty(item), 0);
 
-  if (dopo > 0 && subito > 0) return `${subito} subito · ${dopo} dopo`;
+  if (dopo > 0 && subito > 0) return `${subito} subito - ${dopo} dopo`;
   if (dopo > 0) return `${dopo} dopo`;
   return `${subito || items.length} subito`;
 }
 
-function ServiceOrderCard({ order, itemsKey, updating, onNext, onBack, readyLabel }) {
+function ServiceOrderCard({ order, itemsKey, updating, onNext, onBack, readyLabel, warnAfter, lateAfter }) {
   const items = order[itemsKey] || [];
   const status = getOrderStatus(order);
   const minutes = order.timerMinuti ?? 0;
-  const urgent = order.priorita >= 3 || minutes >= 8;
+  const urgent = isOrderUrgent(order, lateAfter);
+  const tone = getSlaTone(minutes, status, warnAfter, lateAfter);
+  const progress = Math.min(100, Math.max(8, Math.round((Number(minutes || 0) / Math.max(lateAfter, 1)) * 100)));
   const canGoNext = status === "pending" || status === "in_progress";
-  const tableLabel = order.tavolo || order.table?.code || order.table?.name || "?";
 
   return (
     <article className={`kds-ticket kds-ticket--${status} ${urgent ? "is-urgent" : ""}`}>
       <header className="kds-ticket__head">
         <div>
-          <strong>Tavolo {tableLabel}</strong>
-          <span>{formatTime(order.createdAt || order.time)} · {formatMinutes(minutes)} · {serviceSummary(items)}</span>
+          <strong>{formatTableTitle(order)}</strong>
+          <span>{formatTime(order.createdAt || order.time)} - {formatMinutes(minutes)} - {serviceSummary(items)}</span>
         </div>
-        <b className={`kds-ticket__sla kds-ticket__sla--${getSlaTone(minutes, status)}`}>
-          {urgent ? "URGENTE" : status === "ready" ? "PRONTO" : `${minutes}'`}
+        <b className={`kds-ticket__sla kds-ticket__sla--${tone}`}>
+          {urgent ? "URGENTE" : status === "ready" ? "AL PASS" : `${minutes} min`}
         </b>
       </header>
+
+      <div className={`kds-ticket__meter kds-ticket__meter--${tone}`}>
+        <i style={{ width: `${progress}%` }} />
+      </div>
+
+      <div className="kds-ticket__badges">
+        <span>{order.prioritaLabel || "Attivo"}</span>
+        <span>{items.length} righe</span>
+        {order.totaleArticoli ? <span>{order.totaleArticoli} pezzi</span> : null}
+      </div>
 
       <div className="kds-ticket__items">
         {items.slice(0, 10).map((item, index) => (
           <div className="kds-ticket__item" key={`${order.id}-${item.id || index}`}>
-            <b>{getItemQty(item)}×</b>
+            <b>{getItemQty(item)}x</b>
             <span>{getItemName(item)}</span>
             {getItemService(item) === "dopo" ? <em>Dopo</em> : null}
             {item.notes || item.nota || item.notaPiatto ? <small>{item.notes || item.nota || item.notaPiatto}</small> : null}
@@ -121,6 +147,9 @@ export default function HighVolumeServiceBoard({
   inProgressCount = 0,
   readyCount = 0,
   urgentCount = 0,
+  totalItems,
+  warnAfter = 10,
+  lateAfter = 18,
   updatingIds = [],
   onRefresh,
   onNext,
@@ -144,11 +173,12 @@ export default function HighVolumeServiceBoard({
         ...items.map((item) => item.categoria || item.categorySnapshot || ""),
       ].join(" ");
 
-      if (focus !== "all" && status !== focus) return false;
+      if (focus === "urgent" && !isOrderUrgent(order, lateAfter)) return false;
+      if (focus !== "all" && focus !== "urgent" && status !== focus) return false;
       if (q && !normalize(searchable).includes(q)) return false;
       return true;
     });
-  }, [orders, itemsKey, query, focus]);
+  }, [orders, itemsKey, query, focus, lateAfter]);
 
   const columns = useMemo(() => {
     const grouped = { pending: [], in_progress: [], ready: [] };
@@ -160,9 +190,12 @@ export default function HighVolumeServiceBoard({
     return grouped;
   }, [filteredOrders]);
 
-  const activeItems = orders.reduce((sum, order) => {
+  const activeItems = Number(totalItems || 0) || orders.reduce((sum, order) => {
     return sum + (order[itemsKey] || []).reduce((itemSum, item) => itemSum + getItemQty(item), 0);
   }, 0);
+  const nextOrder = filteredOrders.find((order) => getOrderStatus(order) !== "ready") || filteredOrders[0] || null;
+  const nextItems = nextOrder ? nextOrder[itemsKey] || [] : [];
+  const maxMinutes = filteredOrders.reduce((max, order) => Math.max(max, Number(order.timerMinuti || 0)), 0);
 
   return (
     <main className={`kds-board kds-board--${station} ${dense ? "is-dense" : ""}`}>
@@ -177,13 +210,31 @@ export default function HighVolumeServiceBoard({
           <button type="button" className={focus === "pending" ? "is-active" : ""} onClick={() => setFocus("pending")}><b>{newCount}</b><span>nuovi</span></button>
           <button type="button" className={focus === "in_progress" ? "is-active" : ""} onClick={() => setFocus("in_progress")}><b>{inProgressCount}</b><span>prep</span></button>
           <button type="button" className={focus === "ready" ? "is-active" : ""} onClick={() => setFocus("ready")}><b>{readyCount}</b><span>pronti</span></button>
-          <div className={urgentCount ? "is-hot" : ""}><b>{urgentCount}</b><span>urgenze</span></div>
+          <button type="button" className={`${focus === "urgent" ? "is-active" : ""} ${urgentCount ? "is-hot" : ""}`} onClick={() => setFocus("urgent")}><b>{urgentCount}</b><span>urgenze</span></button>
           <div><b>{activeItems}</b><span>pezzi</span></div>
         </div>
 
         <div className="kds-topbar__tools">
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca tavolo o piatto" />
           <button type="button" onClick={() => setDense((value) => !value)}>{dense ? "Comoda" : "Densa"}</button>
+        </div>
+      </section>
+
+      <section className="kds-pass-strip" aria-label="Regia servizio">
+        <div>
+          <span>Prossimo tavolo</span>
+          <strong>{nextOrder ? formatTableTitle(nextOrder) : "-"}</strong>
+          <small>{nextOrder ? `${nextItems.length} righe - ${serviceSummary(nextItems)}` : "Nessuna comanda attiva"}</small>
+        </div>
+        <div className={maxMinutes >= lateAfter ? "is-hot" : maxMinutes >= warnAfter ? "is-warn" : ""}>
+          <span>Tempo massimo</span>
+          <strong>{formatMinutes(maxMinutes)}</strong>
+          <small>{maxMinutes >= lateAfter ? "Da sbloccare subito" : "Servizio sotto controllo"}</small>
+        </div>
+        <div className={readyCount ? "is-ready" : ""}>
+          <span>Al pass</span>
+          <strong>{readyCount}</strong>
+          <small>{readyCount ? "Da consegnare in sala" : "Nessun piatto in attesa"}</small>
         </div>
       </section>
 
@@ -213,6 +264,8 @@ export default function HighVolumeServiceBoard({
                       onNext={onNext}
                       onBack={onBack}
                       readyLabel={readyLabel}
+                      warnAfter={warnAfter}
+                      lateAfter={lateAfter}
                     />
                   ))
                 ) : (

@@ -26,10 +26,11 @@ function getPiattiCucina(ordine) {
 
 function getPrioritaOrdine(ordine) {
   const minuti = differenzaMinuti(ordine.createdAt);
-  if (ordine.status === "pending" && minuti >= 8) return 4;
+  if (ordine.status === "pending" && minuti >= 8) return 5;
+  if (ordine.status === "in_progress" && minuti >= 18) return 4;
   if (ordine.status === "pending") return 3;
-  if (ordine.status === "in_progress" && minuti >= 18) return 2;
-  if (ordine.status === "in_progress") return 1;
+  if (ordine.status === "in_progress") return 2;
+  if (ordine.status === "ready") return 1;
   return 0;
 }
 
@@ -196,7 +197,7 @@ export default function Cucina() {
   const nuoviCount = ordiniCucina.filter((o) => o.status === "pending").length;
   const preparazioneCount = ordiniCucina.filter((o) => o.status === "in_progress").length;
   const prontiCount = ordiniCucina.filter((o) => o.status === "ready").length;
-  const urgentiCount = ordiniCucina.filter((o) => o.priorita >= 3).length;
+  const urgentiCount = ordiniCucina.filter((o) => o.prioritaLabel === "Urgente").length;
 
   return (
     <div style={glowPageStyle}>
@@ -214,6 +215,8 @@ export default function Cucina() {
           inProgressCount={preparazioneCount}
           readyCount={prontiCount}
           urgentCount={urgentiCount}
+          warnAfter={10}
+          lateAfter={18}
           updatingIds={updatingIds}
           onRefresh={syncOrdini}
           onNext={cambiaStato}
