@@ -21,6 +21,13 @@ const outcomes = [
 
 const integrations = ["SumUp", "Nexi", "Fatture in Cloud", "Tilby", "Cassa in Cloud", "TheFork", "Deliveroo", "Glovo"];
 
+const pricingPlans = [
+  ["Mensile", "49,99 EUR/mese + IVA", "Beta assistita, rinnovo mensile e disdetta dal portale Stripe."],
+  ["Trimestrale", "134,99 EUR/3 mesi + IVA", "Per testare EasyMenu su una stagione breve con supporto incluso."],
+  ["Semestrale", "254,99 EUR/6 mesi + IVA", "Il piano piu equilibrato per stabilizzare menu, QR e operativita."],
+  ["Annuale", "449,99 EUR/anno + IVA", "Miglior prezzo per chi vuole partire con continuita."],
+];
+
 function Card({ children, className = "" }) {
   return <div className={`landing-card ${className}`}>{children}</div>;
 }
@@ -83,6 +90,31 @@ export default function Landing() {
               <p>{text}</p>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="landing-section landing-pricing-section">
+        <div className="landing-section-title">
+          <span>Prezzi chiari</span>
+          <h2>EasyMenu parte da 49,99 EUR/mese + IVA.</h2>
+          <p>Tutti i piani includono menu QR, cucina, bar, cassa, tavoli, report, onboarding e portale Stripe per fatture, metodo di pagamento e disdetta.</p>
+        </div>
+        <div className="landing-pricing-grid">
+          {pricingPlans.map(([title, price, text]) => (
+            <Card key={title} className={title === "Semestrale" ? "landing-price-card featured" : "landing-price-card"}>
+              <span>{title}</span>
+              <strong>{price}</strong>
+              <p>{text}</p>
+            </Card>
+          ))}
+        </div>
+        <div className="landing-beta-box">
+          <div>
+            <span>Beta assistita</span>
+            <h3>Ti attivo EasyMenu nel tuo ristorante per 30 giorni.</h3>
+            <p>Setup guidato, QR tavoli, menu, cucina, cassa e prima prova servizio insieme. Se funziona per il locale, continui dal piano mensile.</p>
+          </div>
+          <a className="landing-primary" href={whatsappUrl} target="_blank" rel="noreferrer">Prenota beta assistita</a>
         </div>
       </section>
 

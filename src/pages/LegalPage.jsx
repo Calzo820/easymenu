@@ -12,6 +12,8 @@ const pages = {
       ["Dati trattati", "Account ristorante, utenti staff, tavoli, menu, ordini, stato pagamento, log tecnici e dati necessari all'assistenza."],
       ["Superadmin", "Il superadmin vede solo nome ristorante, email owner, piano, stato abbonamento e problemi tecnici. Ordini completi, dati clienti finali e report economici restano non consultabili salvo supporto motivato o consenso."],
       ["Conservazione", "I dati sono conservati per il tempo necessario a erogare il servizio, rispettare obblighi contrattuali e gestire sicurezza, billing e supporto."],
+      ["Diritti privacy", "Gli interessati possono chiedere accesso, rettifica, cancellazione, limitazione, portabilita e opposizione al trattamento. Le richieste vanno gestite dal ristorante titolare, con supporto tecnico EasyMenu quando necessario."],
+      ["Contatti", "Prima della vendita inserire ragione sociale, P.IVA, indirizzo, email privacy e riferimenti del gestore EasyMenu."],
     ],
   },
   "/termini": {
@@ -22,6 +24,7 @@ const pages = {
       ["Servizio", "EasyMenu include menu QR, ordini al tavolo, cucina, bar, cassa, tavoli, staff, report, demo e billing."],
       ["Responsabilita ristorante", "Il ristorante e responsabile di prezzi, menu, allergeni, accessi staff, obblighi fiscali e uso corretto dei QR."],
       ["Abbonamento", "I piani sono mensile, trimestrale, semestrale e annuale. Il rinnovo e automatico tramite Stripe, con gestione e disdetta dal portale abbonamento."],
+      ["Prezzi", "I prezzi pubblicati sono 49,99 EUR/mese + IVA, 134,99 EUR/3 mesi + IVA, 254,99 EUR/6 mesi + IVA e 449,99 EUR/anno + IVA. Eventuali promozioni o setup assistito vanno confermati per iscritto."],
       ["Limitazioni", "EasyMenu non sostituisce consulenza fiscale, registratore telematico, HACCP o consulenza legale/privacy."],
     ],
   },

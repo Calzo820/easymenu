@@ -1,59 +1,71 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import { createSubscriptionCheckout, getBillingStatus, openBillingPortal } from "../lib/api";
 
 const WHATSAPP_NUMBER = "3240467723";
-const CHAIN_MESSAGE = "Ciao, ho più ristoranti e vorrei informazioni su EasyMenu per catene o multi-sede.";
+const CHAIN_MESSAGE = "Ciao, ho piu ristoranti e vorrei informazioni su EasyMenu per catene o multi-sede.";
 const chainContactUrl = `https://wa.me/39${WHATSAPP_NUMBER}?text=${encodeURIComponent(CHAIN_MESSAGE)}`;
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return "-";
   try {
     return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(new Date(value));
   } catch {
-    return "—";
+    return "-";
   }
 }
 
 const planDetails = {
   starter: {
     title: "Mensile",
-    price: "49,99 €",
-    period: "/ mese",
+    price: "49,99 EUR",
+    period: "/mese + IVA",
     badge: "Flessibile",
     saving: "",
     note: "Parti senza impegno lungo.",
   },
   growth: {
     title: "Trimestrale",
-    price: "134,99 €",
-    period: "/ 3 mesi",
+    price: "134,99 EUR",
+    period: "/3 mesi + IVA",
     badge: "10% OFF",
     saving: "Risparmi rispetto al mensile",
     note: "Ideale per una stagione.",
   },
   semiannual: {
     title: "Semestrale",
-    price: "254,99 €",
-    period: "/ 6 mesi",
+    price: "254,99 EUR",
+    period: "/6 mesi + IVA",
     badge: "15% OFF",
-    saving: "Più continuità, meno pensieri",
+    saving: "Piu continuita, meno pensieri",
     note: "Perfetto per stabilizzarlo nel servizio.",
     highlighted: true,
   },
   enterprise: {
     title: "Annuale",
-    price: "449,99 €",
-    period: "/ anno",
+    price: "449,99 EUR",
+    period: "/anno + IVA",
     badge: "25% OFF",
     saving: "Miglior prezzo",
-    note: "La scelta più conveniente.",
+    note: "La scelta piu conveniente.",
   },
 };
 
 const planOrder = ["starter", "growth", "semiannual", "enterprise"];
 const includedPills = ["EasyMenu completo", "Rinnovo automatico", "Disdici quando vuoi"];
+
+const stripeTestChecklist = [
+  ["Mensile", "Checkout con price mensile corretto"],
+  ["Trimestrale", "Checkout con price trimestrale corretto"],
+  ["Semestrale", "Checkout con price semestrale corretto"],
+  ["Annuale", "Checkout con price annuale corretto"],
+  ["Pagamento riuscito", "Webhook attiva il ristorante"],
+  ["Pagamento fallito", "Alert visibile in Billing e Dashboard"],
+  ["Disdetta", "Stato aggiornato alla scadenza"],
+  ["Portale cliente", "Metodo pagamento, fatture e cancellazione"],
+  ["IVA", "Prezzi mostrati + IVA e Stripe Tax verificato"],
+];
 
 function normalizePlan(plan) {
   return planOrder.includes(plan) ? plan : "starter";
@@ -79,7 +91,7 @@ function PlanCard({ id, currentPlan, loadingPlan, configured = true, onCheckout 
             {plan.title}
           </h2>
         </div>
-        {plan.highlighted ? <span style={sparkStyle}>★</span> : null}
+        {plan.highlighted ? <span style={sparkStyle}>Top</span> : null}
       </div>
 
       <div style={{ marginTop: 22 }}>
@@ -89,7 +101,7 @@ function PlanCard({ id, currentPlan, loadingPlan, configured = true, onCheckout 
           </span>
           <span style={{ color: plan.highlighted ? "rgba(255,255,255,0.72)" : "#64748b", fontWeight: 900 }}>{plan.period}</span>
         </div>
-        <div style={{ marginTop: 7, color: plan.highlighted ? "rgba(255,255,255,0.68)" : "#64748b", fontWeight: 850 }}>+ IVA</div>
+        <div style={{ marginTop: 7, color: plan.highlighted ? "rgba(255,255,255,0.68)" : "#64748b", fontWeight: 850 }}>IVA calcolata nel checkout Stripe</div>
       </div>
 
       <p style={{ margin: "18px 0 0", minHeight: 44, color: plan.highlighted ? "rgba(255,255,255,0.78)" : "#475569", lineHeight: 1.45, fontWeight: 800 }}>
@@ -129,7 +141,7 @@ function ChainCard() {
         <div style={chainBadgeStyle}>Multi-sede</div>
         <h2 style={{ margin: "12px 0 8px", fontSize: 28, letterSpacing: "-0.05em", color: "#0f172a" }}>Hai una catena?</h2>
         <p style={{ margin: 0, color: "#475569", fontWeight: 800, lineHeight: 1.55, maxWidth: 620 }}>
-          Stesse funzioni EasyMenu, con condizioni dedicate per più ristoranti, setup multi-locale e supporto personalizzato.
+          Stesse funzioni EasyMenu, con condizioni dedicate per piu ristoranti, setup multi-locale e supporto personalizzato.
         </p>
       </div>
       <a href={chainContactUrl} target="_blank" rel="noreferrer" style={chainButtonStyle}>
@@ -203,6 +215,7 @@ export default function Billing() {
   const configuredPlans = data?.configuredPlans || {};
   const missingPlans = planOrder.filter((id) => data && !configuredPlans[id]);
   const billingWarning = data && (!data.billingConfigured || missingPlans.length > 0);
+  const paymentProblem = ["past_due", "unpaid", "incomplete"].includes(status);
 
   return (
     <div style={glowPageStyle}>
@@ -224,9 +237,14 @@ export default function Billing() {
             </div>
           </section>
 
-          {queryStatus === "success" ? <div style={successBox}>Pagamento avviato correttamente. Stripe aggiornerà lo stato via webhook.</div> : null}
+          {queryStatus === "success" ? <div style={successBox}>Pagamento avviato correttamente. Stripe aggiorna lo stato via webhook.</div> : null}
           {queryStatus === "cancelled" ? <div style={warnBox}>Checkout annullato. Puoi riprovare quando vuoi.</div> : null}
           {error ? <div style={errorBox}>{error}</div> : null}
+          {paymentProblem ? (
+            <div style={warnBox}>
+              Pagamento da verificare: lo stato Stripe e <b>{status}</b>. Aggiorna il metodo di pagamento dal portale o controlla il webhook prima di vendere.
+            </div>
+          ) : null}
           {billingWarning ? (
             <div style={warnBox}>
               Stripe non e ancora completo: verifica webhook <b>{data?.webhookUrlHint || "/payments/webhook"}</b>
@@ -239,8 +257,8 @@ export default function Billing() {
               <div style={{ color: "#64748b", fontWeight: 850 }}>Caricamento stato abbonamento...</div>
             ) : (
               <>
-                <InfoBox label="Ristorante" value={data?.restaurant?.name || "—"} />
-                <InfoBox label="Piano" value={planDetails[currentPlan]?.title || currentPlan || "—"} />
+                <InfoBox label="Ristorante" value={data?.restaurant?.name || "-"} />
+                <InfoBox label="Piano" value={planDetails[currentPlan]?.title || currentPlan || "-"} />
                 <InfoBox label="Stato" value={status} />
                 <InfoBox label="Rinnovo" value={formatDate(data?.subscription?.currentPeriodEnd)} />
               </>
@@ -250,6 +268,25 @@ export default function Billing() {
               <button onClick={handlePortal} disabled={portalLoading} style={primaryBtn}>
                 {portalLoading ? "Apro..." : "Gestisci abbonamento"}
               </button>
+            </div>
+          </section>
+
+          <section style={stripeChecklistStyle}>
+            <div>
+              <div style={stripeChecklistEyebrow}>Checklist Stripe prima vendita</div>
+              <h2 style={{ margin: "8px 0 0", color: "#0f172a", letterSpacing: "-0.04em" }}>Testa checkout, webhook, disdetta e portale.</h2>
+              <p style={{ margin: "8px 0 0", color: "#64748b", fontWeight: 800, lineHeight: 1.5 }}>
+                Questo pannello non sostituisce i test reali su Stripe: serve a ricordare cosa verificare prima di contattare i ristoranti.
+              </p>
+            </div>
+            <div style={stripeChecklistGridStyle}>
+              {stripeTestChecklist.map(([title, text]) => (
+                <div key={title} style={stripeChecklistItemStyle}>
+                  <span style={stripeChecklistDotStyle}>Test</span>
+                  <b>{title}</b>
+                  <small>{text}</small>
+                </div>
+              ))}
             </div>
           </section>
 
@@ -302,6 +339,56 @@ const statusStripStyle = {
 };
 
 const statusActionsStyle = { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" };
+
+const stripeChecklistStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(220px, .42fr) minmax(0, 1fr)",
+  gap: 16,
+  alignItems: "start",
+  padding: 18,
+  borderRadius: 26,
+  background: "rgba(255,255,255,0.94)",
+  border: "1px solid rgba(226,232,240,0.95)",
+  boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
+  marginBottom: 18,
+};
+
+const stripeChecklistEyebrow = {
+  display: "inline-flex",
+  borderRadius: 999,
+  padding: "7px 10px",
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  fontSize: 12,
+  fontWeight: 950,
+  textTransform: "uppercase",
+};
+
+const stripeChecklistGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+  gap: 10,
+};
+
+const stripeChecklistItemStyle = {
+  display: "grid",
+  gap: 6,
+  minHeight: 116,
+  padding: 13,
+  borderRadius: 18,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+};
+
+const stripeChecklistDotStyle = {
+  width: "fit-content",
+  borderRadius: 999,
+  padding: "5px 8px",
+  background: "#dcfce7",
+  color: "#166534",
+  fontSize: 11,
+  fontWeight: 950,
+};
 
 const plansGridStyle = {
   display: "grid",

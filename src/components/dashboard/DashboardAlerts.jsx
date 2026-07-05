@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
 function timeAgo(value) {
@@ -11,9 +11,10 @@ function timeAgo(value) {
 
 export default function DashboardAlerts({ alerts = {} }) {
   const items = [
-    ...(alerts.paymentAlerts || []).map((p) => ({ id: `p-${p.id}`, tone: "danger", title: `Pagamento ${p.status}`, text: `${p.table || "Tavolo"} · ${timeAgo(p.createdAt)}` })),
-    ...(alerts.recentErrors || []).map((e) => ({ id: `e-${e.id}`, tone: "warning", title: e.source || "Errore", text: `${e.message || "Controlla log"} · ${timeAgo(e.createdAt)}` })),
-    ...(alerts.unavailableItems || []).map((i) => ({ id: `i-${i.id}`, tone: "info", title: "Prodotto esaurito", text: `${i.name}${i.category ? ` · ${i.category}` : ""}` })),
+    ...(alerts.subscriptionAlerts || []).map((s) => ({ id: `s-${s.id}`, tone: "danger", title: `Abbonamento ${s.status}`, text: `Controlla pagamento e portale Stripe${s.currentPeriodEnd ? ` - scadenza ${new Date(s.currentPeriodEnd).toLocaleDateString("it-IT")}` : ""}` })),
+    ...(alerts.paymentAlerts || []).map((p) => ({ id: `p-${p.id}`, tone: "danger", title: `Pagamento ${p.status}`, text: `${p.table || "Tavolo"} - ${timeAgo(p.createdAt)}` })),
+    ...(alerts.recentErrors || []).map((e) => ({ id: `e-${e.id}`, tone: "warning", title: e.source || "Errore", text: `${e.message || "Controlla log"} - ${timeAgo(e.createdAt)}` })),
+    ...(alerts.unavailableItems || []).map((i) => ({ id: `i-${i.id}`, tone: "info", title: "Prodotto esaurito", text: `${i.name}${i.category ? ` - ${i.category}` : ""}` })),
   ];
 
   return (
@@ -23,7 +24,7 @@ export default function DashboardAlerts({ alerts = {} }) {
           <span>Controllo</span>
           <h2>Da sistemare</h2>
         </div>
-        <Link to="/errori">Log →</Link>
+        <Link to="/errori">Log</Link>
       </div>
       {items.length ? (
         <div className="dash-alert-list">

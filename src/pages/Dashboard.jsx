@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import DashboardAlerts from "../components/dashboard/DashboardAlerts.jsx";
 import DashboardHeader from "../components/dashboard/DashboardHeader.jsx";
@@ -31,8 +31,34 @@ function euro(value) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(num(value));
 }
 
+function ServiceReadinessChecklist({ items, progress }) {
+  const ready = items.every((item) => item.done);
+
+  return (
+    <section className={ready ? "dash-ready-service is-ready" : "dash-ready-service"}>
+      <div className="dash-ready-service__head">
+        <div>
+          <span>Pronto per il servizio</span>
+          <h2>{ready ? "EasyMenu e pronto per la sala." : `Setup completato al ${progress}%`}</h2>
+          <p>Checklist rapida da usare mentre configuri un ristorante pilota in beta assistita.</p>
+        </div>
+        <Link to="/onboarding">{ready ? "Rivedi setup" : "Completa configurazione"}</Link>
+      </div>
+      <div className="dash-ready-service__grid">
+        {items.map((item) => (
+          <Link key={item.label} to={item.to} className={item.done ? "is-done" : ""}>
+            <i>{item.done ? "OK" : "NO"}</i>
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Dashboard() {
   const [data, setData] = useState(null);
+  const [setupStatus, setSetupStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [, setError] = useState("");
@@ -44,8 +70,12 @@ function Dashboard() {
   const load = useCallback(async (manual = false) => {
     try {
       if (manual) setRefreshing(true);
-      const result = await apiGet("/analytics/summary");
-      setData(result);
+      const [analyticsResult, setupResult] = await Promise.allSettled([
+        apiGet("/analytics/summary"),
+        apiGet("/onboarding/status"),
+      ]);
+      if (analyticsResult.status === "fulfilled") setData(analyticsResult.value);
+      if (setupResult.status === "fulfilled") setSetupStatus(setupResult.value);
       setError("");
     } catch (err) {
       console.warn("Dashboard analytics non disponibili", err);
@@ -97,6 +127,17 @@ function Dashboard() {
   const freeTables = num(kpis.freeTables);
   const openOrders = num(kpis.openOrders);
   const moneyHidden = Boolean(data?.privacyMode);
+  const setupChecks = setupStatus?.checks || {};
+  const readinessItems = useMemo(() => [
+    { label: "Logo caricato", done: Boolean(setupChecks.profile), to: "/admin?tab=settings" },
+    { label: "Tavoli creati", done: Boolean(setupChecks.tables), to: "/tavoli" },
+    { label: "Menu inserito", done: Boolean(setupChecks.menu), to: "/admin?tab=menu" },
+    { label: "QR generati", done: Boolean(setupChecks.qr), to: "/qr" },
+    { label: "Cucina attiva", done: Boolean(setupChecks.staff), to: "/admin?tab=staff" },
+    { label: "Cassa attiva", done: Boolean(setupChecks.staff), to: "/admin?tab=staff" },
+    { label: "Abbonamento attivo", done: Boolean(setupChecks.billing), to: "/billing" },
+  ], [setupChecks.billing, setupChecks.menu, setupChecks.profile, setupChecks.qr, setupChecks.staff, setupChecks.tables]);
+  const readinessProgress = setupStatus?.progress ?? Math.round((readinessItems.filter((item) => item.done).length / readinessItems.length) * 100);
 
   if (!restaurantName) {
     return (
@@ -144,6 +185,8 @@ function Dashboard() {
           refreshing={refreshing || loading}
           onRefresh={() => load(true)}
         />
+
+        <ServiceReadinessChecklist items={readinessItems} progress={readinessProgress} />
 
         {data?.privacyMode ? (
           <div className="dash-super-banner">

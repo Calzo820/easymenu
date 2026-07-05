@@ -60,13 +60,6 @@ const demoLogins = [
   ["Cassa", "cassa@demo.test"],
 ];
 
-const ownerHighlights = [
-  ["Setup", "82%", "Logo, tavoli e menu pronti"],
-  ["Ordini oggi", "48", "Sala e QR attivi"],
-  ["Tempo medio", "9 min", "Cucina sotto controllo"],
-  ["Abbonamento", "Attivo", "Portale cliente collegato"],
-];
-
 function DemoTable({ table }) {
   const meta = tableStatuses[table.status] || tableStatuses.free;
 
@@ -121,15 +114,14 @@ export default function Demo() {
           <Link to="/menu/demo/demo-table-1">Prova cliente</Link>
           <button type="button" onClick={() => setView("cucina")}>Prova cucina</button>
           <button type="button" onClick={() => setView("cassa")}>Prova cassa</button>
-          <button type="button" onClick={() => setView("owner")}>Prova owner</button>
         </div>
       </header>
 
       <section className="demo-hero">
         <div>
           <span className="demo-kicker">Prova EasyMenu in 60 secondi</span>
-          <h1>Cliente, cucina, cassa e owner in una demo senza registrazione.</h1>
-          <p className="demo-hero-copy">Il ristoratore capisce subito il flusso: ordine dal QR, comanda in cucina, tavolo in cassa e controllo generale.</p>
+          <h1>Cliente, cucina e cassa in una demo senza registrazione.</h1>
+          <p className="demo-hero-copy">Il ristoratore capisce subito il flusso: ordine dal QR, comanda in cucina e tavolo pronto per la cassa.</p>
         </div>
         <div className="demo-kpis">
           <div><span>Tavoli</span><strong>20</strong></div>
@@ -155,11 +147,15 @@ export default function Demo() {
           <strong>Prova cassa</strong>
           <small>Tavoli colorati, preconto e incasso.</small>
         </button>
-        <button type="button" onClick={() => setView("owner")}>
-          <span>4</span>
-          <strong>Prova owner</strong>
-          <small>Setup, report, abbonamento e stato ristorante.</small>
-        </button>
+      </section>
+
+      <section className="demo-beta-strip">
+        <div>
+          <span>Beta assistita</span>
+          <strong>Ti attivo EasyMenu per 30 giorni nel tuo ristorante.</strong>
+          <small>Setup menu, QR tavoli, cucina, cassa e prima prova servizio insieme.</small>
+        </div>
+        <Link to="/register">Richiedi attivazione</Link>
       </section>
 
       <nav className="demo-tabs" aria-label="Viste demo">
@@ -168,7 +164,6 @@ export default function Demo() {
           ["menu", "Menu cliente"],
           ["cucina", "Cucina e bar"],
           ["cassa", "Cassa"],
-          ["owner", "Owner"],
         ].map(([id, label]) => (
           <button key={id} type="button" className={view === id ? "is-active" : ""} onClick={() => setView(id)}>
             {label}
@@ -235,26 +230,6 @@ export default function Demo() {
             ))}
             <p>Password: EasyMenu2026!</p>
             <Link className="demo-primary light" to="/login">Entra nella demo reale</Link>
-          </aside>
-        </section>
-      ) : null}
-
-      {view === "owner" ? (
-        <section className="demo-split">
-          <div className="demo-owner-grid">
-            {ownerHighlights.map(([label, value, detail]) => (
-              <article className="demo-owner-card" key={label}>
-                <span>{label}</span>
-                <strong>{value}</strong>
-                <small>{detail}</small>
-              </article>
-            ))}
-          </div>
-          <aside className="demo-side-panel">
-            <h2>Vuoi provarlo nel tuo ristorante?</h2>
-            <p>La demo pubblica mostra il prodotto in meno di un minuto. Il passo dopo e' attivare un ambiente con menu, tavoli e staff reali.</p>
-            <Link className="demo-primary" to="/register">Crea account ristorante</Link>
-            <Link className="demo-primary secondary" to="/login">Accedi alla demo reale</Link>
           </aside>
         </section>
       ) : null}

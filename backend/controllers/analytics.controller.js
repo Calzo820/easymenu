@@ -126,6 +126,7 @@ export const getAnalyticsSummary = async (req, res) => {
       recentErrors,
       failedPayments,
       staffUsersCount,
+      restaurantBilling,
     ] = await Promise.all([
       prisma.order.findMany({
         where: {
@@ -256,6 +257,11 @@ export const getAnalyticsSummary = async (req, res) => {
           isActive: true,
         },
       }),
+
+      prisma.restaurant.findUnique({
+        where: { id: restaurantId },
+        include: { subscription: true },
+      }),
     ]);
 
     const completedToday = ordersToday.filter((order) => order.status === "served");
@@ -336,6 +342,9 @@ export const getAnalyticsSummary = async (req, res) => {
 
     const topProductsRange = buildProductStats(paidRange).slice(0, 10);
     const topProductsToday = buildProductStats(paidToday).slice(0, 10);
+    const subscription = restaurantBilling?.subscription || null;
+    const subscriptionAlert = subscription && ["past_due", "unpaid", "incomplete"].includes(subscription.status);
+    const paymentAlertsCount = failedPayments.length + (subscriptionAlert ? 1 : 0);
 
     const hideMoney = (value) => (privacyMode ? null : value);
     const hideRevenueRows = (rows = []) => rows.map((row) => ({
@@ -373,7 +382,7 @@ export const getAnalyticsSummary = async (req, res) => {
         unavailableItems: unavailableItems.length,
 
         unresolvedErrors: recentErrors.length,
-        paymentAlerts: failedPayments.length,
+        paymentAlerts: paymentAlertsCount,
       },
 
       live: {
@@ -421,6 +430,14 @@ export const getAnalyticsSummary = async (req, res) => {
             payment.order?.table?.code ||
             "Tavolo",
         })),
+
+        subscriptionAlerts: subscriptionAlert ? [{
+          id: subscription.id,
+          status: subscription.status,
+          plan: subscription.plan,
+          createdAt: subscription.updatedAt,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+        }] : [],
       },
 
       setup: {
