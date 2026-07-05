@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
@@ -76,7 +76,7 @@ export default function Navbar() {
   const restaurantName = isSuperAdmin
     ? "Piattaforma SaaS"
     : hasPlatformSession()
-      ? `${getRistoranteAttivo() || "Ristorante"} · superadmin`
+      ? `${getRistoranteAttivo() || "Ristorante"} - superadmin`
       : getRistoranteAttivo() || "Nessun ristorante";
 
   const isAdmin = !isSuperAdmin && (role === "admin" || role === "owner");
@@ -96,29 +96,29 @@ export default function Navbar() {
 
   const links = useMemo(() => {
     if (!logged) return [];
-    if (isSuperAdmin) return [{ to: "/super-admin", label: "SuperAdmin", icon: "◎", match: ["/super-admin"] }];
+    if (isSuperAdmin) return [{ to: "/super-admin", label: "SuperAdmin", icon: "SA", match: ["/super-admin"] }];
 
     return [
-      isAdmin && { to: "/dashboard", label: "Dashboard", icon: "⌂", match: ["/dashboard"] },
-      canKitchen && { to: "/cucina", label: "Cucina", icon: "◴", match: ["/cucina"] },
-      canBar && { to: "/bar", label: "Bar", icon: "◷", match: ["/bar"] },
-      canCashier && { to: "/cassa", label: "Cassa", icon: "▣", match: ["/cassa"] },
-      isAdmin && { to: "/tavoli", label: "Tavoli", icon: "▦", match: ["/tavoli"] },
-      isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "☰", match: ["/admin"], adminTab: "menu" },
+      isAdmin && { to: "/dashboard", label: "Dashboard", icon: "D", match: ["/dashboard"] },
+      canKitchen && { to: "/cucina", label: "Cucina", icon: "K", match: ["/cucina"] },
+      canBar && { to: "/bar", label: "Bar", icon: "B", match: ["/bar"] },
+      canCashier && { to: "/cassa", label: "Cassa", icon: "C", match: ["/cassa"] },
+      isAdmin && { to: "/tavoli", label: "Tavoli", icon: "T", match: ["/tavoli"] },
+      isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "M", match: ["/admin"], adminTab: "menu" },
     ].filter(Boolean);
   }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 
   const settingsLinks = useMemo(() => {
     if (!logged || !isAdmin || isSuperAdmin) return [];
     return [
-      { to: "/onboarding", label: "Setup guidato", icon: "✓", match: ["/onboarding", "/setup"] },
-      { to: "/admin?tab=settings", label: "Profilo e brand", icon: "◆", match: ["/admin"], adminTab: "settings" },
-      { to: "/admin?tab=staff", label: "Staff e ruoli", icon: "👥", match: ["/admin"], adminTab: "staff" },
-      { to: "/billing", label: "Abbonamento", icon: "€", match: ["/billing"] },
-      { to: "/statistiche", label: "Report", icon: "↗", match: ["/statistiche"] },
-      { to: "/storico", label: "Storico", icon: "☷", match: ["/storico"] },
-      { to: "/qr", label: "QR tavoli", icon: "▦", match: ["/qr"] },
-      { to: "/integrazioni", label: "Integrazioni", icon: "⚡", match: ["/integrazioni"] },
+      { to: "/onboarding", label: "Setup guidato", icon: "OK", match: ["/onboarding", "/setup"] },
+      { to: "/admin?tab=settings", label: "Profilo e brand", icon: "BR", match: ["/admin"], adminTab: "settings" },
+      { to: "/admin?tab=staff", label: "Staff e ruoli", icon: "ST", match: ["/admin"], adminTab: "staff" },
+      { to: "/billing", label: "Abbonamento", icon: "EU", match: ["/billing"] },
+      { to: "/statistiche", label: "Report", icon: "RP", match: ["/statistiche"] },
+      { to: "/storico", label: "Storico", icon: "SR", match: ["/storico"] },
+      { to: "/qr", label: "QR tavoli", icon: "QR", match: ["/qr"] },
+      { to: "/integrazioni", label: "Integrazioni", icon: "IN", match: ["/integrazioni"] },
       { to: "/errori", label: "Errori e log", icon: "!", match: ["/errori"] },
     ];
   }, [logged, isAdmin, isSuperAdmin]);
@@ -166,10 +166,26 @@ export default function Navbar() {
           background: rgba(255,255,255,0.96);
           color: #0f172a;
           box-shadow: 0 16px 34px rgba(15,23,42,0.18);
-          font-size: 22px;
-          font-weight: 950;
+          display: grid;
+          place-items: center;
           cursor: pointer;
         }
+        .em-menu-glyph,
+        .em-menu-glyph::before,
+        .em-menu-glyph::after {
+          display: block;
+          width: 20px;
+          height: 2px;
+          border-radius: 999px;
+          background: #0f172a;
+          transition: transform .16s ease, background .16s ease;
+          content: "";
+        }
+        .em-menu-glyph::before { transform: translateY(-7px); }
+        .em-menu-glyph::after { transform: translateY(5px); }
+        .em-menu-glyph.is-close { background: transparent; }
+        .em-menu-glyph.is-close::before { transform: translateY(2px) rotate(45deg); }
+        .em-menu-glyph.is-close::after { transform: translateY(0) rotate(-45deg); }
         .em-sidebar-backdrop {
           position: fixed;
           inset: 0;
@@ -248,8 +264,8 @@ export default function Navbar() {
         }
         .em-sidebar__sublink:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .em-sidebar__sublink.is-active { background: rgba(255,255,255,0.95); color: #07111f; }
-        .em-sidebar__sublink-icon { width: 17px; display: inline-grid; place-items: center; font-size: 12px; }
-        .em-sidebar__icon { width: 20px; display: inline-grid; place-items: center; font-size: 15px; }
+        .em-sidebar__sublink-icon { width: 20px; display: inline-grid; place-items: center; font-size: 10px; font-weight: 950; letter-spacing: 0; }
+        .em-sidebar__icon { width: 24px; display: inline-grid; place-items: center; font-size: 11px; font-weight: 950; letter-spacing: 0; }
         .em-sidebar__footer { margin-top: auto; padding: 14px; display: grid; gap: 10px; }
         .em-sidebar__user { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 18px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); }
         .em-sidebar__avatar { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: #1d4ed8; color: white; font-size: 13px; font-weight: 950; flex: 0 0 auto; }
@@ -263,7 +279,7 @@ export default function Navbar() {
       `}</style>
 
       <button className="em-menu-toggle" type="button" aria-label="Apri navigazione" onClick={() => setOpen((prev) => !prev)}>
-        {open ? "×" : "☰"}
+        <span className={open ? "em-menu-glyph is-close" : "em-menu-glyph"} aria-hidden="true" />
       </button>
       <div className={open ? "em-sidebar-backdrop is-open" : "em-sidebar-backdrop"} onClick={() => setOpen(false)} />
 
@@ -292,9 +308,9 @@ export default function Navbar() {
                 onClick={() => setSettingsOpen((prev) => !prev)}
                 aria-expanded={settingsOpen}
               >
-                <span className="em-sidebar__icon">⚙</span>
+                <span className="em-sidebar__icon">SET</span>
                 <span className="em-sidebar__settings-label">Impostazioni</span>
-                <span className={settingsOpen ? "em-sidebar__chevron is-open" : "em-sidebar__chevron"}>⌄</span>
+                <span className={settingsOpen ? "em-sidebar__chevron is-open" : "em-sidebar__chevron"}>v</span>
               </button>
 
               {settingsOpen ? (

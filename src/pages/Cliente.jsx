@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { API_URL } from "../lib/api";
 import "../styles/customer-menu.css";
@@ -24,7 +24,7 @@ const DEMO_MENU_ITEMS = [
 
 function money(value) {
   const amount = Number(value || 0);
-  return `€ ${Number.isFinite(amount) ? amount.toFixed(2) : "0.00"}`;
+  return `EUR ${Number.isFinite(amount) ? amount.toFixed(2) : "0.00"}`;
 }
 
 function cartKey(slug, token) {
@@ -65,12 +65,35 @@ function statusCopy(status) {
   return ["Ordine ricevuto", "Il ristorante ha ricevuto la comanda."];
 }
 
+function statusStep(status) {
+  if (status === "served") return 3;
+  if (status === "ready") return 2;
+  if (status === "in_progress") return 1;
+  return 0;
+}
+
+function OrderTimeline({ status }) {
+  const activeStep = statusStep(status);
+  const steps = ["Ricevuto", "In preparazione", "Pronto", "Servito"];
+
+  return (
+    <div className="cm-status-steps" aria-label="Stato ordine">
+      {steps.map((step, index) => (
+        <div key={step} className={index <= activeStep ? "is-active" : ""}>
+          <i />
+          <span>{step}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function getCategories(items) {
   const base = [...new Set(items.map((item) => item.category).filter(Boolean))];
   return items.some((item) => item.isFeatured) ? [FEATURED_CATEGORY, ...base] : base;
 }
 
-function ProductCard({ item, quantity, onAdd, onRemove }) {
+function ProductCard({ item, quantity, note, onAdd, onRemove, onNoteChange }) {
   const hasImage = Boolean(item.imageUrl);
 
   return (
@@ -86,9 +109,21 @@ function ProductCard({ item, quantity, onAdd, onRemove }) {
         </div>
 
         {item.allergens.length ? (
-          <div className="cm-allergens" aria-label="Allergeni">
-            {item.allergens.slice(0, 5).map((allergen) => <span key={allergen}>{allergen}</span>)}
+          <div className="cm-allergen-row" aria-label="Allergeni">
+            <b>Allergeni</b>
+            <div className="cm-allergens">
+              {item.allergens.slice(0, 5).map((allergen) => <span key={allergen}>{allergen}</span>)}
+            </div>
           </div>
+        ) : null}
+
+        {quantity > 0 ? (
+          <input
+            className="cm-item-note"
+            value={note}
+            onChange={(event) => onNoteChange(item.id, event.target.value)}
+            placeholder="Note per questo piatto, es. senza cipolla"
+          />
         ) : null}
 
         <div className="cm-product-actions">
@@ -148,8 +183,12 @@ export default function Cliente() {
   const [items, setItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState(FEATURED_CATEGORY);
   const [cart, setCart] = useState({});
+  const [itemNotes, setItemNotes] = useState({});
+  const [query, setQuery] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [order, setOrder] = useState(null);
+  const [showMenuAfterOrder, setShowMenuAfterOrder] = useState(false);
+  const [serviceMessage, setServiceMessage] = useState("");
   const [payment, setPayment] = useState({ loading: false, error: "" });
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -242,18 +281,29 @@ export default function Cliente() {
   const categories = useMemo(() => getCategories(items), [items]);
 
   const visibleItems = useMemo(() => {
-    if (activeCategory === FEATURED_CATEGORY) return items.filter((item) => item.isFeatured);
-    return items.filter((item) => item.category === activeCategory);
-  }, [activeCategory, items]);
+    const normalizedQuery = query.trim().toLowerCase();
+    const categoryItems = activeCategory === FEATURED_CATEGORY
+      ? items.filter((item) => item.isFeatured)
+      : items.filter((item) => item.category === activeCategory);
+
+    if (!normalizedQuery) return categoryItems;
+
+    return categoryItems.filter((item) => {
+      const searchable = [item.name, item.description, item.category, item.allergens.join(" ")]
+        .join(" ")
+        .toLowerCase();
+      return searchable.includes(normalizedQuery);
+    });
+  }, [activeCategory, items, query]);
 
   const cartItems = useMemo(() => {
     return Object.entries(cart)
       .map(([id, quantity]) => {
         const item = items.find((product) => product.id === id);
-        return item ? { ...item, quantity: Number(quantity || 0) } : null;
+        return item ? { ...item, quantity: Number(quantity || 0), note: itemNotes[id] || "" } : null;
       })
       .filter((item) => item && item.quantity > 0);
-  }, [cart, items]);
+  }, [cart, itemNotes, items]);
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = cartItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
@@ -264,6 +314,7 @@ export default function Cliente() {
   }
 
   function removeItem(id) {
+    const currentQty = Number(cart[id] || 0);
     setCart((prev) => {
       const nextQty = Number(prev[id] || 0) - 1;
       const next = { ...prev };
@@ -271,6 +322,17 @@ export default function Cliente() {
       else next[id] = nextQty;
       return next;
     });
+    if (currentQty <= 1) {
+      setItemNotes((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  }
+
+  function updateItemNote(id, note) {
+    setItemNotes((prev) => ({ ...prev, [id]: note.slice(0, 160) }));
   }
 
   async function submitOrder() {
@@ -285,7 +347,7 @@ export default function Cliente() {
         customerName: "",
         notes: "",
         clientRequestId: `${slug}:${tableToken}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
-        items: cartItems.map((item) => ({ menuItemId: item.id, quantity: item.quantity, notes: "" })),
+        items: cartItems.map((item) => ({ menuItemId: item.id, quantity: item.quantity, notes: item.note || "" })),
       };
 
       let createdOrder = null;
@@ -321,6 +383,7 @@ export default function Cliente() {
           quantity: item.quantity,
           priceSnapshot: item.price,
           categorySnapshot: item.category,
+          notes: item.note || "",
         })),
         restaurantName: createdOrder.restaurantName || restaurant.name,
         tableName: createdOrder.tableName || table.name,
@@ -329,7 +392,9 @@ export default function Cliente() {
 
       setOrder(nextOrder);
       setCart({});
+      setItemNotes({});
       setCartOpen(false);
+      setShowMenuAfterOrder(false);
       localStorage.removeItem(cartKey(slug, tableToken));
       localStorage.setItem(orderKey(slug, tableToken), JSON.stringify(nextOrder));
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -359,6 +424,32 @@ export default function Cliente() {
     }
   }
 
+  async function requestService(type) {
+    const token = order?.publicToken || order?.id;
+    if (!token) return;
+
+    const isBill = type === "bill";
+
+    try {
+      setServiceMessage("");
+      if (isDemo) {
+        setServiceMessage(isBill ? "Richiesta conto inviata alla cassa demo." : "Cameriere avvisato nella demo.");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/orders/public/${encodeURIComponent(token)}/${isBill ? "request-bill" : "call-staff"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(isBill ? {} : { reason: "Richiesta dal menu cliente" }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || "Richiesta non inviata");
+      setServiceMessage(data?.message || (isBill ? "Richiesta conto inviata." : "Cameriere avvisato."));
+    } catch (err) {
+      setServiceMessage(err.message || "Richiesta non inviata. Riprova tra poco.");
+    }
+  }
+
   if (loading) {
     return (
       <main className="cm-page">
@@ -381,7 +472,7 @@ export default function Cliente() {
     );
   }
 
-  if (order) {
+  if (order && !showMenuAfterOrder) {
     return (
       <main className="cm-page">
         <header className="cm-header compact">
@@ -395,12 +486,16 @@ export default function Cliente() {
         <section className="cm-confirmation">
           <span className="cm-status-pill">{order.orderNumber || "Ordine"}</span>
           <h1>{statusTitle}</h1>
+          <OrderTimeline status={order.status} />
           <p>{statusText}</p>
 
           <div className="cm-order-lines">
             {(order.items || []).map((item, index) => (
               <div key={`${item.id || item.nameSnapshot}-${index}`}>
-                <span>{item.nameSnapshot || item.name} x{item.quantity}</span>
+                <span>
+                  {item.nameSnapshot || item.name} x{item.quantity}
+                  {item.notes ? <small>{item.notes}</small> : null}
+                </span>
                 <strong>{money(Number(item.priceSnapshot || item.price || 0) * Number(item.quantity || 1))}</strong>
               </div>
             ))}
@@ -412,8 +507,15 @@ export default function Cliente() {
           </div>
 
           {payment.error ? <div className="cm-error">{payment.error}</div> : null}
+          {serviceMessage ? <div className="cm-service-message">{serviceMessage}</div> : null}
 
           <div className="cm-confirm-actions">
+            <button type="button" className="secondary" onClick={() => requestService("staff")}>
+              Chiama cameriere
+            </button>
+            <button type="button" className="secondary" onClick={() => requestService("bill")}>
+              Chiedi conto
+            </button>
             {(order.publicToken || (!isDemo && order.id)) ? (
               <button type="button" onClick={payOnline} disabled={payment.loading}>
                 {payment.loading ? "Apro pagamento..." : "Paga online"}
@@ -422,10 +524,7 @@ export default function Cliente() {
             <button
               type="button"
               className="secondary"
-              onClick={() => {
-                setOrder(null);
-                localStorage.removeItem(orderKey(slug, tableToken));
-              }}
+              onClick={() => setShowMenuAfterOrder(true)}
             >
               Continua a ordinare
             </button>
@@ -444,6 +543,25 @@ export default function Cliente() {
           <span>{table.name || "Tavolo"}</span>
         </div>
       </header>
+
+      {order ? (
+        <section className="cm-active-order">
+          <div>
+            <span>Ordine attivo</span>
+            <strong>{statusTitle}</strong>
+          </div>
+          <button type="button" onClick={() => setShowMenuAfterOrder(false)}>Stato ordine</button>
+        </section>
+      ) : null}
+
+      <section className="cm-search">
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Cerca piatto, ingrediente o allergene"
+          aria-label="Cerca nel menu"
+        />
+      </section>
 
       <nav className="cm-categories" aria-label="Categorie menu">
         {categories.map((category) => (
@@ -466,8 +584,10 @@ export default function Cliente() {
             key={item.id}
             item={item}
             quantity={Number(cart[item.id] || 0)}
+            note={itemNotes[item.id] || ""}
             onAdd={addItem}
             onRemove={removeItem}
+            onNoteChange={updateItemNote}
           />
         )) : (
           <div className="cm-empty small">Nessun prodotto in questa categoria.</div>
@@ -482,7 +602,10 @@ export default function Cliente() {
           </div>
           {cartItems.map((item) => (
             <div className="cm-cart-line" key={item.id}>
-              <span>{item.name}</span>
+              <span>
+                {item.name}
+                {item.note ? <small>{item.note}</small> : null}
+              </span>
               <div>
                 <button type="button" onClick={() => removeItem(item.id)}>-</button>
                 <b>{item.quantity}</b>
