@@ -39,8 +39,8 @@ function ServiceReadinessChecklist({ items, progress }) {
       <div className="dash-ready-service__head">
         <div>
           <span>Pronto per il servizio</span>
-          <h2>{ready ? "EasyMenu e pronto per la sala." : `Setup completato al ${progress}%`}</h2>
-          <p>Checklist rapida da usare mentre configuri un ristorante pilota in beta assistita.</p>
+          <h2>{ready ? "EasyMenu pronto per la sala." : `Setup completato al ${progress}%`}</h2>
+          <p>Le poche cose da chiudere prima di stampare QR e partire con il servizio.</p>
         </div>
         <Link to="/onboarding">{ready ? "Rivedi setup" : "Completa configurazione"}</Link>
       </div>
@@ -63,6 +63,7 @@ function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [, setError] = useState("");
   const [liveBadge, setLiveBadge] = useState("connessione live...");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const restaurantName = getRestaurantName();
   const isSuperAdminMode = localStorage.getItem("superadmin_mode") === "1" || Boolean(localStorage.getItem("superadmin_platform_session"));
@@ -224,13 +225,9 @@ function Dashboard() {
           </Link>
         </section>
 
-        <section className="dash-main-grid">
+        <section className="dash-main-grid dash-main-grid--focus">
           <div>
             <DashboardLiveOrders orders={live.activeOrders || []} />
-            <div className="dash-analytics-grid">
-              <DashboardTopProducts products={charts.topProductsToday || []} />
-              <DashboardHourFlow hours={charts.byHourToday || []} />
-            </div>
           </div>
 
           <aside className="dash-side-stack">
@@ -239,10 +236,29 @@ function Dashboard() {
               totalTables={kpis.totalTables || 0}
               activeCount={kpis.activeTables || 0}
             />
-            <DashboardAlerts alerts={alerts} />
-            <DashboardQuickActions />
           </aside>
         </section>
+
+        <div className="dash-advanced-control">
+          <button type="button" onClick={() => setAdvancedOpen((value) => !value)}>
+            {advancedOpen ? "Nascondi dettagli" : "Mostra dettagli avanzati"}
+          </button>
+          <span>Report, alert tecnici e scorciatoie restano disponibili senza riempire la schermata principale.</span>
+        </div>
+
+        {advancedOpen ? (
+          <section className="dash-main-grid dash-main-grid--advanced">
+            <div className="dash-analytics-grid">
+              <DashboardTopProducts products={charts.topProductsToday || []} />
+              <DashboardHourFlow hours={charts.byHourToday || []} />
+            </div>
+
+            <aside className="dash-side-stack">
+              <DashboardAlerts alerts={alerts} />
+              <DashboardQuickActions />
+            </aside>
+          </section>
+        ) : null}
       </main>
     </div>
   );

@@ -355,6 +355,36 @@
   align-items: start;
 }
 
+.dash-main-grid--focus {
+  margin-top: 4px;
+}
+
+.dash-main-grid--advanced {
+  margin-top: 14px;
+}
+
+.dash-advanced-control {
+  margin: 16px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--dash-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dash-advanced-control button {
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 11px 14px;
+  background: #fff;
+  color: var(--dash-ink);
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15,23,42,.06);
+}
+
 .dash-side-stack,
 .dash-analytics-grid {
   display: grid;

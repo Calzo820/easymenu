@@ -81,7 +81,7 @@ export default function Navbar() {
 
   const isAdmin = !isSuperAdmin && (role === "admin" || role === "owner");
   const canKitchen = isAdmin || role === "kitchen";
-  const canBar = isAdmin || role === "bar";
+  const canBar = role === "bar";
   const canCashier = isAdmin || role === "cashier";
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export default function Navbar() {
 
     return [
       isAdmin && { to: "/dashboard", label: "Dashboard", icon: "D", match: ["/dashboard"] },
-      canKitchen && { to: "/cucina", label: "Cucina", icon: "K", match: ["/cucina"] },
+      canKitchen && { to: "/cucina", label: isAdmin ? "Servizio" : "Cucina", icon: "K", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", icon: "B", match: ["/bar"] },
       canCashier && { to: "/cassa", label: "Cassa", icon: "C", match: ["/cassa"] },
       isAdmin && { to: "/tavoli", label: "Tavoli", icon: "T", match: ["/tavoli"] },
@@ -112,14 +112,9 @@ export default function Navbar() {
     if (!logged || !isAdmin || isSuperAdmin) return [];
     return [
       { to: "/onboarding", label: "Setup guidato", icon: "OK", match: ["/onboarding", "/setup"] },
-      { to: "/admin?tab=settings", label: "Profilo e brand", icon: "BR", match: ["/admin"], adminTab: "settings" },
-      { to: "/admin?tab=staff", label: "Staff e ruoli", icon: "ST", match: ["/admin"], adminTab: "staff" },
+      { to: "/admin?tab=settings", label: "Impostazioni", icon: "IM", match: ["/admin"], adminTab: "settings" },
       { to: "/billing", label: "Abbonamento", icon: "EU", match: ["/billing"] },
       { to: "/statistiche", label: "Report", icon: "RP", match: ["/statistiche"] },
-      { to: "/storico", label: "Storico", icon: "SR", match: ["/storico"] },
-      { to: "/qr", label: "QR tavoli", icon: "QR", match: ["/qr"] },
-      { to: "/integrazioni", label: "Integrazioni", icon: "IN", match: ["/integrazioni"] },
-      { to: "/errori", label: "Errori e log", icon: "!", match: ["/errori"] },
     ];
   }, [logged, isAdmin, isSuperAdmin]);
 
@@ -134,9 +129,6 @@ export default function Navbar() {
   function isActive(link) {
     if (link.adminTab && location.pathname.startsWith("/admin")) {
       return getAdminTabFromSearch(location.search) === link.adminTab;
-    }
-    if (link.label === "Impostazioni" && ["/billing", "/qr", "/errori", "/statistiche", "/storico"].some((path) => location.pathname.startsWith(path))) {
-      return true;
     }
     if (link.label === "Menu" && location.pathname.startsWith("/admin")) {
       return getAdminTabFromSearch(location.search) === "menu";

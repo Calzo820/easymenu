@@ -18,6 +18,17 @@ const PLAN_LABELS = {
   enterprise: "Annuale",
 };
 
+const SUBSCRIPTION_STATUS_OPTIONS = ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete"];
+
+const SUBSCRIPTION_STATUS_LABELS = {
+  trialing: "Trial",
+  active: "Attivo",
+  past_due: "Pagamento richiesto",
+  canceled: "Cancellato",
+  unpaid: "Non pagato",
+  incomplete: "Incompleto",
+};
+
 const PLATFORM_ROADMAP = [
   {
     area: "Pagamenti",
@@ -46,11 +57,46 @@ const PLATFORM_ROADMAP = [
 ];
 
 function getStatusLabel(restaurant) {
-  if (!restaurant?.isActive) return "Sospeso";
-  const status = restaurant?.subscription?.status;
+  const status = getSubscriptionStatus(restaurant);
   if (status === "past_due" || status === "unpaid") return "Pagamento richiesto";
   if (status === "canceled") return "Disdetto";
+  if (status === "incomplete") return "Incompleto";
+  if (!restaurant?.isActive) return "Sospeso";
+  if (!isSubscriptionPeriodOpen(restaurant)) return "Scaduto";
+  if (status === "trialing") return "Trial attivo";
   return "Attivo";
+}
+
+function getSubscriptionStatus(restaurant) {
+  return restaurant?.subscription?.status || "incomplete";
+}
+
+function getSubscriptionEnd(restaurant) {
+  return restaurant?.subscription?.currentPeriodEnd || restaurant?.subscription?.trialEndsAt || "";
+}
+
+function isSubscriptionPeriodOpen(restaurant) {
+  const end = getSubscriptionEnd(restaurant);
+  if (!end) return true;
+  return new Date(end).getTime() > Date.now();
+}
+
+function isBillingUsable(restaurant) {
+  const status = getSubscriptionStatus(restaurant);
+  return Boolean(restaurant?.isActive) && ["trialing", "active"].includes(status) && isSubscriptionPeriodOpen(restaurant);
+}
+
+function formatDate(value) {
+  if (!value) return "nessuna scadenza";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "data non valida";
+  return date.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function getBillingHint(restaurant) {
+  const status = SUBSCRIPTION_STATUS_LABELS[getSubscriptionStatus(restaurant)] || getSubscriptionStatus(restaurant);
+  const end = getSubscriptionEnd(restaurant);
+  return end ? `${status} - fino al ${formatDate(end)}` : `${status} - nessuna scadenza`;
 }
 
 function getAlerts(restaurant) {
@@ -59,6 +105,7 @@ function getAlerts(restaurant) {
   if ((restaurant.counts?.tables || 0) === 0) alerts.push("Nessun tavolo");
   if (!restaurant.owner?.email) alerts.push("Owner mancante");
   if (!restaurant.isActive) alerts.push("Sospeso");
+  if (!isBillingUsable(restaurant)) alerts.push("Abbonamento da sistemare");
   if (restaurant.subscription?.status === "past_due" || restaurant.subscription?.status === "unpaid") {
     alerts.push("Pagamento da verificare");
   }
@@ -135,7 +182,7 @@ export default function SuperAdmin() {
       restaurants.reduce(
         (acc, restaurant) => {
           acc.total += 1;
-          if (restaurant.isActive) acc.active += 1;
+          if (isBillingUsable(restaurant)) acc.active += 1;
           else acc.suspended += 1;
           acc.tables += restaurant.counts?.tables || 0;
           acc.menuItems += restaurant.counts?.menuItems || 0;
@@ -154,8 +201,8 @@ export default function SuperAdmin() {
       const owner = `${restaurant.owner?.email || ""} ${restaurant.owner?.name || ""}`;
       const haystack = `${restaurant.name} ${restaurant.slug} ${owner} ${PLAN_LABELS[restaurant.plan] || restaurant.plan}`.toLowerCase();
 
-      if (statusFilter === "active" && !restaurant.isActive) return false;
-      if (statusFilter === "suspended" && restaurant.isActive) return false;
+      if (statusFilter === "active" && !isBillingUsable(restaurant)) return false;
+      if (statusFilter === "suspended" && isBillingUsable(restaurant)) return false;
       if (PLAN_OPTIONS.includes(statusFilter) && restaurant.plan !== statusFilter) return false;
       if (statusFilter === "alerts" && getAlerts(restaurant).length === 0) return false;
 
@@ -180,6 +227,16 @@ export default function SuperAdmin() {
     } finally {
       setSavingId("");
     }
+  }
+
+  async function unlockRestaurant(restaurant) {
+    await updateRestaurant(restaurant.id, {
+      isActive: true,
+      plan: restaurant.plan || "starter",
+      subscriptionStatus: "trialing",
+      subscriptionDays: 30,
+      cancelAtPeriodEnd: false,
+    });
   }
 
   async function openManagement(restaurant, targetPath = "/dashboard") {
@@ -249,7 +306,7 @@ export default function SuperAdmin() {
       <main className="superadmin-main">
         <section className="superadmin-hero">
           <div className="superadmin-panel superadmin-hero-card">
-            <div className="superadmin-kicker">🟡 Console piattaforma</div>
+            <div className="superadmin-kicker">Console piattaforma</div>
             <h1 className="superadmin-title">SuperAdmin EasyMenu</h1>
             <p className="superadmin-subtitle">
               Gestisci clienti, piani, stato servizio e accesso operativo ai ristoranti. Da qui controlli la piattaforma,
@@ -363,7 +420,7 @@ export default function SuperAdmin() {
                 <tr>
                   <th>Ristorante</th>
                   <th>Owner</th>
-                  <th>Piano</th>
+                  <th>Piano e billing</th>
                   <th>Stato</th>
                   <th>Setup</th>
                   <th>Alert</th>
@@ -398,26 +455,47 @@ export default function SuperAdmin() {
                           <div className="superadmin-muted">{restaurant.owner?.email || "-"}</div>
                         </td>
                         <td>
-                          <select
-                            className="superadmin-select"
-                            value={restaurant.plan || "starter"}
-                            onChange={(event) => updateRestaurant(restaurant.id, { plan: event.target.value })}
-                            disabled={savingId === restaurant.id}
-                          >
-                            {PLAN_OPTIONS.map((plan) => (
-                              <option key={plan} value={plan}>
-                                {PLAN_LABELS[plan] || plan}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="superadmin-billing-stack">
+                            <select
+                              className="superadmin-select"
+                              value={restaurant.plan || "starter"}
+                              onChange={(event) => updateRestaurant(restaurant.id, { plan: event.target.value })}
+                              disabled={savingId === restaurant.id}
+                            >
+                              {PLAN_OPTIONS.map((plan) => (
+                                <option key={plan} value={plan}>
+                                  {PLAN_LABELS[plan] || plan}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              className="superadmin-select"
+                              value={getSubscriptionStatus(restaurant)}
+                              onChange={(event) =>
+                                updateRestaurant(restaurant.id, {
+                                  subscriptionStatus: event.target.value,
+                                  subscriptionDays: 30,
+                                  cancelAtPeriodEnd: false,
+                                })
+                              }
+                              disabled={savingId === restaurant.id}
+                            >
+                              {SUBSCRIPTION_STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>
+                                  {SUBSCRIPTION_STATUS_LABELS[status] || status}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="superadmin-inline-note">{getBillingHint(restaurant)}</div>
+                          </div>
                         </td>
                         <td>
-                          <span className={`superadmin-status ${restaurant.isActive ? "is-active" : "is-suspended"}`}>
+                          <span className={`superadmin-status ${isBillingUsable(restaurant) ? "is-active" : "is-suspended"}`}>
                             {getStatusLabel(restaurant)}
                           </span>
                         </td>
                         <td>
-                          Menu {restaurant.counts?.menuItems || 0} · Tavoli {restaurant.counts?.tables || 0}
+                          Menu {restaurant.counts?.menuItems || 0} - Tavoli {restaurant.counts?.tables || 0}
                         </td>
                         <td>
                           {alerts.length ? (
@@ -432,6 +510,15 @@ export default function SuperAdmin() {
                         </td>
                         <td>
                           <div className="superadmin-row-actions">
+                            {!isBillingUsable(restaurant) ? (
+                              <button
+                                className="superadmin-btn success"
+                                onClick={() => unlockRestaurant(restaurant)}
+                                disabled={savingId === restaurant.id}
+                              >
+                                Sblocca 30g
+                              </button>
+                            ) : null}
                             <button
                               className="superadmin-btn primary"
                               onClick={() => openManagement(restaurant, "/dashboard")}
@@ -451,7 +538,11 @@ export default function SuperAdmin() {
                             </button>
                             <button
                               className={`superadmin-btn ${restaurant.isActive ? "danger" : "success"}`}
-                              onClick={() => updateRestaurant(restaurant.id, { isActive: !restaurant.isActive })}
+                              onClick={() =>
+                                restaurant.isActive
+                                  ? updateRestaurant(restaurant.id, { isActive: false })
+                                  : unlockRestaurant(restaurant)
+                              }
                               disabled={savingId === restaurant.id}
                             >
                               {restaurant.isActive ? "Sospendi" : "Riattiva"}
@@ -506,14 +597,14 @@ export default function SuperAdmin() {
             <h3>Owner visibile</h3>
             {(selected.users || []).map((user) => (
               <div key={user.id} style={{ padding: "10px 0", borderTop: "1px solid #e2e8f0" }}>
-                <strong>{user.name}</strong> · {user.email} · {user.role} · {user.isActive ? "attivo" : "disattivo"}
+                <strong>{user.name}</strong> - {user.email} - {user.role} - {user.isActive ? "attivo" : "disattivo"}
               </div>
             ))}
             <p className="superadmin-muted">Gli utenti staff restano nascosti al superadmin, salvo accesso supporto motivato.</p>
 
             <h3>Setup</h3>
             <p>
-              Menu: {selected.counts?.menuItems || 0} · Tavoli: {selected.counts?.tables || 0} · Utenti: {selected.counts?.users || 0}
+              Menu: {selected.counts?.menuItems || 0} - Tavoli: {selected.counts?.tables || 0} - Utenti: {selected.counts?.users || 0}
             </p>
           </div>
         </div>

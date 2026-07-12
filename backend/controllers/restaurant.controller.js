@@ -4,7 +4,20 @@ import prisma from "../lib/prisma.js";
 import { logError } from "../lib/logger.js";
 
 const ALLOWED_PLANS = new Set(["starter", "growth", "semiannual", "enterprise"]);
+const ALLOWED_SUBSCRIPTION_STATUSES = new Set(["trialing", "active", "past_due", "canceled", "unpaid", "incomplete"]);
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+
+function addDays(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+function parseSubscriptionDays(value) {
+  const parsed = Number(value || 30);
+  if (!Number.isFinite(parsed)) return 30;
+  return Math.max(1, Math.min(365, Math.round(parsed)));
+}
 
 function buildSlug(value) {
   return String(value || "")
@@ -70,6 +83,7 @@ function serializeRestaurant(restaurant) {
           status: restaurant.subscription.status,
           plan: restaurant.subscription.plan,
           currentPeriodEnd: restaurant.subscription.currentPeriodEnd,
+          trialEndsAt: restaurant.subscription.trialEndsAt,
           cancelAtPeriodEnd: restaurant.subscription.cancelAtPeriodEnd,
         }
       : null,
@@ -151,8 +165,8 @@ export const createRestaurantForSuperAdmin = async (req, res) => {
       prisma.user.findUnique({ where: { email: ownerEmail } }),
     ]);
 
-    if (existingRestaurant) return res.status(409).json({ message: "Slug già in uso" });
-    if (existingUser) return res.status(409).json({ message: "Email owner già registrata" });
+    if (existingRestaurant) return res.status(409).json({ message: "Slug gia in uso" });
+    if (existingUser) return res.status(409).json({ message: "Email owner gia registrata" });
 
     const passwordHash = await bcrypt.hash(ownerPassword, 12);
 
@@ -213,10 +227,18 @@ export const updateRestaurantForSuperAdmin = async (req, res) => {
     if (!requireSuperAdmin(req, res)) return;
 
     const restaurantId = String(req.params.restaurantId || "");
-    const current = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
+    const current = await prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      include: { subscription: true },
+    });
     if (!current) return res.status(404).json({ message: "Ristorante non trovato" });
 
     const data = {};
+    const subscriptionData = {};
+    let shouldUpdateSubscription = false;
+    const subscriptionDays = parseSubscriptionDays(req.body.subscriptionDays);
+    const shouldRefreshSubscriptionPeriod =
+      req.body.subscriptionStatus !== undefined || req.body.subscriptionDays !== undefined || !current.subscription;
 
     if (req.body.name !== undefined) {
       const name = String(req.body.name || "").trim();
@@ -229,7 +251,7 @@ export const updateRestaurantForSuperAdmin = async (req, res) => {
       if (!slug) return res.status(400).json({ message: "Slug non valido" });
       if (slug !== current.slug) {
         const collision = await prisma.restaurant.findUnique({ where: { slug } });
-        if (collision && collision.id !== current.id) return res.status(409).json({ message: "Slug già in uso" });
+        if (collision && collision.id !== current.id) return res.status(409).json({ message: "Slug gia in uso" });
       }
       data.slug = slug;
     }
@@ -238,6 +260,21 @@ export const updateRestaurantForSuperAdmin = async (req, res) => {
       const plan = String(req.body.plan || "").trim().toLowerCase();
       if (!ALLOWED_PLANS.has(plan)) return res.status(400).json({ message: "Piano non valido" });
       data.plan = plan;
+    }
+
+    if (req.body.subscriptionStatus !== undefined) {
+      const status = String(req.body.subscriptionStatus || "").trim().toLowerCase();
+      if (!ALLOWED_SUBSCRIPTION_STATUSES.has(status)) {
+        return res.status(400).json({ message: "Stato abbonamento non valido" });
+      }
+      subscriptionData.status = status;
+      shouldUpdateSubscription = true;
+      data.isActive = status === "trialing" || status === "active";
+    }
+
+    if (req.body.cancelAtPeriodEnd !== undefined) {
+      subscriptionData.cancelAtPeriodEnd = Boolean(req.body.cancelAtPeriodEnd);
+      shouldUpdateSubscription = true;
     }
 
     if (req.body.isActive !== undefined) {
@@ -249,11 +286,27 @@ export const updateRestaurantForSuperAdmin = async (req, res) => {
 
     await prisma.$transaction(async (tx) => {
       await tx.restaurant.update({ where: { id: restaurantId }, data });
-      if (data.plan) {
+      if (data.plan || shouldUpdateSubscription) {
+        const status = subscriptionData.status || current.subscription?.status || "trialing";
+        const plan = data.plan || current.subscription?.plan || current.plan || "starter";
+        const periodData = {};
+
+        if (shouldRefreshSubscriptionPeriod && status === "trialing") {
+          periodData.trialEndsAt = addDays(subscriptionDays);
+          periodData.currentPeriodEnd = null;
+          periodData.cancelAtPeriodEnd = false;
+        }
+
+        if (shouldRefreshSubscriptionPeriod && status === "active") {
+          periodData.currentPeriodEnd = addDays(subscriptionDays);
+          periodData.trialEndsAt = null;
+          periodData.cancelAtPeriodEnd = false;
+        }
+
         await tx.saaSSubscription.upsert({
           where: { restaurantId },
-          update: { plan: data.plan },
-          create: { restaurantId, plan: data.plan, status: "trialing" },
+          update: { plan, ...subscriptionData, ...periodData },
+          create: { restaurantId, plan, status, ...subscriptionData, ...periodData },
         });
       }
     });
@@ -361,7 +414,7 @@ export const updateMyRestaurant = async (req, res) => {
 
     if (req.body.name !== undefined) {
       const name = String(req.body.name || "").trim();
-      if (!name) return res.status(400).json({ message: "Il nome del ristorante è obbligatorio" });
+      if (!name) return res.status(400).json({ message: "Il nome del ristorante e obbligatorio" });
       data.name = name;
 
       const nextSlug = buildSlug(name);
@@ -370,7 +423,7 @@ export const updateMyRestaurant = async (req, res) => {
       if (nextSlug !== current.slug) {
         const collision = await prisma.restaurant.findUnique({ where: { slug: nextSlug } });
         if (collision && collision.id !== current.id) {
-          return res.status(409).json({ message: "Slug già in uso da un altro ristorante" });
+          return res.status(409).json({ message: "Slug gia in uso da un altro ristorante" });
         }
         data.slug = nextSlug;
       }

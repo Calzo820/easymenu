@@ -5,9 +5,11 @@ export default function DashboardHeader({ restaurantName, liveBadge, refreshing,
   return (
     <header className="dash-hero-pro">
       <div>
-        <div className="dash-eyebrow"><span className={live ? "dash-live-dot" : "dash-live-dot dash-live-dot--warn"} /> Restaurant OS · {liveBadge}</div>
+        <div className="dash-eyebrow">
+          <span className={live ? "dash-live-dot" : "dash-live-dot dash-live-dot--warn"} /> EasyMenu live - {liveBadge}
+        </div>
         <h1>{restaurantName}</h1>
-        <p>Il turno di oggi in una sola schermata: ordini, tavoli, incasso e problemi da risolvere. Meno pagine, più controllo.</p>
+        <p>Solo le priorita del turno: ordini aperti, sala, cassa e setup essenziale. Meno pagine da studiare, piu servizio da gestire.</p>
       </div>
       <div className="dash-hero-actions">
         <button type="button" onClick={onRefresh}>{refreshing ? "Aggiorno..." : "Aggiorna"}</button>

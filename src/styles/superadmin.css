@@ -221,7 +221,7 @@
 
 .superadmin-table {
   width: 100%;
-  min-width: 1120px;
+  min-width: 1220px;
   border-collapse: collapse;
 }
 
@@ -251,6 +251,19 @@
 .superadmin-muted {
   color: #64748b;
   font-size: 13px;
+}
+
+.superadmin-billing-stack {
+  display: grid;
+  gap: 7px;
+  min-width: 190px;
+}
+
+.superadmin-inline-note {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .superadmin-status {
