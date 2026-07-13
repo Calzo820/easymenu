@@ -222,21 +222,28 @@ export default function SuperAdmin() {
       setRestaurants((prev) => prev.map((item) => (item.id === restaurantId ? updated : item)));
       setSelected((prev) => (prev?.id === restaurantId ? updated : prev));
       setSuccesso(data.message || "Ristorante aggiornato");
+      return updated;
     } catch (error) {
       setErrore(error.message || "Errore durante aggiornamento ristorante");
+      return null;
     } finally {
       setSavingId("");
     }
   }
 
   async function unlockRestaurant(restaurant) {
-    await updateRestaurant(restaurant.id, {
+    return updateRestaurant(restaurant.id, {
       isActive: true,
       plan: restaurant.plan || "starter",
       subscriptionStatus: "trialing",
       subscriptionDays: 30,
       cancelAtPeriodEnd: false,
     });
+  }
+
+  async function unlockAndOpenMenu(restaurant) {
+    const updated = await unlockRestaurant(restaurant);
+    if (updated) await openManagement(updated, "/admin?tab=menu");
   }
 
   async function openManagement(restaurant, targetPath = "/dashboard") {
@@ -511,13 +518,22 @@ export default function SuperAdmin() {
                         <td>
                           <div className="superadmin-row-actions">
                             {!isBillingUsable(restaurant) ? (
-                              <button
-                                className="superadmin-btn success"
-                                onClick={() => unlockRestaurant(restaurant)}
-                                disabled={savingId === restaurant.id}
-                              >
-                                Sblocca 30g
-                              </button>
+                              <>
+                                <button
+                                  className="superadmin-btn success"
+                                  onClick={() => unlockRestaurant(restaurant)}
+                                  disabled={savingId === restaurant.id}
+                                >
+                                  Sblocca 30g
+                                </button>
+                                <button
+                                  className="superadmin-btn success"
+                                  onClick={() => unlockAndOpenMenu(restaurant)}
+                                  disabled={savingId === restaurant.id}
+                                >
+                                  Attiva + menu
+                                </button>
+                              </>
                             ) : null}
                             <button
                               className="superadmin-btn primary"
@@ -528,10 +544,10 @@ export default function SuperAdmin() {
                             </button>
                             <button
                               className="superadmin-btn"
-                              onClick={() => openManagement(restaurant, "/admin")}
+                              onClick={() => openManagement(restaurant, "/admin?tab=menu")}
                               disabled={savingId === restaurant.id}
                             >
-                              Admin
+                              Menu
                             </button>
                             <button className="superadmin-btn" onClick={() => setSelected(restaurant)}>
                               Dettagli

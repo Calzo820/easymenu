@@ -97,7 +97,7 @@ export default function Landing() {
         <div className="landing-section-title">
           <span>Prezzi chiari</span>
           <h2>EasyMenu parte da 49,99 €/mese + IVA.</h2>
-          <p>Tutti i piani includono menu QR, cucina, bar, cassa, tavoli, report, onboarding e portale Stripe per fatture, metodo di pagamento e disdetta.</p>
+          <p>Tutti i piani includono menu QR, cucina, bar, cassa, tavoli, onboarding e portale Stripe per fatture, metodo di pagamento e disdetta.</p>
         </div>
         <div className="landing-pricing-grid">
           {pricingPlans.map(([title, price, text]) => (
@@ -123,7 +123,7 @@ export default function Landing() {
           <span className="landing-section-kicker">Mercato competitivo</span>
           <h2>Contro menu digitali e POS generici serve una promessa piu forte.</h2>
           <p>
-            EasyMenu va venduto come sistema operativo del servizio: menu, ordini, cucina, cassa, tavoli, report e integrazioni. L'obiettivo non e sostituire un PDF: e aumentare coperti, margine e controllo operativo.
+            EasyMenu va venduto come sistema operativo del servizio: menu, ordini, cucina, cassa, tavoli e integrazioni. L'obiettivo non e sostituire un PDF: e aumentare coperti, margine e controllo operativo.
           </p>
         </div>
         <div className="landing-comparison">

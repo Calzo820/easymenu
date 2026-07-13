@@ -52,6 +52,7 @@ function isOperationalSubscription(data) {
 }
 
 function getPlanFromPriceId(priceId) {
+  if (!priceId) return "starter";
   const found = Object.entries(PLAN_PRICE_ENV).find(([, envNames]) =>
     envNames.some((envName) => process.env[envName] && process.env[envName] === priceId)
   );
@@ -208,7 +209,8 @@ export async function syncSubscriptionFromStripe(sessionOrSubscription) {
   if (!subscriptionId && !restaurantId) return null;
 
   const stripe = getStripe();
-  let sub = object.object === "subscription" ? object : null;
+  const isFullSubscription = object.object === "subscription" && Boolean(object.status || object.items);
+  let sub = isFullSubscription ? object : null;
   if (!sub && stripe && subscriptionId) {
     sub = await stripe.subscriptions.retrieve(subscriptionId);
   }

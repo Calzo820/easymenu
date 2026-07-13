@@ -10,7 +10,7 @@ const pages = {
     sections: [
       ["Ruoli", "Il ristorante resta titolare dei dati dei propri clienti finali. EasyMenu opera come fornitore SaaS e responsabile del trattamento per hosting, supporto e funzionamento piattaforma."],
       ["Dati trattati", "Account ristorante, utenti staff, tavoli, menu, ordini, stato pagamento, log tecnici e dati necessari all'assistenza."],
-      ["Superadmin", "Il superadmin vede solo nome ristorante, email owner, piano, stato abbonamento e problemi tecnici. Ordini completi, dati clienti finali e report economici restano non consultabili salvo supporto motivato o consenso."],
+      ["Superadmin", "Il superadmin vede solo nome ristorante, email owner, piano, stato abbonamento e problemi tecnici. Ordini completi, dati clienti finali e dati economici privati restano non consultabili salvo supporto motivato o consenso."],
       ["Conservazione", "I dati sono conservati per il tempo necessario a erogare il servizio, rispettare obblighi contrattuali e gestire sicurezza, billing e supporto."],
       ["Diritti privacy", "Gli interessati possono chiedere accesso, rettifica, cancellazione, limitazione, portabilita e opposizione al trattamento. Le richieste vanno gestite dal ristorante titolare, con supporto tecnico EasyMenu quando necessario."],
       ["Contatti", "Prima della vendita inserire ragione sociale, P.IVA, indirizzo, email privacy e riferimenti del gestore EasyMenu."],
@@ -21,7 +21,7 @@ const pages = {
     title: "Termini e Condizioni EasyMenu",
     intro: "Condizioni operative iniziali per l'uso del SaaS EasyMenu da parte dei ristoranti.",
     sections: [
-      ["Servizio", "EasyMenu include menu QR, ordini al tavolo, cucina, bar, cassa, tavoli, staff, report, demo e billing."],
+      ["Servizio", "EasyMenu include menu QR, ordini al tavolo, cucina, bar, cassa, tavoli, staff opzionale, demo e billing."],
       ["Responsabilita ristorante", "Il ristorante e responsabile di prezzi, menu, allergeni, accessi staff, obblighi fiscali e uso corretto dei QR."],
       ["Abbonamento", "I piani sono mensile, trimestrale, semestrale e annuale. Il rinnovo e automatico tramite Stripe, con gestione e disdetta dal portale abbonamento."],
       ["Prezzi", "I prezzi pubblicati sono 49,99 €/mese + IVA, 134,99 €/3 mesi + IVA, 254,99 €/6 mesi + IVA e 449,99 €/anno + IVA. Eventuali promozioni o setup assistito vanno confermati per iscritto."],

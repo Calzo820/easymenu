@@ -106,7 +106,7 @@ function DemoMenuCard({ item }) {
 }
 
 export default function Demo() {
-  const [view, setView] = useState("tavoli");
+  const [view, setView] = useState("cucina");
 
   const stats = useMemo(() => {
     const occupied = demoTables.filter((table) => ["occupied", "ready", "bill"].includes(table.status)).length;
@@ -122,42 +122,44 @@ export default function Demo() {
           <span>EasyMenu Demo</span>
         </Link>
         <div className="demo-actions">
-          <Link to="/menu/demo/demo-table-1">Prova cliente</Link>
-          <button type="button" onClick={() => setView("cucina")}>Prova cucina</button>
-          <button type="button" onClick={() => setView("cassa")}>Prova cassa</button>
+          <Link to="/login">Login demo reale</Link>
+          <Link className="is-strong" to="/register">Richiedi attivazione</Link>
         </div>
       </header>
 
       <section className="demo-hero">
         <div>
-          <span className="demo-kicker">Prova EasyMenu in 60 secondi</span>
-          <h1>Cliente, cucina e cassa in una demo senza registrazione.</h1>
-          <p className="demo-hero-copy">Il ristoratore capisce subito il flusso: ordine dal QR, comanda in cucina e tavolo pronto per la cassa.</p>
+          <span className="demo-kicker">Demo pubblica senza registrazione</span>
+          <h1>Prova EasyMenu.</h1>
+          <p className="demo-hero-copy">Tre percorsi, zero password: menu cliente, cucina live e cassa tavoli. In meno di un minuto il ristoratore capisce il prodotto.</p>
+          <div className="demo-hero-actions" aria-label="Percorsi demo principali">
+            <button type="button" onClick={() => setView("menu")}>
+              <span>1</span>
+              <strong>Prova come cliente</strong>
+              <small>Menu QR, allergeni, carrello e ordine.</small>
+            </button>
+            <button type="button" onClick={() => setView("cucina")}>
+              <span>2</span>
+              <strong>Prova cucina</strong>
+              <small>Comande pronte da gestire.</small>
+            </button>
+            <button type="button" onClick={() => setView("cassa")}>
+              <span>3</span>
+              <strong>Prova cassa</strong>
+              <small>Tavoli colorati e preconti.</small>
+            </button>
+          </div>
         </div>
-        <div className="demo-kpis">
-          <div><span>Tavoli</span><strong>20</strong></div>
-          <div><span>Occupati</span><strong>{stats.occupied}</strong></div>
-          <div><span>Ordini</span><strong>{demoOrders.length}</strong></div>
-          <div><span>Totale live</span><strong>{money(stats.total, { compact: true })}</strong></div>
+        <div className="demo-live-panel">
+          <span>Ristorante demo</span>
+          <strong>20 tavoli gia pronti</strong>
+          <div className="demo-kpis">
+            <div><span>Occupati</span><strong>{stats.occupied}</strong></div>
+            <div><span>Ordini</span><strong>{demoOrders.length}</strong></div>
+            <div><span>Totale live</span><strong>{money(stats.total, { compact: true })}</strong></div>
+          </div>
+          <p>Menu completo, ordini finti e flusso operativo gia configurato.</p>
         </div>
-      </section>
-
-      <section className="demo-choice-grid" aria-label="Percorsi demo">
-        <Link to="/menu/demo/demo-table-1">
-          <span>1</span>
-          <strong>Prova come cliente</strong>
-          <small>Menu QR, prodotti, allergeni e ordine dal tavolo.</small>
-        </Link>
-        <button type="button" onClick={() => setView("cucina")}>
-          <span>2</span>
-          <strong>Prova cucina</strong>
-          <small>Comande live divise tra cucina e bar.</small>
-        </button>
-        <button type="button" onClick={() => setView("cassa")}>
-          <span>3</span>
-          <strong>Prova cassa</strong>
-          <small>Tavoli colorati, preconto e incasso.</small>
-        </button>
       </section>
 
       <section className="demo-beta-strip">
@@ -171,10 +173,10 @@ export default function Demo() {
 
       <nav className="demo-tabs" aria-label="Viste demo">
         {[
-          ["tavoli", "Tavoli"],
-          ["menu", "Menu cliente"],
           ["cucina", "Cucina e bar"],
           ["cassa", "Cassa"],
+          ["tavoli", "Tavoli"],
+          ["menu", "Menu cliente"],
         ].map(([id, label]) => (
           <button key={id} type="button" className={view === id ? "is-active" : ""} onClick={() => setView(id)}>
             {label}
@@ -198,7 +200,7 @@ export default function Demo() {
             <div className="demo-check-row"><span>Risotto limone e gambero</span><b>{money(18)}</b></div>
             <div className="demo-check-row"><span>Spritz Signature</span><b>{money(8)}</b></div>
             <div className="demo-total"><span>Totale</span><strong>{money(26)}</strong></div>
-            <Link className="demo-primary" to="/menu/demo/demo-table-1">Apri menu tavolo 1</Link>
+            <button className="demo-primary" type="button" onClick={() => setView("cucina")}>Invia ordine demo</button>
           </aside>
         </section>
       ) : null}

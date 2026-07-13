@@ -114,7 +114,6 @@ export default function Navbar() {
       { to: "/onboarding", label: "Setup guidato", icon: "OK", match: ["/onboarding", "/setup"] },
       { to: "/admin?tab=settings", label: "Impostazioni", icon: "IM", match: ["/admin"], adminTab: "settings" },
       { to: "/billing", label: "Abbonamento", icon: "EU", match: ["/billing"] },
-      { to: "/statistiche", label: "Report", icon: "RP", match: ["/statistiche"] },
     ];
   }, [logged, isAdmin, isSuperAdmin]);
 

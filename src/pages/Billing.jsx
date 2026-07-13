@@ -55,18 +55,6 @@ const planDetails = {
 const planOrder = ["starter", "growth", "semiannual", "enterprise"];
 const includedPills = ["EasyMenu completo", "Rinnovo automatico", "Disdici quando vuoi"];
 
-const stripeTestChecklist = [
-  ["Mensile", "Checkout con price mensile corretto"],
-  ["Trimestrale", "Checkout con price trimestrale corretto"],
-  ["Semestrale", "Checkout con price semestrale corretto"],
-  ["Annuale", "Checkout con price annuale corretto"],
-  ["Pagamento riuscito", "Webhook attiva il ristorante"],
-  ["Pagamento fallito", "Alert visibile in Billing e Dashboard"],
-  ["Disdetta", "Stato aggiornato alla scadenza"],
-  ["Portale cliente", "Metodo pagamento, fatture e cancellazione"],
-  ["IVA", "Prezzi mostrati + IVA e Stripe Tax verificato"],
-];
-
 function normalizePlan(plan) {
   return planOrder.includes(plan) ? plan : "starter";
 }
@@ -232,7 +220,7 @@ export default function Billing() {
                 Un solo prodotto. Scegli solo la durata.
               </h1>
               <p style={{ color: "rgba(255,255,255,0.78)", lineHeight: 1.65, maxWidth: 740, margin: "16px 0 0", fontWeight: 750 }}>
-                Tutti i piani includono le stesse funzioni: QR, ordini live, cucina, bar, cassa, tavoli e report. Prezzi + IVA, rinnovo automatico e disdetta quando vuoi.
+                Tutti i piani includono le stesse funzioni: QR, ordini live, cucina, bar, cassa, tavoli e supporto. Prezzi + IVA, rinnovo automatico e disdetta quando vuoi.
               </p>
             </div>
           </section>
@@ -242,13 +230,12 @@ export default function Billing() {
           {error ? <div style={errorBox}>{error}</div> : null}
           {paymentProblem ? (
             <div style={warnBox}>
-              Pagamento da verificare: lo stato Stripe e <b>{status}</b>. Aggiorna il metodo di pagamento dal portale o controlla il webhook prima di vendere.
+              Pagamento da verificare: lo stato abbonamento e <b>{status}</b>. Aggiorna il metodo di pagamento dal portale o contattaci per assistenza.
             </div>
           ) : null}
           {billingWarning ? (
             <div style={warnBox}>
-              Stripe non e ancora completo: verifica webhook <b>{data?.webhookUrlHint || "/payments/webhook"}</b>
-              {missingPlans.length ? ` e price ID mancanti per ${missingPlans.map((id) => planDetails[id]?.title || id).join(", ")}.` : "."}
+              Checkout temporaneamente non disponibile per alcuni piani. Contattaci e lo sistemiamo entro 24 ore.
             </div>
           ) : null}
 
@@ -268,25 +255,6 @@ export default function Billing() {
               <button onClick={handlePortal} disabled={portalLoading} style={primaryBtn}>
                 {portalLoading ? "Apro..." : "Gestisci abbonamento"}
               </button>
-            </div>
-          </section>
-
-          <section style={stripeChecklistStyle}>
-            <div>
-              <div style={stripeChecklistEyebrow}>Checklist Stripe prima vendita</div>
-              <h2 style={{ margin: "8px 0 0", color: "#0f172a", letterSpacing: "-0.04em" }}>Testa checkout, webhook, disdetta e portale.</h2>
-              <p style={{ margin: "8px 0 0", color: "#64748b", fontWeight: 800, lineHeight: 1.5 }}>
-                Questo pannello non sostituisce i test reali su Stripe: serve a ricordare cosa verificare prima di contattare i ristoranti.
-              </p>
-            </div>
-            <div style={stripeChecklistGridStyle}>
-              {stripeTestChecklist.map(([title, text]) => (
-                <div key={title} style={stripeChecklistItemStyle}>
-                  <span style={stripeChecklistDotStyle}>Test</span>
-                  <b>{title}</b>
-                  <small>{text}</small>
-                </div>
-              ))}
             </div>
           </section>
 
@@ -339,56 +307,6 @@ const statusStripStyle = {
 };
 
 const statusActionsStyle = { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" };
-
-const stripeChecklistStyle = {
-  display: "grid",
-  gridTemplateColumns: "minmax(220px, .42fr) minmax(0, 1fr)",
-  gap: 16,
-  alignItems: "start",
-  padding: 18,
-  borderRadius: 26,
-  background: "rgba(255,255,255,0.94)",
-  border: "1px solid rgba(226,232,240,0.95)",
-  boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
-  marginBottom: 18,
-};
-
-const stripeChecklistEyebrow = {
-  display: "inline-flex",
-  borderRadius: 999,
-  padding: "7px 10px",
-  background: "#eff6ff",
-  color: "#1d4ed8",
-  fontSize: 12,
-  fontWeight: 950,
-  textTransform: "uppercase",
-};
-
-const stripeChecklistGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-  gap: 10,
-};
-
-const stripeChecklistItemStyle = {
-  display: "grid",
-  gap: 6,
-  minHeight: 116,
-  padding: 13,
-  borderRadius: 18,
-  background: "#f8fafc",
-  border: "1px solid #e2e8f0",
-};
-
-const stripeChecklistDotStyle = {
-  width: "fit-content",
-  borderRadius: 999,
-  padding: "5px 8px",
-  background: "#dcfce7",
-  color: "#166534",
-  fontSize: 11,
-  fontWeight: 950,
-};
 
 const plansGridStyle = {
   display: "grid",
