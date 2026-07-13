@@ -4,10 +4,7 @@
 }
 
 .management-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
-  gap: 18px;
-  align-items: stretch;
+  display: block;
 }
 
 .management-card {
@@ -360,19 +357,16 @@
 }
 
 .menu-health-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, .32fr);
-  gap: 16px;
+  display: block;
 }
 
-.menu-health-main,
-.menu-health-side {
+.menu-health-main {
   min-height: 100%;
 }
 
 .menu-health-metrics {
   display: grid;
-  grid-template-columns: repeat(6, minmax(96px, 1fr));
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 14px;
 }
@@ -400,21 +394,14 @@
   line-height: 1;
 }
 
-.menu-health-price {
-  margin: 10px 0;
-  color: #0f172a;
-  font-size: 34px;
-  font-weight: 950;
-  line-height: 1;
-}
-
 .menu-action-board {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
-.menu-action-board button {
+.menu-action-board button,
+.menu-customer-preview {
   min-height: 118px;
   display: grid;
   align-content: space-between;
@@ -425,16 +412,19 @@
   background: #fff;
   padding: 15px;
   color: #0f172a;
+  text-decoration: none;
   box-shadow: 0 14px 28px rgba(15,23,42,.055);
 }
 
-.menu-action-board button.is-active {
+.menu-action-board button.is-active,
+.menu-customer-preview {
   background: #0f172a;
   color: #fff;
   border-color: #0f172a;
 }
 
-.menu-action-board span {
+.menu-action-board span,
+.menu-customer-preview span {
   color: inherit;
   font-size: 12px;
   font-weight: 950;
@@ -442,24 +432,27 @@
   letter-spacing: .05em;
 }
 
-.menu-action-board b {
+.menu-action-board b,
+.menu-customer-preview b {
   font-size: 30px;
   line-height: 1;
 }
 
-.menu-action-board small {
+.menu-action-board small,
+.menu-customer-preview small {
   color: #64748b;
   font-weight: 750;
   line-height: 1.35;
 }
 
-.menu-action-board button.is-active small {
+.menu-action-board button.is-active small,
+.menu-customer-preview small {
   color: rgba(255,255,255,.72);
 }
 
 @media (max-width: 980px) {
   .menu-health-grid { grid-template-columns: 1fr; }
-  .menu-health-metrics { grid-template-columns: repeat(3, 1fr); }
+  .menu-health-metrics { grid-template-columns: repeat(2, 1fr); }
   .management-inline-tools { grid-template-columns: 1fr; min-width: 100%; }
   .menu-action-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -537,6 +530,11 @@
   border-color: rgba(255,255,255,.1);
 }
 
+.settings-card.support {
+  background: linear-gradient(135deg, #ecfeff, #ffffff);
+  border-color: #67e8f9;
+}
+
 .settings-card-icon {
   width: 48px;
   height: 48px;
@@ -549,6 +547,10 @@
 
 .settings-card.billing .settings-card-icon {
   background: rgba(255,255,255,.12);
+}
+
+.settings-card.support .settings-card-icon {
+  background: #cffafe;
 }
 
 .settings-card-copy strong {
@@ -579,6 +581,49 @@
 
 .settings-card.billing .settings-card-action {
   color: #bfdbfe;
+}
+
+.settings-support-panel {
+  border-color: #bae6fd;
+  background: linear-gradient(180deg, #fff 0%, #f0f9ff 100%);
+}
+
+.settings-support-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-support-grid a,
+.settings-support-grid button {
+  display: grid;
+  gap: 6px;
+  min-height: 128px;
+  text-align: left;
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  background: #fff;
+  color: #0f172a;
+  padding: 16px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(15,23,42,.055);
+}
+
+.settings-support-grid strong {
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.settings-support-grid span {
+  color: #0369a1;
+  font-weight: 950;
+}
+
+.settings-support-grid small {
+  color: #64748b;
+  font-weight: 750;
+  line-height: 1.35;
 }
 
 .settings-privacy-panel {
@@ -653,7 +698,8 @@
 
 @media (max-width: 980px) {
   .settings-os-grid,
-  .settings-privacy-layout { grid-template-columns: 1fr; }
+  .settings-privacy-layout,
+  .settings-support-grid { grid-template-columns: 1fr; }
   .settings-brand-panel { position: static; }
 }
 

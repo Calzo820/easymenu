@@ -25,7 +25,8 @@ function ordineConfermatoKey(nome, tavolo) {
 }
 
 function formatEuro(value) {
-  return `€ ${Number(value || 0).toFixed(2)}`;
+  const amount = Number(value || 0);
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number.isFinite(amount) ? amount : 0);
 }
 
 function parseNumber(value) {
@@ -543,7 +544,7 @@ function Cassa() {
       await syncOrdini();
     } catch (err) {
       console.error(err);
-      setErrore(err.message || "Impossibile aggiungere l’extra");
+      setErrore(err.message || "Impossibile aggiungere extra");
     }
   }
 
@@ -734,7 +735,7 @@ function Cassa() {
             <div className="pos-map-head">
               <div>
                 <strong>Tavoli</strong>
-                <span>{totaleTavoli} totali · clicca il numero richiesto dal cliente</span>
+                <span>{totaleTavoli} totali - clicca il numero richiesto dal cliente</span>
               </div>
               <div className="pos-legend">
                 <i className="free" /> libero <i className="open" /> aperto <i className="bill" /> conto
@@ -775,7 +776,7 @@ function Cassa() {
                       <div className="cash-table-card__number">{tavolo}</div>
                       <div className="cash-table-card__state">{stato.label}</div>
                       <div className="cash-table-card__meta">{ordine ? `${articoli} articoli` : "Libero"}</div>
-                      <div className="cash-table-card__total">{ordine ? formatEuro(totale) : "—"}</div>
+                      <div className="cash-table-card__total">{ordine ? formatEuro(totale) : "-"}</div>
                       <div className="cash-table-card__time">{ordine ? `${minuti} min` : ""}</div>
                     </button>
                   );
@@ -790,7 +791,7 @@ function Cassa() {
                 <span>Tavolo selezionato</span>
                 <strong>{tavoloSelezionato ? `Tavolo ${tavoloSelezionato}` : "Nessun tavolo"}</strong>
               </div>
-              {tavoloSelezionato ? <button type="button" onClick={() => setTavoloSelezionato(null)}>×</button> : null}
+              {tavoloSelezionato ? <button type="button" onClick={() => setTavoloSelezionato(null)}>x</button> : null}
             </div>
 
             {!tavoloSelezionato ? (
@@ -816,8 +817,8 @@ function Cassa() {
                 <div className="pos-items-list">
                   {(ordineSelezionato.piatti || []).map((p, index) => (
                     <div key={`${p.id || p.nome}-${index}`}>
-                      <b>{parseNumber(p.qty || 1)}× {p.nome}</b>
-                      <span>{formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</span>
+                      <b>{parseNumber(p.qty || 1)}x {p.nome}</b>
+            <div key={`${p.nome}-${index}`}>{p.qty || 1} x {p.nome} - {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</div>
                     </div>
                   ))}
                 </div>
@@ -868,7 +869,7 @@ function Cassa() {
         <div className="print-area" style={{ display: "none" }}>
           <h2>Preconto tavolo {ordineSelezionato.tavolo}</h2>
           {(ordineSelezionato.piatti || []).map((p, index) => (
-            <div key={`${p.nome}-${index}`}>{p.qty || 1} x {p.nome} — {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</div>
+            <div key={`${p.nome}-${index}`}>{p.qty || 1} x {p.nome} - {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</div>
           ))}
           <hr />
           <strong>Totale {formatEuro(totaleFinale(ordineSelezionato))}</strong>

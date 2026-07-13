@@ -5,7 +5,6 @@ import DashboardAlerts from "../components/dashboard/DashboardAlerts.jsx";
 import DashboardHeader from "../components/dashboard/DashboardHeader.jsx";
 import DashboardHourFlow from "../components/dashboard/DashboardHourFlow.jsx";
 import DashboardLiveOrders from "../components/dashboard/DashboardLiveOrders.jsx";
-import DashboardQuickActions from "../components/dashboard/DashboardQuickActions.jsx";
 import DashboardStat from "../components/dashboard/DashboardStat.jsx";
 import DashboardTableMap from "../components/dashboard/DashboardTableMap.jsx";
 import DashboardTopProducts from "../components/dashboard/DashboardTopProducts.jsx";
@@ -243,7 +242,7 @@ function Dashboard() {
           <button type="button" onClick={() => setAdvancedOpen((value) => !value)}>
             {advancedOpen ? "Nascondi dettagli" : "Mostra dettagli avanzati"}
           </button>
-          <span>Report, alert tecnici e scorciatoie restano disponibili senza riempire la schermata principale.</span>
+          <span>Dettagli e alert tecnici restano disponibili senza riempire la schermata principale.</span>
         </div>
 
         {advancedOpen ? (
@@ -255,7 +254,6 @@ function Dashboard() {
 
             <aside className="dash-side-stack">
               <DashboardAlerts alerts={alerts} />
-              <DashboardQuickActions />
             </aside>
           </section>
         ) : null}

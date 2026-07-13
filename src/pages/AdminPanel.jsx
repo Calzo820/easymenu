@@ -23,8 +23,6 @@ const emptyItem = {
 const emptyTable = {
   name: "",
   code: "",
-  seats: 4,
-  zone: "Sala",
   sortOrder: 0,
 };
 
@@ -36,6 +34,9 @@ const emptyUser = {
 };
 
 const CATEGORY_PRESETS = ["Antipasti", "Primi", "Secondi", "Contorni", "Dolci", "Bevande"];
+const SUPPORT_EMAIL = "assistenza@easymenu.it";
+const SUPPORT_WHATSAPP = "3240467723";
+const supportWhatsAppUrl = `https://wa.me/39${SUPPORT_WHATSAPP}?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
 
 function hasText(value) {
   return String(value || "").trim().length > 0;
@@ -48,11 +49,9 @@ function getMenuQualityStats(items) {
   const missingDescription = items.filter((item) => !hasText(item.shortDescription) && !hasText(item.description)).length;
   const missingCategory = items.filter((item) => !hasText(item.category)).length;
   const featured = items.filter((item) => item.isFeatured).length;
-  const avgPrice = total
-    ? items.reduce((sum, item) => sum + Number(item.price || 0), 0) / total
-    : 0;
+  const unavailable = total - online;
 
-  return { total, online, missingPhoto, missingDescription, missingCategory, featured, avgPrice };
+  return { total, online, unavailable, missingPhoto, missingDescription, missingCategory, featured };
 }
 
 function formatEuro(value) {
@@ -70,7 +69,7 @@ function bySortThenName(a, b) {
 
 function getInitialTab(search = window.location.search) {
   const tab = new URLSearchParams(search || "").get("tab") || "menu";
-  return ["menu", "tables", "staff", "settings"].includes(tab) ? tab : "menu";
+  return ["menu", "staff", "settings"].includes(tab) ? tab : "menu";
 }
 
 function roleLabel(role) {
@@ -238,8 +237,16 @@ export default function AdminPanel({ embedded = false } = {}) {
     return [...map.entries()];
   }, [tables]);
 
-  const activeTables = tables.filter((table) => table.isActive).length;
-  const availableItems = menuItems.filter((item) => item.isAvailable).length;
+  const firstCustomerTable = tables.find((table) => table.isActive && table.qrToken);
+  const customerMenuLink = restaurant?.slug && firstCustomerTable?.qrToken
+    ? `/menu/${restaurant.slug}/${firstCustomerTable.qrToken}`
+    : "";
+  const pageTitle = activeTab === "settings" ? "Impostazioni ristorante" : activeTab === "staff" ? "Staff opzionale" : "Menu del ristorante";
+  const pageSubtitle = activeTab === "settings"
+    ? "Profilo, abbonamento, privacy e supporto in un posto solo."
+    : activeTab === "staff"
+      ? "Puoi partire con un solo account owner e aggiungere ruoli separati quando servono davvero."
+      : "Prodotti, prezzi, disponibilita e anteprima cliente senza funzioni duplicate.";
 
   async function handleRestaurantSubmit(event) {
     event.preventDefault();
@@ -368,7 +375,6 @@ export default function AdminPanel({ embedded = false } = {}) {
       setSuccess("");
       await apiPost("/tables", {
         ...tableForm,
-        seats: Number(tableForm.seats || 4),
         sortOrder: Number(tableForm.sortOrder || 0),
       });
       setTableForm(emptyTable);
@@ -447,44 +453,28 @@ export default function AdminPanel({ embedded = false } = {}) {
     }
   }
 
-  const tabs = [
-    { id: "menu", title: "Menu", subtitle: "Prodotti e prezzi" },
-    { id: "tables", title: "Tavoli", subtitle: "Sala e QR" },
-    { id: "staff", title: "Staff", subtitle: "Accessi rapidi" },
-    { id: "settings", title: "Impostazioni", subtitle: "Brand e piano" },
-  ];
-
   function renderMenu() {
     return (
       <>
       <div className="menu-health-grid">
         <div className="management-card menu-health-main">
           <SectionHead
-            title="Qualita menu"
-            subtitle="Controllo rapido di cio che incide su vendite, chiarezza per il cliente e ordine in cucina."
+            title="Stato menu"
+            subtitle="Controllo essenziale di cio che il cliente puo ordinare dal tavolo."
           />
           <div className="menu-health-metrics">
             <div><span>Prodotti</span><strong>{menuQuality.total}</strong></div>
             <div><span>Online</span><strong>{menuQuality.online}</strong></div>
-            <div><span>Foto mancanti</span><strong>{menuQuality.missingPhoto}</strong></div>
-            <div><span>Descrizioni mancanti</span><strong>{menuQuality.missingDescription}</strong></div>
-            <div><span>Senza categoria</span><strong>{menuQuality.missingCategory}</strong></div>
+            <div><span>Non disponibili</span><strong>{menuQuality.unavailable}</strong></div>
             <div><span>In evidenza</span><strong>{menuQuality.featured}</strong></div>
           </div>
-        </div>
-        <div className="management-card menu-health-side">
-          <div className="management-row-title">Prezzo medio</div>
-          <div className="menu-health-price">{formatEuro(menuQuality.avgPrice)}</div>
-          <p className="management-subtitle">Usalo come spia veloce: se cambia troppo dopo nuove aggiunte, ricontrolla prezzi e porzioni.</p>
         </div>
       </div>
 
       <div className="menu-action-board">
         {[
-          ["missingPhoto", "Foto mancanti", menuQuality.missingPhoto, "Aggiungi immagini ai piatti piu vendibili."],
-          ["missingDescription", "Descrizioni", menuQuality.missingDescription, "Rendi chiaro cosa arriva al cliente."],
-          ["missingCategory", "Categorie", menuQuality.missingCategory, "Ordina il menu per una lettura piu veloce."],
-          ["offline", "Non disponibili", menuQuality.total - menuQuality.online, "Controlla cosa il cliente non puo ordinare."],
+          ["offline", "Non disponibili", menuQuality.unavailable, "Controlla cosa il cliente non puo ordinare."],
+          ["featured", "In evidenza", menuQuality.featured, "Piatti da spingere nel menu cliente."],
         ].map(([filter, title, value, hint]) => (
           <button
             key={filter}
@@ -497,6 +487,19 @@ export default function AdminPanel({ embedded = false } = {}) {
             <small>{hint}</small>
           </button>
         ))}
+        {customerMenuLink ? (
+          <a className="menu-customer-preview" href={customerMenuLink} target="_blank" rel="noreferrer">
+            <span>Anteprima cliente</span>
+            <b>Visualizza menu cliente</b>
+            <small>Apri quello che vede il cliente al tavolo.</small>
+          </a>
+        ) : (
+          <button type="button" className="menu-customer-preview" onClick={() => { window.location.href = "/tavoli"; }}>
+            <span>Anteprima cliente</span>
+            <b>Prima crea un tavolo</b>
+            <small>Serve almeno un QR tavolo per aprire il menu cliente.</small>
+          </button>
+        )}
       </div>
 
       <div className="management-grid-2">
@@ -538,7 +541,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="management-card">
           <SectionHead
             title="Catalogo"
-            subtitle={`${filteredMenu.length} prodotti visibili. Azioni rapide senza aprire modali.`}
+            subtitle={`${filteredMenu.length} prodotti visibili. Modifica disponibilita, prezzo e dettagli senza cambiare pagina.`}
             action={
               <div className="management-inline-tools">
                 <TextInput placeholder="Cerca prodotto" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -552,10 +555,7 @@ export default function AdminPanel({ embedded = false } = {}) {
                   <option value="bar">Bar</option>
                 </SelectInput>
                 <SelectInput value={qualityFilter} onChange={(e) => setQualityFilter(e.target.value)}>
-                  <option value="all">Qualita: tutti</option>
-                  <option value="missingPhoto">Senza foto</option>
-                  <option value="missingDescription">Senza descrizione</option>
-                  <option value="missingCategory">Senza categoria</option>
+                  <option value="all">Stato: tutti</option>
                   <option value="offline">Non disponibili</option>
                   <option value="featured">In evidenza</option>
                 </SelectInput>
@@ -571,8 +571,6 @@ export default function AdminPanel({ embedded = false } = {}) {
                   <div className="management-price">{formatEuro(item.price)}</div>
                   <div className="management-row" style={{ marginTop: 8 }}>
                     {item.isFeatured ? <span className="management-badge">In evidenza</span> : null}
-                    {!item.imageUrl ? <span className="management-badge gray">Foto mancante</span> : null}
-                    {!hasText(item.shortDescription) && !hasText(item.description) ? <span className="management-badge red">Descrizione mancante</span> : null}
                   </div>
                 </div>
                 <div className="management-row" style={{ justifyContent: "flex-end" }}>
@@ -596,14 +594,10 @@ export default function AdminPanel({ embedded = false } = {}) {
     return (
       <div className="management-grid-2">
         <form className="management-card management-form" onSubmit={handleTableSubmit}>
-          <SectionHead title="Nuovo tavolo" subtitle="Creazione veloce per sala, terrazza, prive o dehors." />
+          <SectionHead title="Nuovo tavolo" subtitle="Creazione veloce: basta numero tavolo e ordine mappa." />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label="Nome"><TextInput placeholder="Tavolo 24" value={tableForm.name} onChange={(e) => setTableForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
             <Field label="Codice"><TextInput placeholder="24" value={tableForm.code} onChange={(e) => setTableForm((prev) => ({ ...prev, code: e.target.value }))} /></Field>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Field label="Zona"><TextInput placeholder="Sala" value={tableForm.zone} onChange={(e) => setTableForm((prev) => ({ ...prev, zone: e.target.value }))} /></Field>
-            <Field label="Coperti"><TextInput type="number" value={tableForm.seats} onChange={(e) => setTableForm((prev) => ({ ...prev, seats: e.target.value }))} /></Field>
           </div>
           <Field label="Ordine mappa"><TextInput type="number" value={tableForm.sortOrder} onChange={(e) => setTableForm((prev) => ({ ...prev, sortOrder: e.target.value }))} /></Field>
           <button className="management-btn" type="submit" disabled={savingTable}>{savingTable ? "Creazione..." : "Crea tavolo"}</button>
@@ -623,7 +617,7 @@ export default function AdminPanel({ embedded = false } = {}) {
                   {zoneTables.map((table) => (
                     <div key={table.id} className={`table-planner-seat ${table.isActive ? "" : "off"}`}>
                       <strong>{table.code || table.name}</strong>
-                      <span>{table.seats || 0} coperti</span>
+                      <span>{table.isActive ? "Attivo" : "Nascosto"}</span>
                       <div className="management-row" style={{ gap: 6 }}>
                         <button className="management-btn secondary" type="button" style={{ padding: "7px 9px", minHeight: 0, fontSize: 12 }} onClick={() => toggleTable(table)}>{table.isActive ? "Off" : "On"}</button>
                         <button className="management-btn secondary" type="button" style={{ padding: "7px 9px", minHeight: 0, fontSize: 12 }} onClick={() => regenerateQr(table)}>QR</button>
@@ -709,26 +703,46 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="settings-os-stack">
           <div className="management-card settings-group-card">
             <SectionHead
-              title="Sezioni principali"
-              subtitle="Poche aree, nomi chiari e pulsanti diretti."
+              title="Operativita"
+              subtitle="Le aree che servono davvero al ristorante, con accessi diretti e senza doppioni."
             />
             <div className="settings-card-grid">
               <SettingsCard icon="SET" title="Setup guidato" subtitle="Completa EasyMenu passo passo." action="Apri" onClick={() => window.location.href = "/onboarding"} />
               <SettingsCard icon="BRD" title="Brand e colori" subtitle="Logo, colore primario e valuta del menu." action="Modifica" onClick={() => document.querySelector(".settings-brand-panel")?.scrollIntoView({ behavior: "smooth" })} />
               <SettingsCard icon="MNU" title="Menu" subtitle="Categorie, prodotti, allergeni e disponibilita." action="Apri" onClick={() => { setActiveTab("menu"); navigate("/admin?tab=menu", { replace: true }); }} />
-              <SettingsCard icon="TBL" title="Tavoli e QR" subtitle="Tavoli, prenotazioni e stampa QR." action="Apri" onClick={() => window.location.href = "/tavoli"} />
-              <SettingsCard icon="USR" title="Staff e ruoli" subtitle="Accessi cucina, bar, cassa e admin." action="Apri" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }} />
+              <SettingsCard icon="TBL" title="Tavoli e QR" subtitle="Tavoli, prenotazioni e stampa QR." action="Apri Tavoli" onClick={() => window.location.href = "/tavoli"} />
+              <SettingsCard icon="USR" title="Staff opzionale" subtitle="Puoi partire con una sola mail owner. Aggiungi ruoli dedicati solo quando servono." action="Configura" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }} />
               <SettingsCard icon="INT" title="Integrazioni" subtitle="POS, stampanti, delivery e prenotazioni." action="Apri" onClick={() => window.location.href = "/integrazioni"} />
             </div>
           </div>
 
           <div className="management-card settings-group-card">
-            <SectionHead title="Amministrazione" subtitle="Billing, report, documenti e diagnostica." />
+            <SectionHead title="Amministrazione" subtitle="Piano, documenti e assistenza: solo cio che serve per gestire il locale." />
             <div className="settings-card-grid two">
               <SettingsCard icon="PAY" title="Abbonamento" subtitle={`Piano attuale: ${restaurant?.plan || "mensile"}`} action="Gestisci" tone="billing" onClick={() => window.location.href = "/billing"} />
-              <SettingsCard icon="RPT" title="Report" subtitle="Statistiche, storico e andamento vendite." action="Apri" onClick={() => window.location.href = "/statistiche"} />
               <SettingsCard icon="DOC" title="Privacy e documenti" subtitle="Policy, termini, cookie e trattamento dati." action="Apri" onClick={() => document.querySelector(".settings-privacy-panel")?.scrollIntoView({ behavior: "smooth" })} />
-              <SettingsCard icon="LOG" title="Errori e log" subtitle="Problemi tecnici, webhook e pagamenti falliti." action="Apri" onClick={() => window.location.href = "/errori"} />
+              <SettingsCard icon="SOS" title="Contattaci" subtitle="Problemi tecnici o dubbi operativi. Risposta entro 24h." action="Assistenza" tone="support" onClick={() => document.querySelector(".settings-support-panel")?.scrollIntoView({ behavior: "smooth" })} />
+            </div>
+          </div>
+
+          <div className="management-card settings-support-panel">
+            <SectionHead title="Contattaci" subtitle="Se il ristorante riscontra un problema, EasyMenu risponde entro 24 ore lavorative." />
+            <div className="settings-support-grid">
+              <a href={supportWhatsAppUrl} target="_blank" rel="noreferrer">
+                <strong>WhatsApp</strong>
+                <span>+39 {SUPPORT_WHATSAPP}</span>
+                <small>Per problemi durante il servizio o richieste urgenti.</small>
+              </a>
+              <a href={`mailto:${SUPPORT_EMAIL}?subject=Supporto EasyMenu`}>
+                <strong>Email supporto</strong>
+                <span>{SUPPORT_EMAIL}</span>
+                <small>Per domande su account, abbonamento, QR o configurazione.</small>
+              </a>
+              <button type="button" onClick={() => window.location.href = "/errori"}>
+                <strong>Diagnostica</strong>
+                <span>Apri errori e log</span>
+                <small>Utile se serve allegare dettagli tecnici alla richiesta.</small>
+              </button>
             </div>
           </div>
 
@@ -763,33 +777,13 @@ export default function AdminPanel({ embedded = false } = {}) {
           <div className="management-hero">
             <div className="management-hero-main">
               <div className="management-kicker">EasyMenu - gestione</div>
-              <h1 className="management-hero-title">Meno pagine, piu controllo.</h1>
-              <p className="management-hero-subtitle">
-                Menu, sala, staff e impostazioni in un unico hub. Le funzioni che usi ogni giorno sono davanti, quelle rare restano ordinate nelle impostazioni.
-              </p>
-            </div>
-            <div className="management-card">
-              <SectionHead title={restaurant?.name || "Ristorante"} subtitle={`Slug: ${restaurant?.slug || "-"}`} />
-              <div className="management-stats">
-                <div className="management-stat"><span>Prodotti</span><strong>{menuItems.length}</strong></div>
-                <div className="management-stat"><span>Online</span><strong>{availableItems}</strong></div>
-                <div className="management-stat"><span>Tavoli</span><strong>{activeTables}</strong></div>
-                <div className="management-stat"><span>Staff</span><strong>{staffUsers.length}</strong></div>
-              </div>
+              <h1 className="management-hero-title">{pageTitle}</h1>
+              <p className="management-hero-subtitle">{pageSubtitle}</p>
             </div>
           </div>
 
           {error ? <div className="management-card" style={{ borderColor: "#fecaca", color: "#b91c1c" }}>{error}</div> : null}
           {success ? <div className="management-card" style={{ borderColor: "#bbf7d0", color: "#166534" }}>{success}</div> : null}
-
-          <div className="management-tabs">
-            {tabs.map((tab) => (
-              <button key={tab.id} className={`management-tab ${activeTab === tab.id ? "is-active" : ""}`} type="button" onClick={() => { setActiveTab(tab.id); navigate(`/admin?tab=${tab.id}`, { replace: true }); }}>
-                <strong>{tab.title}</strong>
-                <span>{tab.subtitle}</span>
-              </button>
-            ))}
-          </div>
 
           {loading ? <div className="management-card">Caricamento gestione...</div> : null}
           {!loading && activeTab === "menu" ? renderMenu() : null}

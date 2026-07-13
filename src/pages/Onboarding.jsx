@@ -39,8 +39,6 @@ export default function Onboarding() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [tablesCount, setTablesCount] = useState(20);
-  const [seats, setSeats] = useState(4);
-  const [zoneMode, setZoneMode] = useState("sala");
   const [importText, setImportText] = useState(DEMO_IMPORT);
   const [showQrPreview, setShowQrPreview] = useState(false);
 
@@ -76,8 +74,8 @@ export default function Onboarding() {
       setMessage("");
       const result = await apiPost("/onboarding/auto-setup", {
         tablesCount: Number(tablesCount),
-        seats: Number(seats),
-        zoneMode,
+        seats: 4,
+        zoneMode: "sala",
         createDemoMenu: false,
         overwriteEmptyOnly: true,
       });
@@ -119,7 +117,7 @@ export default function Onboarding() {
             <div>
               <span className="onb-pill">Setup guidato</span>
               <h1>Completa EasyMenu</h1>
-              <p>Nome, logo, tavoli, prodotti, staff, QR e abbonamento. Un ristorante nuovo capisce subito cosa fare.</p>
+              <p>Configura solo cio che serve per iniziare: profilo, tavoli, menu, QR e abbonamento. Lo staff separato e opzionale.</p>
             </div>
             <div className="onb-progress-box">
               <div className="onb-progress-number">{progress}%</div>
@@ -141,11 +139,9 @@ export default function Onboarding() {
               <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=settings"; }}>Apri profilo</button>
             </StepCard>
 
-            <StepCard done={checks.tables} title="2. Crea tavoli" text="Genera tavoli numerati con coperti e zone, pronti anche per prenotazioni.">
+            <StepCard done={checks.tables} title="2. Crea tavoli" text="Genera tavoli numerati e QR. Coperti e zone non servono per partire.">
               <div className="onb-form-row">
                 <label>Numero tavoli<input type="number" min="1" max="200" value={tablesCount} onChange={(event) => setTablesCount(event.target.value)} /></label>
-                <label>Coperti default<input type="number" min="1" max="20" value={seats} onChange={(event) => setSeats(event.target.value)} /></label>
-                <label>Zone<select value={zoneMode} onChange={(event) => setZoneMode(event.target.value)}><option value="sala">Solo sala</option><option value="zones">Sala + dehors</option></select></label>
               </div>
               <button className="onb-primary" disabled={working} onClick={runAutoSetup}>{working ? "Creo..." : "Crea tavoli"}</button>
               <small>{counts.activeTables || 0} tavoli attivi.</small>
@@ -157,9 +153,9 @@ export default function Onboarding() {
               <small>{counts.menuItems || 0} prodotti nel menu.</small>
             </StepCard>
 
-            <StepCard done={checks.staff} title="4. Invita cucina / bar / cassa" text="Crea ruoli separati, cosi ogni persona vede solo la schermata utile.">
-              <div className="onb-summary"><b>{counts.staff || 0} accessi operativi</b><span>Cucina, bar e cassa sono fondamentali per vendere il prodotto.</span></div>
-              <button className="onb-primary" type="button" onClick={() => { window.location.href = "/admin?tab=staff"; }}>Apri staff e ruoli</button>
+            <StepCard done title="4. Staff opzionale" text="No, non devi registrare subito piu mail. Puoi partire con l'account owner e aggiungere ruoli cucina, bar o cassa piu avanti.">
+              <div className="onb-summary"><b>{counts.staff || 0} accessi operativi</b><span>Consigliato solo quando il ristorante vuole tablet separati per cucina, bar o cassa.</span></div>
+              <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=staff"; }}>Configura piu avanti</button>
             </StepCard>
 
             <StepCard done={checks.qr} title="5. Genera QR" text="Stampa i QR per i tavoli e fai provare subito il menu cliente.">
@@ -175,7 +171,6 @@ export default function Onboarding() {
                 <span className={checks.profile ? "ok" : ""}>Profilo</span>
                 <span className={checks.tables ? "ok" : ""}>Tavoli</span>
                 <span className={checks.menu ? "ok" : ""}>Menu</span>
-                <span className={checks.staff ? "ok" : ""}>Staff</span>
                 <span className={checks.qr ? "ok" : ""}>QR</span>
               </div>
               <button className="onb-primary" type="button" onClick={() => { window.location.href = "/billing"; }}>Apri abbonamento</button>
