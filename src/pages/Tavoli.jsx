@@ -468,7 +468,7 @@ export default function Tavoli() {
             <div className="tables-map-head">
               <div>
                 <strong>Mappa tavoli</strong>
-                <span>Tutti i tavoli in un colpo d'occhio. Se sono 100, le card diventano compatte.</span>
+                <span>Colori chiari per libero, occupato, conto e prenotato.</span>
               </div>
               <button type="button" onClick={loadData}>Aggiorna</button>
             </div>
@@ -526,7 +526,7 @@ export default function Tavoli() {
                     >
                       <span className="table-map-tile__number">{tableCode}</span>
                       <span className="table-map-tile__label">{visual.label}</span>
-                      <span className="table-map-tile__detail">{visual.detail}</span>
+                      {visual.kind !== "free" ? <span className="table-map-tile__detail">{visual.detail}</span> : null}
                       {visual.total ? <span className="table-map-tile__total">{formatEuro(visual.total)}</span> : null}
                     </button>
                   );
@@ -595,13 +595,13 @@ export default function Tavoli() {
                 <form className="table-reservation-card" onSubmit={saveReservation}>
                   <div>
                     <strong>Prenota tavolo</strong>
-                    <span>{editingReservation ? "Modifica prenotazione" : "Salva nome, data, orario e coperti"}</span>
+                    <span>{editingReservation ? "Modifica prenotazione" : "Nome, data, ora e persone"}</span>
                   </div>
                   <input value={reservationForm.name} onChange={(event) => setReservationForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Nome cliente" />
                   <div className="table-reservation-card__grid">
                     <input type="date" value={reservationForm.date} onChange={(event) => setReservationForm((prev) => ({ ...prev, date: event.target.value }))} />
                     <input type="time" value={reservationForm.time} onChange={(event) => setReservationForm((prev) => ({ ...prev, time: event.target.value }))} placeholder="Ora" />
-                    <input value={reservationForm.guests} onChange={(event) => setReservationForm((prev) => ({ ...prev, guests: event.target.value }))} placeholder="Coperti" inputMode="numeric" />
+                    <input value={reservationForm.guests} onChange={(event) => setReservationForm((prev) => ({ ...prev, guests: event.target.value }))} placeholder="Persone" inputMode="numeric" />
                     <select value={reservationForm.status} onChange={(event) => setReservationForm((prev) => ({ ...prev, status: event.target.value }))}>
                       <option value="booked">Prenotata</option>
                       <option value="seated">Arrivata</option>

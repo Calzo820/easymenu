@@ -39,13 +39,6 @@ function formatDateTime(timestamp) {
   return new Date(timestamp).toLocaleString("it-IT");
 }
 
-function differenzaMinuti(timestamp) {
-  if (!timestamp) return 0;
-  const time = new Date(timestamp).getTime();
-  if (!Number.isFinite(time)) return 0;
-  return Math.max(0, Math.floor((Date.now() - time) / 60000));
-}
-
 function getGridConfig(total) {
   if (total <= 8) return { cols: 4, gap: 12 };
   if (total <= 20) return { cols: 5, gap: 10 };
@@ -554,10 +547,6 @@ function Cassa() {
     }, 0);
   }
 
-  function totalePezzi(ordine) {
-    return (ordine?.piatti || []).reduce((acc, p) => acc + parseNumber(p.qty || 0), 0);
-  }
-
   function totaleFinale(ordine) {
     if (!ordine) return 0;
 
@@ -678,7 +667,6 @@ function Cassa() {
   const incassoPotenziale = ordiniOrdinati.reduce((acc, o) => acc + totaleFinale(o), 0);
   const tavoliAperti = ordiniOrdinati.length;
   const contiRichiesti = ordiniOrdinati.filter((o) => o.billRequested || o.paymentStatus === "pending" || richiesteConto[o.tavolo]).length;
-  const piattiTotaliAperti = ordiniOrdinati.reduce((acc, ordine) => acc + totalePezzi(ordine), 0);
 
   function statoTavolo(numero) {
     const ordine = ordiniOrdinati.find((o) => String(o.tavolo) === String(numero));
@@ -715,8 +703,6 @@ function Cassa() {
           </div>
           <div className="pos-topbar__stats">
             <b>{contiRichiesti}</b><small>conti</small>
-            <b>{Object.keys(richiesteCameriere).length}</b><small>chiamate</small>
-            <b>{piattiTotaliAperti}</b><small>articoli</small>
             <b>{formatEuro(incassoPotenziale)}</b><small>potenziale</small>
           </div>
           <button type="button" onClick={syncOrdini}>Aggiorna</button>
@@ -757,8 +743,6 @@ function Cassa() {
                   const stato = statoTavolo(tavolo);
                   const ordine = ordiniOrdinati.find((o) => String(o.tavolo) === String(tavolo));
                   const totale = ordine ? totaleFinale(ordine) : 0;
-                  const articoli = ordine ? totalePezzi(ordine) : 0;
-                  const minuti = ordine ? differenzaMinuti(ordine.time) : 0;
                   const evidenziato = Boolean(tavoliInEvidenza[String(tavolo)]);
                   const contoRichiesto = Boolean(ordine?.billRequested || ordine?.paymentStatus === "pending" || richiesteConto[String(tavolo)]);
                   const cameriereRichiesto = Boolean(richiesteCameriere[String(tavolo)]);
@@ -775,9 +759,7 @@ function Cassa() {
                     >
                       <div className="cash-table-card__number">{tavolo}</div>
                       <div className="cash-table-card__state">{stato.label}</div>
-                      <div className="cash-table-card__meta">{ordine ? `${articoli} articoli` : "Libero"}</div>
                       <div className="cash-table-card__total">{ordine ? formatEuro(totale) : "-"}</div>
-                      <div className="cash-table-card__time">{ordine ? `${minuti} min` : ""}</div>
                     </button>
                   );
                 })}
@@ -818,7 +800,7 @@ function Cassa() {
                   {(ordineSelezionato.piatti || []).map((p, index) => (
                     <div key={`${p.id || p.nome}-${index}`}>
                       <b>{parseNumber(p.qty || 1)}x {p.nome}</b>
-            <div key={`${p.nome}-${index}`}>{p.qty || 1} x {p.nome} - {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</div>
+                      <span>{formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</span>
                     </div>
                   ))}
                 </div>

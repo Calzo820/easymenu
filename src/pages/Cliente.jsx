@@ -109,6 +109,10 @@ function ProductCard({ item, quantity, note, onAdd, onRemove, onNoteChange }) {
     <article className={`cm-product ${hasImage ? "with-image" : ""} ${quantity > 0 ? "is-selected" : ""}`}>
       {hasImage ? <img className="cm-product-image" src={item.imageUrl} alt={item.name} /> : null}
       <div className="cm-product-body">
+        <div className="cm-product-kicker">
+          <span>{item.isFeatured ? "Consigliato" : item.category}</span>
+          {quantity > 0 ? <b>{quantity} nel carrello</b> : null}
+        </div>
         <div className="cm-product-top">
           <div>
             <h3>{item.name}</h3>
@@ -141,9 +145,9 @@ function ProductCard({ item, quantity, note, onAdd, onRemove, onNoteChange }) {
               <button type="button" onClick={() => onRemove(item.id)} aria-label={`Rimuovi ${item.name}`}>-</button>
               <span>{quantity}</span>
             </div>
-          ) : <span className="cm-light-note">{item.isFeatured ? "Consigliato" : item.category}</span>}
+          ) : <span className="cm-light-note">Tocca per aggiungere</span>}
           <button className="cm-add" type="button" onClick={() => onAdd(item.id)}>
-            {quantity > 0 ? "Aggiungi ancora" : "Aggiungi"}
+            Aggiungi
           </button>
         </div>
       </div>
@@ -164,7 +168,7 @@ function CartBar({ totalItems, totalAmount, loading, onOrder, onToggle, open, ta
         <strong>{money(totalAmount)}</strong>
       </button>
       <button className="cm-order-button" type="button" disabled={loading} onClick={onOrder}>
-        {loading ? "Invio..." : open ? "Invia ordine" : "Ordina"}
+        {loading ? "Invio..." : open ? "Conferma ordine" : "Ordina ora"}
       </button>
     </div>
   );
@@ -580,7 +584,7 @@ export default function Cliente() {
 
       <section className="cm-section-head">
         <div>
-          <span>Menu</span>
+          <span>Scegli e ordina</span>
           <h2>{activeCategory}</h2>
         </div>
         <small>{visibleItems.length} prodotti</small>
