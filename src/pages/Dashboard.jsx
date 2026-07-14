@@ -133,10 +133,10 @@ function Dashboard() {
     { label: "Tavoli creati", done: Boolean(setupChecks.tables), to: "/tavoli" },
     { label: "Menu inserito", done: Boolean(setupChecks.menu), to: "/admin?tab=menu" },
     { label: "QR generati", done: Boolean(setupChecks.qr), to: "/qr" },
-    { label: "Cucina attiva", done: Boolean(setupChecks.staff), to: "/admin?tab=staff" },
-    { label: "Cassa attiva", done: Boolean(setupChecks.staff), to: "/admin?tab=staff" },
+    { label: "Cucina pronta", done: Boolean(setupChecks.menu), to: "/cucina" },
+    { label: "Cassa pronta", done: Boolean(setupChecks.tables), to: "/cassa" },
     { label: "Abbonamento attivo", done: Boolean(setupChecks.billing), to: "/billing" },
-  ], [setupChecks.billing, setupChecks.menu, setupChecks.profile, setupChecks.qr, setupChecks.staff, setupChecks.tables]);
+  ], [setupChecks.billing, setupChecks.menu, setupChecks.profile, setupChecks.qr, setupChecks.tables]);
   const readinessProgress = setupStatus?.progress ?? Math.round((readinessItems.filter((item) => item.done).length / readinessItems.length) * 100);
 
   if (!restaurantName) {
@@ -194,13 +194,6 @@ function Dashboard() {
           </div>
         ) : null}
 
-        <section className="dash-kpi-grid">
-          <DashboardStat label="Incasso oggi" value={moneyHidden ? "Nascosto" : euro(kpis.revenueToday)} detail={`${num(kpis.completedOrdersToday)} ordini completati`} tone="money" />
-          <DashboardStat label="Ordini attivi" value={num(kpis.openOrders)} detail="Da cucina, bar e cassa" tone="live" />
-          <DashboardStat label="Tavoli occupati" value={`${num(kpis.activeTables)}/${num(kpis.totalTables)}`} detail={`${num(kpis.freeTables)} tavoli liberi`} />
-          <DashboardStat label="Ticket medio" value={moneyHidden ? "Nascosto" : euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
-        </section>
-
         <section className="dash-service-strip">
           <Link className={openOrders ? "dash-service-card is-hot" : "dash-service-card"} to="/cucina">
             <span>Servizio</span>
@@ -215,7 +208,7 @@ function Dashboard() {
           <Link className={num(kpis.unavailableItems) ? "dash-service-card is-warning" : "dash-service-card"} to="/admin">
             <span>Menu</span>
             <b>{num(kpis.unavailableItems)} piatti non disponibili</b>
-            <small>Aggiorna disponibilita, foto e descrizioni.</small>
+            <small>Aggiorna solo cosa il cliente puo ordinare.</small>
           </Link>
           <Link className={alertCount ? "dash-service-card is-warning" : "dash-service-card is-calm"} to="/errori">
             <span>Controllo</span>
@@ -246,16 +239,25 @@ function Dashboard() {
         </div>
 
         {advancedOpen ? (
-          <section className="dash-main-grid dash-main-grid--advanced">
-            <div className="dash-analytics-grid">
-              <DashboardTopProducts products={charts.topProductsToday || []} />
-              <DashboardHourFlow hours={charts.byHourToday || []} />
-            </div>
+          <>
+            <section className="dash-kpi-grid dash-kpi-grid--advanced">
+              <DashboardStat label="Incasso oggi" value={moneyHidden ? "Nascosto" : euro(kpis.revenueToday)} detail={`${num(kpis.completedOrdersToday)} ordini completati`} tone="money" />
+              <DashboardStat label="Ordini attivi" value={num(kpis.openOrders)} detail="Da cucina, bar e cassa" tone="live" />
+              <DashboardStat label="Tavoli occupati" value={`${num(kpis.activeTables)}/${num(kpis.totalTables)}`} detail={`${num(kpis.freeTables)} tavoli liberi`} />
+              <DashboardStat label="Ticket medio" value={moneyHidden ? "Nascosto" : euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
+            </section>
 
-            <aside className="dash-side-stack">
-              <DashboardAlerts alerts={alerts} />
-            </aside>
-          </section>
+            <section className="dash-main-grid dash-main-grid--advanced">
+              <div className="dash-analytics-grid">
+                <DashboardTopProducts products={charts.topProductsToday || []} />
+                <DashboardHourFlow hours={charts.byHourToday || []} />
+              </div>
+
+              <aside className="dash-side-stack">
+                <DashboardAlerts alerts={alerts} />
+              </aside>
+            </section>
+          </>
         ) : null}
       </main>
     </div>

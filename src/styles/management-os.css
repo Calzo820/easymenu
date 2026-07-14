@@ -394,9 +394,60 @@
   line-height: 1;
 }
 
+.menu-customer-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 18px;
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, .1);
+  border-radius: 24px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #07111f 0%, #12345c 58%, #0f766e 100%);
+  color: #fff;
+  text-align: left;
+  text-decoration: none;
+  box-shadow: 0 22px 48px rgba(15,23,42,.16);
+  cursor: pointer;
+}
+
+.menu-customer-strip span {
+  color: rgba(255,255,255,.72);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.menu-customer-strip strong {
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.menu-customer-strip small {
+  grid-column: 1;
+  color: rgba(255,255,255,.72);
+  font-weight: 800;
+}
+
+.menu-customer-strip::after {
+  content: "Apri";
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 92px;
+  min-height: 44px;
+  border-radius: 14px;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 950;
+}
+
 .menu-action-board {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -455,6 +506,8 @@
   .menu-health-metrics { grid-template-columns: repeat(2, 1fr); }
   .management-inline-tools { grid-template-columns: 1fr; min-width: 100%; }
   .menu-action-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .menu-customer-strip { grid-template-columns: 1fr; }
+  .menu-customer-strip::after { grid-column: auto; grid-row: auto; }
 }
 
 @media (max-width: 620px) {
@@ -586,6 +639,18 @@
 .settings-support-panel {
   border-color: #bae6fd;
   background: linear-gradient(180deg, #fff 0%, #f0f9ff 100%);
+}
+
+.settings-staff-note {
+  border-color: #dbeafe;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+}
+
+.settings-staff-note p {
+  margin: 0 0 14px;
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.55;
 }
 
 .settings-support-grid {

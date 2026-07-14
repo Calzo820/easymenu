@@ -471,6 +471,20 @@ export default function AdminPanel({ embedded = false } = {}) {
         </div>
       </div>
 
+      {customerMenuLink ? (
+        <a className="menu-customer-strip" href={customerMenuLink} target="_blank" rel="noreferrer">
+          <span>Menu cliente</span>
+          <strong>Visualizza cio che vede il cliente</strong>
+          <small>Apri l'anteprima reale collegata al primo QR tavolo attivo.</small>
+        </a>
+      ) : (
+        <button type="button" className="menu-customer-strip" onClick={() => { window.location.href = "/tavoli"; }}>
+          <span>Menu cliente</span>
+          <strong>Crea un tavolo per vedere il menu cliente</strong>
+          <small>Il menu pubblico funziona tramite QR tavolo.</small>
+        </button>
+      )}
+
       <div className="menu-action-board">
         {[
           ["offline", "Non disponibili", menuQuality.unavailable, "Controlla cosa il cliente non puo ordinare."],
@@ -487,19 +501,6 @@ export default function AdminPanel({ embedded = false } = {}) {
             <small>{hint}</small>
           </button>
         ))}
-        {customerMenuLink ? (
-          <a className="menu-customer-preview" href={customerMenuLink} target="_blank" rel="noreferrer">
-            <span>Anteprima cliente</span>
-            <b>Visualizza menu cliente</b>
-            <small>Apri quello che vede il cliente al tavolo.</small>
-          </a>
-        ) : (
-          <button type="button" className="menu-customer-preview" onClick={() => { window.location.href = "/tavoli"; }}>
-            <span>Anteprima cliente</span>
-            <b>Prima crea un tavolo</b>
-            <small>Serve almeno un QR tavolo per aprire il menu cliente.</small>
-          </button>
-        )}
       </div>
 
       <div className="management-grid-2">
@@ -703,17 +704,25 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="settings-os-stack">
           <div className="management-card settings-group-card">
             <SectionHead
-              title="Operativita"
-              subtitle="Le aree che servono davvero al ristorante, con accessi diretti e senza doppioni."
+              title="Configurazione essenziale"
+              subtitle="Poche sezioni chiare: profilo, setup e integrazioni. Menu e tavoli restano nelle loro pagine dedicate."
             />
             <div className="settings-card-grid">
               <SettingsCard icon="SET" title="Setup guidato" subtitle="Completa EasyMenu passo passo." action="Apri" onClick={() => window.location.href = "/onboarding"} />
               <SettingsCard icon="BRD" title="Brand e colori" subtitle="Logo, colore primario e valuta del menu." action="Modifica" onClick={() => document.querySelector(".settings-brand-panel")?.scrollIntoView({ behavior: "smooth" })} />
-              <SettingsCard icon="MNU" title="Menu" subtitle="Categorie, prodotti, allergeni e disponibilita." action="Apri" onClick={() => { setActiveTab("menu"); navigate("/admin?tab=menu", { replace: true }); }} />
-              <SettingsCard icon="TBL" title="Tavoli e QR" subtitle="Tavoli, prenotazioni e stampa QR." action="Apri Tavoli" onClick={() => window.location.href = "/tavoli"} />
-              <SettingsCard icon="USR" title="Staff opzionale" subtitle="Puoi partire con una sola mail owner. Aggiungi ruoli dedicati solo quando servono." action="Configura" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }} />
               <SettingsCard icon="INT" title="Integrazioni" subtitle="POS, stampanti, delivery e prenotazioni." action="Apri" onClick={() => window.location.href = "/integrazioni"} />
             </div>
+          </div>
+
+          <div className="management-card settings-staff-note">
+            <SectionHead title="Staff opzionale" subtitle="Non e obbligatorio registrare subito piu email o piu personale." />
+            <p>
+              Il ristorante puo partire con un solo account owner. Gli accessi separati per cucina, bar e cassa servono solo
+              se il locale vuole tablet o operatori dedicati.
+            </p>
+            <button className="management-btn secondary" type="button" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }}>
+              Configura staff piu avanti
+            </button>
           </div>
 
           <div className="management-card settings-group-card">
