@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
+const SUPPORT_WHATSAPP = "3240467723";
+const supportUrl = `https://wa.me/39${SUPPORT_WHATSAPP}?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
+
 function getRistoranteAttivo() {
   return localStorage.getItem("ristorante_attivo") || "";
 }
@@ -59,7 +62,7 @@ function initials(user) {
 
 function getAdminTabFromSearch(search) {
   const tab = new URLSearchParams(search || "").get("tab") || "menu";
-  return ["menu", "tables", "staff", "settings"].includes(tab) ? tab : "menu";
+  return ["menu", "tables", "staff"].includes(tab) ? tab : "menu";
 }
 
 export default function Navbar() {
@@ -112,8 +115,9 @@ export default function Navbar() {
     if (!logged || !isAdmin || isSuperAdmin) return [];
     return [
       { to: "/onboarding", label: "Setup guidato", icon: "OK", match: ["/onboarding", "/setup"] },
-      { to: "/admin?tab=settings", label: "Impostazioni", icon: "IM", match: ["/admin"], adminTab: "settings" },
       { to: "/billing", label: "Abbonamento", icon: "EU", match: ["/billing"] },
+      { to: "/privacy", label: "Privacy", icon: "PR", match: ["/privacy", "/termini", "/cookie"] },
+      { href: supportUrl, label: "Contattaci", icon: "SOS" },
     ];
   }, [logged, isAdmin, isSuperAdmin]);
 
@@ -126,6 +130,7 @@ export default function Navbar() {
   if (!logged) return null;
 
   function isActive(link) {
+    if (link.href) return false;
     if (link.adminTab && location.pathname.startsWith("/admin")) {
       return getAdminTabFromSearch(location.search) === link.adminTab;
     }
@@ -306,12 +311,19 @@ export default function Navbar() {
 
               {settingsOpen ? (
                 <div className="em-sidebar__submenu">
-                  {settingsLinks.map((link) => (
-                    <Link key={link.to} to={link.to} onClick={handleNavigate} className={isActive(link) ? "em-sidebar__sublink is-active" : "em-sidebar__sublink"}>
-                      <span className="em-sidebar__sublink-icon">{link.icon}</span>
-                      <span>{link.label}</span>
-                    </Link>
-                  ))}
+                  {settingsLinks.map((link) =>
+                    link.href ? (
+                      <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={handleNavigate} className="em-sidebar__sublink">
+                        <span className="em-sidebar__sublink-icon">{link.icon}</span>
+                        <span>{link.label}</span>
+                      </a>
+                    ) : (
+                      <Link key={link.to} to={link.to} onClick={handleNavigate} className={isActive(link) ? "em-sidebar__sublink is-active" : "em-sidebar__sublink"}>
+                        <span className="em-sidebar__sublink-icon">{link.icon}</span>
+                        <span>{link.label}</span>
+                      </Link>
+                    )
+                  )}
                 </div>
               ) : null}
             </div>

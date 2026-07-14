@@ -12,17 +12,18 @@ Grigliata mista;18;Secondi;kitchen;Carne mista alla griglia;
 Acqua frizzante;2.5;Bevande;bar;Bottiglia 0,75;
 Calice vino rosso;5;Vini;bar;Selezione della casa;solfiti`;
 
-function StepCard({ done, title, text, children }) {
+function SetupActionCard({ done, kicker, title, text, children }) {
   return (
-    <article className={`onb-card ${done ? "is-done" : ""}`}>
-      <div className="onb-card-head">
+    <article className={`onb-action-card ${done ? "is-done" : ""}`}>
+      <div className="onb-action-head">
         <div className="onb-check">{done ? "OK" : "..."}</div>
         <div>
+          <span className="onb-action-kicker">{kicker}</span>
           <h3>{title}</h3>
           <p>{text}</p>
         </div>
       </div>
-      {children ? <div className="onb-card-body">{children}</div> : null}
+      {children ? <div className="onb-action-body">{children}</div> : null}
     </article>
   );
 }
@@ -115,14 +116,14 @@ export default function Onboarding() {
         <main className="app-shell onb-shell">
           <section className="onb-hero">
             <div>
-              <span className="onb-pill">Setup guidato</span>
-              <h1>Completa EasyMenu</h1>
-              <p>Configura solo cio che serve per iniziare: profilo, tavoli, menu, QR e abbonamento. Lo staff separato e opzionale.</p>
+              <span className="onb-pill">Setup servizio</span>
+              <h1>Prepara il ristorante in pochi minuti.</h1>
+              <p>{restaurant?.name || "Il ristorante"} deve fare solo tre cose per partire: creare tavoli, caricare il menu e stampare i QR. Lo staff separato resta opzionale.</p>
             </div>
             <div className="onb-progress-box">
               <div className="onb-progress-number">{progress}%</div>
               <div className="onb-progress-track"><span style={{ width: `${progress}%` }} /></div>
-              <div className="onb-progress-label">Setup completato al {progress}%</div>
+              <div className="onb-progress-label">Prontezza servizio</div>
             </div>
           </section>
 
@@ -130,51 +131,64 @@ export default function Onboarding() {
           {message ? <div className="onb-alert success">{message}</div> : null}
           {loading ? <div className="onb-card">Caricamento setup...</div> : null}
 
-          <section className="onb-grid">
-            <StepCard done={checks.profile} title="1. Nome e logo ristorante" text="Controlla identita, colore, valuta e logo nella pagina Impostazioni.">
-              <div className="onb-summary">
-                <b>{restaurant?.name || "Ristorante"}</b>
-                <span>Slug pubblico: /menu/{restaurant?.slug || "slug"}</span>
-              </div>
-              <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=settings"; }}>Apri profilo</button>
-            </StepCard>
+          <section className="onb-command-strip">
+            <button type="button" onClick={runAutoSetup} disabled={working}>
+              <span>1</span>
+              <strong>Crea tavoli</strong>
+              <small>{counts.activeTables || 0} attivi</small>
+            </button>
+            <button type="button" onClick={importMenu} disabled={working}>
+              <span>2</span>
+              <strong>Importa menu</strong>
+              <small>{counts.menuItems || 0} prodotti</small>
+            </button>
+            <button type="button" onClick={printQrPdf} disabled={!qrLinks.length}>
+              <span>3</span>
+              <strong>Stampa QR</strong>
+              <small>{qrLinks.length} pronti</small>
+            </button>
+          </section>
 
-            <StepCard done={checks.tables} title="2. Crea tavoli" text="Genera tavoli numerati e QR. Coperti e zone non servono per partire.">
+          <section className="onb-service-grid">
+            <SetupActionCard done={checks.tables} kicker="Passo 1" title="Tavoli" text="Inserisci quanti tavoli vuoi creare. Niente coperti, niente zone: solo numeri tavolo.">
               <div className="onb-form-row">
                 <label>Numero tavoli<input type="number" min="1" max="200" value={tablesCount} onChange={(event) => setTablesCount(event.target.value)} /></label>
               </div>
               <button className="onb-primary" disabled={working} onClick={runAutoSetup}>{working ? "Creo..." : "Crea tavoli"}</button>
               <small>{counts.activeTables || 0} tavoli attivi.</small>
-            </StepCard>
+            </SetupActionCard>
 
-            <StepCard done={checks.menu} title="3. Aggiungi prodotti" text="Importa prodotti con categorie, area cucina/bar, descrizione e allergeni.">
+            <SetupActionCard done={checks.menu} kicker="Passo 2" title="Menu" text="Incolla o modifica la lista prodotti. Dopo puoi rifinirla dalla pagina Menu.">
               <textarea className="onb-textarea" value={importText} onChange={(event) => setImportText(event.target.value)} rows={8} />
               <button className="onb-primary" disabled={working} onClick={importMenu}>{working ? "Importo..." : "Importa prodotti"}</button>
               <small>{counts.menuItems || 0} prodotti nel menu.</small>
-            </StepCard>
+            </SetupActionCard>
 
-            <StepCard done title="4. Staff opzionale" text="No, non devi registrare subito piu mail. Puoi partire con l'account owner e aggiungere ruoli cucina, bar o cassa piu avanti.">
-              <div className="onb-summary"><b>{counts.staff || 0} accessi operativi</b><span>Consigliato solo quando il ristorante vuole tablet separati per cucina, bar o cassa.</span></div>
-              <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=staff"; }}>Configura piu avanti</button>
-            </StepCard>
-
-            <StepCard done={checks.qr} title="5. Genera QR" text="Stampa i QR per i tavoli e fai provare subito il menu cliente.">
+            <SetupActionCard done={checks.qr} kicker="Passo 3" title="QR tavoli" text="Controlla l'anteprima e stampa i QR da mettere sui tavoli.">
               <div className="onb-actions">
                 <button className="onb-secondary" onClick={() => setShowQrPreview((value) => !value)}>{showQrPreview ? "Nascondi anteprima" : "Anteprima QR"}</button>
                 <button className="onb-primary" disabled={!qrLinks.length} onClick={printQrPdf}>Stampa PDF QR</button>
               </div>
               <small>{qrLinks.length} QR pronti.</small>
-            </StepCard>
+            </SetupActionCard>
 
-            <StepCard done={checks.billing} title="6. Attiva abbonamento" text="Verifica piano, rinnovo, portale Stripe, IVA e stato ristorante.">
+            <SetupActionCard done={checks.billing} kicker="Passo 4" title="Abbonamento" text="Quando tavoli, menu e QR sono pronti, controlla piano e stato pagamento.">
               <div className="onb-checklist">
-                <span className={checks.profile ? "ok" : ""}>Profilo</span>
                 <span className={checks.tables ? "ok" : ""}>Tavoli</span>
                 <span className={checks.menu ? "ok" : ""}>Menu</span>
                 <span className={checks.qr ? "ok" : ""}>QR</span>
               </div>
               <button className="onb-primary" type="button" onClick={() => { window.location.href = "/billing"; }}>Apri abbonamento</button>
-            </StepCard>
+            </SetupActionCard>
+          </section>
+
+          <section className="onb-staff-strip">
+            <div>
+              <span>Staff opzionale</span>
+              <strong>Non serve creare subito piu email.</strong>
+              <small>Parti con l'account owner. Aggiungi cucina, bar o cassa solo se il locale usa tablet separati.</small>
+            </div>
+            <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=staff"; }}>Configura piu avanti</button>
           </section>
 
           {showQrPreview ? (

@@ -69,7 +69,7 @@ function bySortThenName(a, b) {
 
 function getInitialTab(search = window.location.search) {
   const tab = new URLSearchParams(search || "").get("tab") || "menu";
-  return ["menu", "staff", "settings"].includes(tab) ? tab : "menu";
+  return ["menu", "staff"].includes(tab) ? tab : "menu";
 }
 
 function roleLabel(role) {
