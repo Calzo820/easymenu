@@ -70,6 +70,29 @@ function todayKey() {
   return local.toISOString().slice(0, 10);
 }
 
+function addDaysKey(days) {
+  const now = new Date();
+  now.setDate(now.getDate() + days);
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function tomorrowKey() {
+  return addDaysKey(1);
+}
+
+function blankReservationForm(date = todayKey()) {
+  return {
+    name: "",
+    date,
+    time: "",
+    guests: "",
+    phone: "",
+    notes: "",
+    status: "booked",
+  };
+}
+
 const activeReservationStatuses = new Set(["booked", "seated"]);
 
 const reservationStatusLabels = {
@@ -107,9 +130,16 @@ function getActiveReservation(table, reservations) {
     reservations.find((reservation) => {
       const isActive = activeReservationStatuses.has(reservation.status || "booked");
       const isToday = !reservation.date || reservation.date === today;
-      return isActive && isToday && (reservation.tableId === table.id || reservation.tableCode === table.code);
+      return isActive && isToday && reservationMatchesTable(reservation, table);
     }) || null
   );
+}
+
+function reservationMatchesTable(reservation, table) {
+  if (!reservation || !table) return false;
+  const reservationCode = String(reservation.tableCode || "").toUpperCase();
+  const tableCode = String(table.code || table.number || "").toUpperCase();
+  return reservation.tableId === table.id || (reservationCode && reservationCode === tableCode);
 }
 
 function getVisualTableState(table, state, reservation) {
@@ -142,15 +172,8 @@ export default function Tavoli() {
   const [reservations, setReservations] = useState([]);
   const [localMode, setLocalMode] = useState(false);
   const [tableNumber, setTableNumber] = useState("");
-  const [reservationForm, setReservationForm] = useState({
-    name: "",
-    date: todayKey(),
-    time: "",
-    guests: "",
-    phone: "",
-    notes: "",
-    status: "booked",
-  });
+  const [reservationDate, setReservationDate] = useState(todayKey());
+  const [reservationForm, setReservationForm] = useState(() => blankReservationForm());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -248,13 +271,24 @@ export default function Tavoli() {
     [reservations, editingReservationId, selectedTable]
   );
 
-  const upcomingReservations = useMemo(
+  const reservationStats = useMemo(() => {
+    const active = reservations.filter((reservation) => activeReservationStatuses.has(reservation.status || "booked"));
+    return {
+      active: active.length,
+      today: active.filter((reservation) => reservation.date === todayKey()).length,
+      seated: active.filter((reservation) => reservation.status === "seated").length,
+      selected: active.filter((reservation) => reservation.date === reservationDate).length,
+    };
+  }, [reservations, reservationDate]);
+
+  const visibleReservations = useMemo(
     () =>
       [...reservations]
         .filter((reservation) => activeReservationStatuses.has(reservation.status || "booked"))
+        .filter((reservation) => reservation.date === reservationDate)
         .sort((a, b) => `${a.date || "9999-99-99"} ${a.time || "99:99"}`.localeCompare(`${b.date || "9999-99-99"} ${b.time || "99:99"}`))
-        .slice(0, 4),
-    [reservations]
+        .slice(0, 6),
+    [reservations, reservationDate]
   );
 
   const gridCols = useMemo(() => {
@@ -271,6 +305,36 @@ export default function Tavoli() {
   function buildMenuLink(table) {
     if (!restaurant?.slug || !table?.qrToken) return "";
     return `${baseUrl}/menu/${restaurant.slug}/${table.qrToken}`;
+  }
+
+  function findTableForReservation(reservation) {
+    return activeTables.find((table) => reservationMatchesTable(reservation, table)) || null;
+  }
+
+  function fillReservationForm(reservation, fallbackDate = reservationDate || todayKey()) {
+    return {
+      name: reservation?.name || "",
+      date: reservation?.date || fallbackDate,
+      time: reservation?.time || "",
+      guests: reservation?.guests || "",
+      phone: reservation?.phone || "",
+      notes: reservation?.notes || "",
+      status: reservation?.status || "booked",
+    };
+  }
+
+  function startNewReservation(table = selectedTable) {
+    if (table?.id) setSelectedTableId(table.id);
+    setEditingReservationId(null);
+    setReservationForm(blankReservationForm(reservationDate || todayKey()));
+  }
+
+  function selectReservation(reservation) {
+    const table = findTableForReservation(reservation);
+    if (table?.id) setSelectedTableId(table.id);
+    setEditingReservationId(reservation.id);
+    setReservationDate(reservation.date || todayKey());
+    setReservationForm(fillReservationForm(reservation, reservation.date || todayKey()));
   }
 
   async function createTable(event) {
@@ -362,7 +426,7 @@ export default function Tavoli() {
       name: reservationForm.name.trim(),
       date: reservationForm.date || todayKey(),
       time: reservationForm.time || "",
-      guests: reservationForm.guests || 2,
+      guests: Number(reservationForm.guests || 2),
       phone: reservationForm.phone.trim(),
       notes: reservationForm.notes.trim(),
       status: reservationForm.status || "booked",
@@ -391,7 +455,7 @@ export default function Tavoli() {
         await loadData();
       }
 
-      setReservationForm({ name: "", date: todayKey(), time: "", guests: "", phone: "", notes: "", status: "booked" });
+      setReservationForm(blankReservationForm(reservationDate || todayKey()));
       setEditingReservationId(null);
     } catch (err) {
       setError(err.message || "Errore salvataggio prenotazione");
@@ -414,7 +478,7 @@ export default function Tavoli() {
         await loadData();
       }
       setEditingReservationId(null);
-      setReservationForm({ name: "", date: todayKey(), time: "", guests: "", phone: "", notes: "", status: "booked" });
+      setReservationForm(blankReservationForm(reservationDate || todayKey()));
     } catch (err) {
       setError(err.message || "Errore cancellazione prenotazione");
     } finally {
@@ -511,16 +575,11 @@ export default function Tavoli() {
                       type="button"
                       onClick={() => {
                         setSelectedTableId(table.id);
-                        setEditingReservationId(table.reservation?.id || null);
-                        setReservationForm({
-                          name: table.reservation?.name || "",
-                          date: table.reservation?.date || todayKey(),
-                          time: table.reservation?.time || "",
-                          guests: table.reservation?.guests || "",
-                          phone: table.reservation?.phone || "",
-                          notes: table.reservation?.notes || "",
-                          status: table.reservation?.status || "booked",
-                        });
+                        if (table.reservation) {
+                          selectReservation(table.reservation);
+                        } else {
+                          startNewReservation(table);
+                        }
                       }}
                       className={`table-map-tile table-map-tile--${visual.kind} ${isSelected ? "is-selected" : ""}`}
                     >
@@ -546,6 +605,7 @@ export default function Tavoli() {
                   <button type="button" onClick={() => {
                     setSelectedTableId(null);
                     setEditingReservationId(null);
+                    setReservationForm(blankReservationForm(reservationDate || todayKey()));
                   }}>x</button>
                 </div>
 
@@ -557,45 +617,39 @@ export default function Tavoli() {
 
                 <section className="tables-reservation-strip tables-reservation-strip--compact">
                   <div>
-                    <span>Prenotazioni</span>
-                    <strong>{reservations.length}</strong>
-                    <small>{upcomingReservations.length ? "Prossime assegnate" : "Nessuna prenotazione"}</small>
+                    <span>Agenda prenotazioni</span>
+                    <strong>{reservationStats.active}</strong>
+                    <small>{reservationStats.today} oggi - {reservationStats.seated} arrivati</small>
+                  </div>
+                  <div className="tables-reservation-strip__filters">
+                    <button type="button" className={reservationDate === todayKey() ? "is-active" : ""} onClick={() => { setReservationDate(todayKey()); setReservationForm((prev) => ({ ...prev, date: todayKey() })); }}>Oggi</button>
+                    <button type="button" className={reservationDate === tomorrowKey() ? "is-active" : ""} onClick={() => { setReservationDate(tomorrowKey()); setReservationForm((prev) => ({ ...prev, date: tomorrowKey() })); }}>Domani</button>
+                    <input type="date" value={reservationDate} onChange={(event) => { setReservationDate(event.target.value || todayKey()); setReservationForm((prev) => ({ ...prev, date: event.target.value || todayKey() })); }} />
+                    <button type="button" onClick={() => startNewReservation(selectedTable)}>Nuova</button>
                   </div>
                   <div className="tables-reservation-strip__list">
-                    {upcomingReservations.length ? (
-                      upcomingReservations.map((reservation) => (
+                    {visibleReservations.length ? (
+                      visibleReservations.map((reservation) => (
                         <button
                           key={reservation.id}
                           type="button"
-                          onClick={() => {
-                            setSelectedTableId(reservation.tableId);
-                            setEditingReservationId(reservation.id);
-                            setReservationForm({
-                              name: reservation.name || "",
-                              date: reservation.date || todayKey(),
-                              time: reservation.time || "",
-                              guests: reservation.guests || "",
-                              phone: reservation.phone || "",
-                              notes: reservation.notes || "",
-                              status: reservation.status || "booked",
-                            });
-                          }}
+                          onClick={() => selectReservation(reservation)}
                         >
-                          <b>T{reservation.tableCode}</b>
+                          <b>T{reservation.tableCode || "?"}</b>
                           <span>{reservation.date || "Oggi"} {reservation.time || "--:--"} - {reservation.name || "Cliente"}</span>
                           <small>{reservationStatusLabels[reservation.status] || "Prenotata"}</small>
                         </button>
                       ))
                     ) : (
-                      <span className="tables-reservation-strip__empty">Nessuna prenotazione rapida.</span>
+                      <span className="tables-reservation-strip__empty">Nessuna prenotazione per questa data.</span>
                     )}
                   </div>
                 </section>
 
                 <form className="table-reservation-card" onSubmit={saveReservation}>
                   <div>
-                    <strong>Prenota tavolo</strong>
-                    <span>{editingReservation ? "Modifica prenotazione" : "Nome, data, ora e persone"}</span>
+                    <strong>{editingReservation ? "Modifica prenotazione" : `Prenota ${selectedTable.name || `Tavolo ${selectedTable.code}`}`}</strong>
+                    <span>{reservationStats.selected} prenotazioni nella data selezionata</span>
                   </div>
                   <input value={reservationForm.name} onChange={(event) => setReservationForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Nome cliente" />
                   <div className="table-reservation-card__grid">
@@ -612,7 +666,8 @@ export default function Tavoli() {
                   <textarea value={reservationForm.notes} onChange={(event) => setReservationForm((prev) => ({ ...prev, notes: event.target.value }))} placeholder="Note" rows={2} />
                   <div className="table-reservation-card__actions">
                     <button type="submit">{saving ? "Salvo..." : "Salva"}</button>
-                    {editingReservation ? <button type="button" onClick={() => clearReservation(selectedTable, editingReservation)}>Libera</button> : null}
+                    <button type="button" onClick={() => startNewReservation(selectedTable)}>Nuova</button>
+                    {editingReservation ? <button type="button" className="danger" onClick={() => clearReservation(selectedTable, editingReservation)}>Cancella</button> : null}
                   </div>
                 </form>
 

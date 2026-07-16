@@ -54,7 +54,7 @@ async function buildStatus(restaurantId) {
   const onboarding = settings.onboarding || {};
   const subscriptionStatus = restaurant?.subscription?.status || "incomplete";
   const checks = {
-    profile: Boolean(restaurant?.name && restaurant?.slug),
+    profile: Boolean(restaurant?.name && restaurant?.slug && restaurant?.logoUrl),
     tables: activeTablesCount > 0,
     menu: menuCount > 0,
     staff: staffCount > 0,
@@ -63,7 +63,7 @@ async function buildStatus(restaurantId) {
   };
   const completedCount = Object.values(checks).filter(Boolean).length;
   return {
-    restaurant: restaurant ? { id: restaurant.id, name: restaurant.name, slug: restaurant.slug, primaryColor: restaurant.primaryColor, currency: restaurant.currency, settingsJson: restaurant.settingsJson, isActive: restaurant.isActive, subscriptionStatus } : null,
+    restaurant: restaurant ? { id: restaurant.id, name: restaurant.name, slug: restaurant.slug, primaryColor: restaurant.primaryColor, logoUrl: restaurant.logoUrl || "", currency: restaurant.currency, settingsJson: restaurant.settingsJson, isActive: restaurant.isActive, subscriptionStatus } : null,
     counts: { tables: tablesCount, activeTables: activeTablesCount, menuItems: menuCount, staff: staffCount },
     checks,
     progress: Math.round((completedCount / Object.keys(checks).length) * 100),
@@ -165,7 +165,7 @@ export const getQrPayload = async (req, res) => {
   try {
     const restaurant = await prisma.restaurant.findUnique({ where: { id: req.user.restaurantId } });
     const tables = await prisma.table.findMany({ where: { restaurantId: req.user.restaurantId, isActive: true }, orderBy: [{ sortOrder: "asc" }, { code: "asc" }] });
-    return res.json({ restaurant: { name: restaurant.name, slug: restaurant.slug, primaryColor: restaurant.primaryColor }, tables: tables.map((table) => ({ id: table.id, name: table.name, code: table.code, qrToken: table.qrToken, seats: table.seats, zone: table.zone })) });
+    return res.json({ restaurant: { name: restaurant.name, slug: restaurant.slug, primaryColor: restaurant.primaryColor, logoUrl: restaurant.logoUrl || "" }, tables: tables.map((table) => ({ id: table.id, name: table.name, code: table.code, qrToken: table.qrToken, seats: table.seats, zone: table.zone })) });
   } catch (error) {
     console.error("getQrPayload error:", error);
     return res.status(500).json({ message: "Errore recupero QR" });

@@ -166,6 +166,81 @@
 
 .management-textarea { min-height: 96px; resize: vertical; }
 
+.management-upload-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.management-file-button {
+  min-width: 92px;
+  min-height: 46px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #dbe4ef;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.management-file-button input {
+  display: none;
+}
+
+.management-image-preview {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.management-image-preview img {
+  width: 92px;
+  height: 68px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #e2e8f0;
+}
+
+.management-image-preview button {
+  width: fit-content;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: #fff1f2;
+  color: #be123c;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.management-logo-preview {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.management-logo-preview img {
+  width: 92px;
+  height: 92px;
+  border-radius: 16px;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
 .management-row {
   display: flex;
   gap: 10px;
@@ -346,6 +421,8 @@
   .management-tabs,
   .management-stats { grid-template-columns: 1fr; }
   .management-list-row { grid-template-columns: 1fr; }
+  .management-upload-row,
+  .management-image-preview { grid-template-columns: 1fr; }
 }
 
 /* Menu quality cockpit */

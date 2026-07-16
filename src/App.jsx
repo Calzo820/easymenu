@@ -6,6 +6,7 @@ import Bar from "./pages/Bar.jsx";
 import Billing from "./pages/Billing.jsx";
 import Cassa from "./pages/Cassa.jsx";
 import Cliente from "./pages/Cliente.jsx";
+import Contattaci from "./pages/Contattaci.jsx";
 import Cucina from "./pages/Cucina.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Demo from "./pages/Demo.jsx";
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/onboarding" element={<ProtectedRoute roles={["owner", "admin"]}><Onboarding /></ProtectedRoute>} />
         <Route path="/setup" element={<ProtectedRoute roles={["owner", "admin"]}><Onboarding /></ProtectedRoute>} />
         <Route path="/billing" element={<ProtectedRoute roles={["owner", "admin"]}><Billing /></ProtectedRoute>} />
+        <Route path="/contattaci" element={<ProtectedRoute roles={["owner", "admin"]}><Contattaci /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute roles={["owner", "admin"]}><AdminPanel /></ProtectedRoute>} />
         <Route path="/super-admin" element={<ProtectedRoute roles={["superadmin"]}><SuperAdmin /></ProtectedRoute>} />
         <Route path="/cucina" element={<ProtectedRoute roles={["owner", "admin", "kitchen"]}><Cucina /></ProtectedRoute>} />

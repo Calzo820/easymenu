@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
+import { imageFileToDataUrl } from "../lib/imageFiles";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import "../styles/management-os.css";
 
@@ -34,9 +35,9 @@ const emptyUser = {
 };
 
 const CATEGORY_PRESETS = ["Antipasti", "Primi", "Secondi", "Contorni", "Dolci", "Bevande"];
-const SUPPORT_EMAIL = "assistenza@easymenu.it";
-const SUPPORT_WHATSAPP = "3240467723";
-const supportWhatsAppUrl = `https://wa.me/39${SUPPORT_WHATSAPP}?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
+const SUPPORT_EMAIL = "easy.menu.service@gmail.com";
+const SUPPORT_PHONE = "+39 324 046 7723";
+const supportWhatsAppUrl = `https://wa.me/393240467723?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
 
 function hasText(value) {
   return String(value || "").trim().length > 0;
@@ -139,6 +140,8 @@ export default function AdminPanel({ embedded = false } = {}) {
   const [savingItem, setSavingItem] = useState(false);
   const [savingTable, setSavingTable] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
+  const [uploadingItemImage, setUploadingItemImage] = useState(false);
+  const [uploadingRestaurantLogo, setUploadingRestaurantLogo] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState(() => getInitialTab(location.search));
@@ -296,6 +299,40 @@ export default function AdminPanel({ embedded = false } = {}) {
       setError(err.message || "Errore salvataggio prodotto");
     } finally {
       setSavingItem(false);
+    }
+  }
+
+  async function handleItemImageFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingItemImage(true);
+      setError("");
+      const imageUrl = await imageFileToDataUrl(file, { maxWidth: 1400, maxHeight: 1000, quality: 0.82 });
+      setItemForm((prev) => ({ ...prev, imageUrl }));
+      setSuccess("Immagine piatto caricata. Salva il prodotto per pubblicarla.");
+    } catch (err) {
+      setError(err.message || "Errore caricamento immagine");
+    } finally {
+      setUploadingItemImage(false);
+      event.target.value = "";
+    }
+  }
+
+  async function handleRestaurantLogoFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingRestaurantLogo(true);
+      setError("");
+      const logoUrl = await imageFileToDataUrl(file, { maxWidth: 900, maxHeight: 900, quality: 0.84 });
+      setRestaurantForm((prev) => ({ ...prev, logoUrl }));
+      setSuccess("Logo caricato. Salva il profilo ristorante per pubblicarlo.");
+    } catch (err) {
+      setError(err.message || "Errore caricamento logo");
+    } finally {
+      setUploadingRestaurantLogo(false);
+      event.target.value = "";
     }
   }
 
@@ -524,7 +561,21 @@ export default function AdminPanel({ embedded = false } = {}) {
           <Field label="Descrizione breve"><TextInput placeholder="Una riga sul menu" value={itemForm.shortDescription} onChange={(e) => setItemForm((prev) => ({ ...prev, shortDescription: e.target.value }))} /></Field>
           <Field label="Ingredienti / descrizione"><TextArea placeholder="Ingredienti, preparazione, dettagli utili al cliente" value={itemForm.description} onChange={(e) => setItemForm((prev) => ({ ...prev, description: e.target.value }))} /></Field>
           <Field label="Allergeni"><TextInput placeholder="Glutine, lattosio, frutta a guscio" value={itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, allergens: e.target.value }))} /></Field>
-          <Field label="Immagine URL"><TextInput placeholder="https://..." value={itemForm.imageUrl} onChange={(e) => setItemForm((prev) => ({ ...prev, imageUrl: e.target.value }))} /></Field>
+          <Field label="Immagine piatto">
+            <div className="management-upload-row">
+              <TextInput placeholder="URL immagine oppure carica da PC" value={itemForm.imageUrl} onChange={(e) => setItemForm((prev) => ({ ...prev, imageUrl: e.target.value }))} />
+              <label className="management-file-button">
+                {uploadingItemImage ? "Carico..." : "Da PC"}
+                <input type="file" accept="image/*" onChange={handleItemImageFile} disabled={uploadingItemImage} />
+              </label>
+            </div>
+            {itemForm.imageUrl ? (
+              <div className="management-image-preview">
+                <img src={itemForm.imageUrl} alt="Anteprima piatto" />
+                <button type="button" onClick={() => setItemForm((prev) => ({ ...prev, imageUrl: "" }))}>Rimuovi</button>
+              </div>
+            ) : null}
+          </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label="Ordine"><TextInput type="number" value={itemForm.sortOrder} onChange={(e) => setItemForm((prev) => ({ ...prev, sortOrder: e.target.value }))} /></Field>
             <Field label="IVA"><TextInput type="number" step="0.01" value={itemForm.vatRate} onChange={(e) => setItemForm((prev) => ({ ...prev, vatRate: e.target.value }))} /></Field>
@@ -696,7 +747,20 @@ export default function AdminPanel({ embedded = false } = {}) {
             <Field label="Colore primario"><TextInput value={restaurantForm.primaryColor} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, primaryColor: e.target.value }))} /></Field>
             <Field label="Valuta"><TextInput value={restaurantForm.currency} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))} /></Field>
           </div>
-          <Field label="Logo URL"><TextInput value={restaurantForm.logoUrl} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, logoUrl: e.target.value }))} /></Field>
+          <Field label="Logo ristorante">
+            <div className="management-upload-row">
+              <TextInput value={restaurantForm.logoUrl} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, logoUrl: e.target.value }))} />
+              <label className="management-file-button">
+                {uploadingRestaurantLogo ? "Carico..." : "Da PC"}
+                <input type="file" accept="image/*" onChange={handleRestaurantLogoFile} disabled={uploadingRestaurantLogo} />
+              </label>
+            </div>
+            {restaurantForm.logoUrl ? (
+              <div className="management-logo-preview">
+                <img src={restaurantForm.logoUrl} alt="Logo ristorante" />
+              </div>
+            ) : null}
+          </Field>
           <label className="management-badge green" style={{ width: "fit-content" }}><input type="checkbox" checked={restaurantForm.isActive} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, isActive: e.target.checked }))} /> Ristorante attivo</label>
           <button className="management-btn" type="submit" disabled={savingRestaurant}>{savingRestaurant ? "Salvataggio..." : "Salva profilo"}</button>
         </form>
@@ -739,7 +803,7 @@ export default function AdminPanel({ embedded = false } = {}) {
             <div className="settings-support-grid">
               <a href={supportWhatsAppUrl} target="_blank" rel="noreferrer">
                 <strong>WhatsApp</strong>
-                <span>+39 {SUPPORT_WHATSAPP}</span>
+                <span>{SUPPORT_PHONE}</span>
                 <small>Per problemi durante il servizio o richieste urgenti.</small>
               </a>
               <a href={`mailto:${SUPPORT_EMAIL}?subject=Supporto EasyMenu`}>

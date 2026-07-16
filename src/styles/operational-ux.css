@@ -1411,6 +1411,12 @@ input:focus, select:focus, textarea:focus {
 
 .table-reservation-card__actions button[type="button"] {
   background: #fff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.table-reservation-card__actions button.danger {
+  background: #fff1f2;
   color: #991b1b;
   border: 1px solid #fecaca;
 }
@@ -1455,6 +1461,33 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+
+.tables-reservation-strip__filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tables-reservation-strip__filters button,
+.tables-reservation-strip__filters input {
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 13px;
+  background: #fff;
+  color: #0f172a;
+  padding: 0 10px;
+  font-weight: 900;
+}
+
+.tables-reservation-strip__filters button {
+  cursor: pointer;
+}
+
+.tables-reservation-strip__filters button.is-active {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
 }
 
 .tables-reservation-strip__list button,
@@ -1505,7 +1538,9 @@ input:focus, select:focus, textarea:focus {
   .table-map-tile { border-radius: 16px; padding: 10px; }
   .table-reservation-card__grid { grid-template-columns: 1fr; }
   .tables-reservation-strip,
-  .tables-reservation-strip__list { grid-template-columns: 1fr; }
+  .tables-reservation-strip__list,
+  .tables-reservation-strip__filters,
+  .tables-reservation-strip--compact .tables-reservation-strip__list { grid-template-columns: 1fr; }
 }
 
 /* Kitchen pass upgrade */
@@ -2197,6 +2232,7 @@ input:focus, select:focus, textarea:focus {
 .tables-controlbar__form input { width:110px; min-height:42px; border-radius:13px; border:1px solid #cbd5e1; padding:0 12px; font-weight:850; }
 .tables-controlbar__form button:nth-child(3) { background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0; }
 .tables-reservation-strip--compact { grid-template-columns:1fr; box-shadow:none; }
+.tables-reservation-strip--compact .tables-reservation-strip__list { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .qr-panel { display:grid; gap:8px; }
 .qr-panel__code { display:grid; place-items:center; border-radius:16px; background:#f8fafc; padding:12px; }
 .qr-panel a { color:#1d4ed8; font-weight:900; overflow-wrap:anywhere; }

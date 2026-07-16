@@ -130,7 +130,7 @@ app.use(
 
 app.post("/payments/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
 
-app.use(express.json({ limit: "200kb" }));
+app.use(express.json({ limit: "5mb" }));
 
 app.use((req, _res, next) => {
   devLog(`${new Date().toISOString()} ${req.method} ${req.path}`);

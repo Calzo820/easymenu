@@ -2,9 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
-const SUPPORT_WHATSAPP = "3240467723";
-const supportUrl = `https://wa.me/39${SUPPORT_WHATSAPP}?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
-
 function getRistoranteAttivo() {
   return localStorage.getItem("ristorante_attivo") || "";
 }
@@ -117,7 +114,7 @@ export default function Navbar() {
       { to: "/onboarding", label: "Setup guidato", icon: "OK", match: ["/onboarding", "/setup"] },
       { to: "/billing", label: "Abbonamento", icon: "EU", match: ["/billing"] },
       { to: "/privacy", label: "Privacy", icon: "PR", match: ["/privacy", "/termini", "/cookie"] },
-      { href: supportUrl, label: "Contattaci", icon: "SOS" },
+      { to: "/contattaci", label: "Contattaci", icon: "SOS", match: ["/contattaci"] },
     ];
   }, [logged, isAdmin, isSuperAdmin]);
 

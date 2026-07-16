@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Navbar from "../components/Navbar";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPatch, apiPost } from "../lib/api";
+import { imageFileToDataUrl } from "../lib/imageFiles";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import "../styles/onboarding.css";
 
@@ -42,6 +43,9 @@ export default function Onboarding() {
   const [tablesCount, setTablesCount] = useState(20);
   const [importText, setImportText] = useState(DEMO_IMPORT);
   const [showQrPreview, setShowQrPreview] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [savingLogo, setSavingLogo] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const progress = status?.progress || 0;
   const restaurant = status?.restaurant;
@@ -67,6 +71,10 @@ export default function Onboarding() {
   }
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    setLogoUrl(restaurant?.logoUrl || "");
+  }, [restaurant?.logoUrl]);
 
   async function runAutoSetup() {
     try {
@@ -104,6 +112,42 @@ export default function Onboarding() {
     }
   }
 
+  async function handleLogoFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingLogo(true);
+      setError("");
+      const dataUrl = await imageFileToDataUrl(file, { maxWidth: 900, maxHeight: 900, quality: 0.84 });
+      setLogoUrl(dataUrl);
+      setMessage("Logo caricato. Premi Salva logo per pubblicarlo nel menu cliente.");
+    } catch (err) {
+      setError(err.message || "Errore caricamento logo");
+    } finally {
+      setUploadingLogo(false);
+      event.target.value = "";
+    }
+  }
+
+  async function saveLogo() {
+    try {
+      setSavingLogo(true);
+      setError("");
+      setMessage("");
+      const response = await apiPatch("/restaurants/me", { logoUrl: logoUrl.trim() || null });
+      if (response?.restaurant) {
+        localStorage.setItem("auth_restaurant", JSON.stringify(response.restaurant));
+        localStorage.setItem("ristorante_attivo", response.restaurant.name || "");
+      }
+      setMessage("Logo ristorante salvato.");
+      await load();
+    } catch (err) {
+      setError(err.message || "Errore salvataggio logo");
+    } finally {
+      setSavingLogo(false);
+    }
+  }
+
   function printQrPdf() {
     setShowQrPreview(true);
     setTimeout(() => window.print(), 150);
@@ -118,7 +162,7 @@ export default function Onboarding() {
             <div>
               <span className="onb-pill">Setup servizio</span>
               <h1>Prepara il ristorante in pochi minuti.</h1>
-              <p>{restaurant?.name || "Il ristorante"} deve fare solo tre cose per partire: creare tavoli, caricare il menu e stampare i QR. Lo staff separato resta opzionale.</p>
+              <p>{restaurant?.name || "Il ristorante"} deve fare quattro cose per partire: logo, tavoli, menu e QR. Lo staff separato resta opzionale.</p>
             </div>
             <div className="onb-progress-box">
               <div className="onb-progress-number">{progress}%</div>
@@ -132,25 +176,48 @@ export default function Onboarding() {
           {loading ? <div className="onb-card">Caricamento setup...</div> : null}
 
           <section className="onb-command-strip">
-            <button type="button" onClick={runAutoSetup} disabled={working}>
+            <button type="button" onClick={() => document.querySelector(".onb-logo-card")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
               <span>1</span>
+              <strong>Logo</strong>
+              <small>{checks.profile ? "Caricato" : "Da completare"}</small>
+            </button>
+            <button type="button" onClick={runAutoSetup} disabled={working}>
+              <span>2</span>
               <strong>Crea tavoli</strong>
               <small>{counts.activeTables || 0} attivi</small>
             </button>
             <button type="button" onClick={importMenu} disabled={working}>
-              <span>2</span>
+              <span>3</span>
               <strong>Importa menu</strong>
               <small>{counts.menuItems || 0} prodotti</small>
             </button>
             <button type="button" onClick={printQrPdf} disabled={!qrLinks.length}>
-              <span>3</span>
+              <span>4</span>
               <strong>Stampa QR</strong>
               <small>{qrLinks.length} pronti</small>
             </button>
           </section>
 
           <section className="onb-service-grid">
-            <SetupActionCard done={checks.tables} kicker="Passo 1" title="Tavoli" text="Inserisci quanti tavoli vuoi creare. Niente coperti, niente zone: solo numeri tavolo.">
+            <SetupActionCard done={checks.profile} kicker="Passo 1" title="Logo ristorante" text="Carica il logo dal PC: comparira nel menu cliente e nei QR." >
+              <div className="onb-logo-card">
+                <div className="onb-logo-preview">
+                  {logoUrl ? <img src={logoUrl} alt="Logo ristorante" /> : <span>{restaurant?.name?.slice(0, 1) || "E"}</span>}
+                </div>
+                <div className="onb-logo-tools">
+                  <input value={logoUrl} onChange={(event) => setLogoUrl(event.target.value)} placeholder="URL logo oppure carica da PC" />
+                  <div className="onb-actions">
+                    <label className="onb-file-button">
+                      {uploadingLogo ? "Carico..." : "Carica da PC"}
+                      <input type="file" accept="image/*" onChange={handleLogoFile} disabled={uploadingLogo} />
+                    </label>
+                    <button className="onb-primary" type="button" onClick={saveLogo} disabled={savingLogo || uploadingLogo}>{savingLogo ? "Salvo..." : "Salva logo"}</button>
+                  </div>
+                </div>
+              </div>
+            </SetupActionCard>
+
+            <SetupActionCard done={checks.tables} kicker="Passo 2" title="Tavoli" text="Inserisci quanti tavoli vuoi creare. Niente coperti, niente zone: solo numeri tavolo.">
               <div className="onb-form-row">
                 <label>Numero tavoli<input type="number" min="1" max="200" value={tablesCount} onChange={(event) => setTablesCount(event.target.value)} /></label>
               </div>
@@ -158,13 +225,13 @@ export default function Onboarding() {
               <small>{counts.activeTables || 0} tavoli attivi.</small>
             </SetupActionCard>
 
-            <SetupActionCard done={checks.menu} kicker="Passo 2" title="Menu" text="Incolla o modifica la lista prodotti. Dopo puoi rifinirla dalla pagina Menu.">
+            <SetupActionCard done={checks.menu} kicker="Passo 3" title="Menu" text="Incolla o modifica la lista prodotti. Dopo puoi rifinirla dalla pagina Menu.">
               <textarea className="onb-textarea" value={importText} onChange={(event) => setImportText(event.target.value)} rows={8} />
               <button className="onb-primary" disabled={working} onClick={importMenu}>{working ? "Importo..." : "Importa prodotti"}</button>
               <small>{counts.menuItems || 0} prodotti nel menu.</small>
             </SetupActionCard>
 
-            <SetupActionCard done={checks.qr} kicker="Passo 3" title="QR tavoli" text="Controlla l'anteprima e stampa i QR da mettere sui tavoli.">
+            <SetupActionCard done={checks.qr} kicker="Passo 4" title="QR tavoli" text="Controlla l'anteprima e stampa i QR da mettere sui tavoli.">
               <div className="onb-actions">
                 <button className="onb-secondary" onClick={() => setShowQrPreview((value) => !value)}>{showQrPreview ? "Nascondi anteprima" : "Anteprima QR"}</button>
                 <button className="onb-primary" disabled={!qrLinks.length} onClick={printQrPdf}>Stampa PDF QR</button>
@@ -172,8 +239,9 @@ export default function Onboarding() {
               <small>{qrLinks.length} QR pronti.</small>
             </SetupActionCard>
 
-            <SetupActionCard done={checks.billing} kicker="Passo 4" title="Abbonamento" text="Quando tavoli, menu e QR sono pronti, controlla piano e stato pagamento.">
+            <SetupActionCard done={checks.billing} kicker="Passo 5" title="Abbonamento" text="Quando logo, tavoli, menu e QR sono pronti, controlla piano e stato pagamento.">
               <div className="onb-checklist">
+                <span className={checks.profile ? "ok" : ""}>Logo</span>
                 <span className={checks.tables ? "ok" : ""}>Tavoli</span>
                 <span className={checks.menu ? "ok" : ""}>Menu</span>
                 <span className={checks.qr ? "ok" : ""}>QR</span>
