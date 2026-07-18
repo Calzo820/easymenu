@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   apiPost,
   getAuthToken,
+  publicApiPost,
   setAuthToken,
 } from "../lib/api";
 
@@ -29,6 +30,7 @@ export default function Login() {
   const [errore, setErrore] = useState("");
   const [successo, setSuccesso] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const emailValida = useMemo(() => {
     return /\S+@\S+\.\S+/.test(form.email.trim());
@@ -53,30 +55,7 @@ export default function Login() {
     if (successo) setSuccesso("");
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-
-    setErrore("");
-    setSuccesso("");
-
-    const email = form.email.trim().toLowerCase();
-    const password = form.password;
-
-    if (!email || !password) {
-      setErrore("Inserisci email e password.");
-      return;
-    }
-
-    if (!emailValida) {
-      setErrore("Inserisci un'email valida.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setErrore("La password deve avere almeno 6 caratteri.");
-      return;
-    }
-
+  async function loginWithCredentials(email, password) {
     try {
       setLoading(true);
 
@@ -120,6 +99,49 @@ export default function Login() {
       setErrore(error.message || "Errore durante il login.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    setErrore("");
+    setSuccesso("");
+
+    const email = form.email.trim().toLowerCase();
+    const password = form.password;
+
+    if (!email || !password) {
+      setErrore("Inserisci email e password.");
+      return;
+    }
+
+    if (!emailValida) {
+      setErrore("Inserisci un'email valida.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrore("La password deve avere almeno 6 caratteri.");
+      return;
+    }
+
+    await loginWithCredentials(email, password);
+  }
+
+  async function handleDemoLogin() {
+    try {
+      setDemoLoading(true);
+      setErrore("");
+      setSuccesso("Preparo la demo completa: logo, tavoli, menu, ordini e storico...");
+      await publicApiPost("/demo/ensure", {});
+      setForm({ email: "owner@demo.test", password: "EasyMenu2026!" });
+      setSuccesso("Demo completa pronta. Accesso in corso...");
+      await loginWithCredentials("owner@demo.test", "EasyMenu2026!");
+    } catch (error) {
+      setErrore(error.message || "Non sono riuscito a preparare la demo completa.");
+    } finally {
+      setDemoLoading(false);
     }
   }
 
@@ -375,7 +397,7 @@ export default function Login() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || demoLoading}
                 style={{
                   width: "100%",
                   border: "none",
@@ -385,14 +407,47 @@ export default function Login() {
                   color: "white",
                   fontWeight: 900,
                   fontSize: 16,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
+                  cursor: loading || demoLoading ? "not-allowed" : "pointer",
+                  opacity: loading || demoLoading ? 0.7 : 1,
                   boxShadow: "0 16px 26px rgba(37,99,235,0.20)",
                 }}
               >
                 {loading ? "Accesso in corso..." : "Accedi"}
               </button>
             </form>
+
+            <button
+              type="button"
+              disabled={loading || demoLoading}
+              onClick={handleDemoLogin}
+              style={{
+                width: "100%",
+                marginTop: 12,
+                border: "1px solid #99f6e4",
+                borderRadius: 16,
+                padding: "14px 18px",
+                background: "linear-gradient(135deg, #ecfeff 0%, #f0fdf4 100%)",
+                color: "#064e3b",
+                fontWeight: 900,
+                fontSize: 16,
+                cursor: loading || demoLoading ? "not-allowed" : "pointer",
+                opacity: loading || demoLoading ? 0.7 : 1,
+              }}
+            >
+              {demoLoading ? "Creo demo completa..." : "Entra nella demo completa"}
+            </button>
+
+            <div
+              style={{
+                marginTop: 10,
+                color: "#64748b",
+                fontSize: 13,
+                fontWeight: 750,
+                lineHeight: 1.45,
+              }}
+            >
+              Crea o aggiorna automaticamente EasyMenu Demo Bistro con logo, 24 tavoli, menu con foto, ordini live e storico.
+            </div>
 
             <div
               style={{

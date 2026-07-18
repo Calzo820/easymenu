@@ -51,6 +51,69 @@
   cursor: pointer;
 }
 
+.dash-demo-fix {
+  margin: 16px 0;
+  border: 1px solid #99f6e4;
+  border-radius: 28px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(20,184,166,.18), transparent 34%),
+    linear-gradient(135deg, #ecfeff 0%, #ffffff 58%, #f0fdf4 100%);
+  box-shadow: 0 18px 42px rgba(15,23,42,.08);
+}
+
+.dash-demo-fix span {
+  color: #047857;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.dash-demo-fix h2 {
+  margin: 5px 0 0;
+  color: var(--dash-ink);
+  font-size: clamp(22px, 2.6vw, 32px);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.dash-demo-fix p {
+  max-width: 920px;
+  margin: 8px 0 0;
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.dash-demo-fix small {
+  display: block;
+  margin-top: 10px;
+  color: #0f766e;
+  font-weight: 900;
+}
+
+.dash-demo-fix button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 16px;
+  padding: 13px 16px;
+  background: #0f172a;
+  color: white;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(15,23,42,.16);
+}
+
+.dash-demo-fix button:disabled {
+  opacity: .62;
+  cursor: not-allowed;
+}
+
 .dash-hero-pro {
   border-radius: 34px;
   padding: clamp(22px, 4vw, 38px);
@@ -152,7 +215,7 @@
 
 .dash-service-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin: 0 0 16px;
 }
@@ -209,6 +272,11 @@
 .dash-service-card.is-calm {
   background: #f0fdf4;
   border-color: #bbf7d0;
+}
+
+.dash-service-card.is-report {
+  background: #eef2ff;
+  border-color: #c7d2fe;
 }
 
 .dash-ready-service {
@@ -688,6 +756,13 @@
   }
   .dash-ready-service__head {
     flex-direction: column;
+  }
+  .dash-demo-fix {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .dash-demo-fix button {
+    width: 100%;
   }
   .dash-ready-service__head a {
     width: 100%;

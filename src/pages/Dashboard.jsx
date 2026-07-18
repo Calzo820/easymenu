@@ -8,7 +8,7 @@ import DashboardLiveOrders from "../components/dashboard/DashboardLiveOrders.jsx
 import DashboardStat from "../components/dashboard/DashboardStat.jsx";
 import DashboardTableMap from "../components/dashboard/DashboardTableMap.jsx";
 import DashboardTopProducts from "../components/dashboard/DashboardTopProducts.jsx";
-import { apiGet } from "../lib/api";
+import { apiGet, publicApiPost, setAuthToken } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
 import "../styles/dashboard-premium.css";
 
@@ -18,6 +18,15 @@ function getRestaurantName() {
     return restaurant?.name || localStorage.getItem("ristorante_attivo") || "";
   } catch {
     return localStorage.getItem("ristorante_attivo") || "";
+  }
+}
+
+function getRestaurantSlug() {
+  try {
+    const restaurant = JSON.parse(localStorage.getItem("auth_restaurant") || "null");
+    return restaurant?.slug || localStorage.getItem("restaurant_slug") || "";
+  } catch {
+    return localStorage.getItem("restaurant_slug") || "";
   }
 }
 
@@ -63,9 +72,13 @@ function Dashboard() {
   const [, setError] = useState("");
   const [liveBadge, setLiveBadge] = useState("connessione live...");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [demoSeeding, setDemoSeeding] = useState(false);
+  const [demoSeedMessage, setDemoSeedMessage] = useState("");
 
   const restaurantName = getRestaurantName();
+  const restaurantSlug = getRestaurantSlug();
   const isSuperAdminMode = localStorage.getItem("superadmin_mode") === "1" || Boolean(localStorage.getItem("superadmin_platform_session"));
+  const isDemoRestaurant = String(restaurantSlug || restaurantName).toLowerCase().includes("demo");
 
   const load = useCallback(async (manual = false) => {
     try {
@@ -85,6 +98,37 @@ function Dashboard() {
       setRefreshing(false);
     }
   }, []);
+
+  async function completeDemoAccount() {
+    try {
+      setDemoSeeding(true);
+      setDemoSeedMessage("Preparo la demo completa nel database...");
+      await publicApiPost("/demo/ensure", {});
+
+      const loginData = await publicApiPost("/auth/login", {
+        email: "owner@demo.test",
+        password: "EasyMenu2026!",
+      });
+
+      if (loginData?.token) setAuthToken(loginData.token);
+      if (loginData?.user) localStorage.setItem("auth_user", JSON.stringify(loginData.user));
+      if (loginData?.restaurant) {
+        localStorage.setItem("auth_restaurant", JSON.stringify(loginData.restaurant));
+        localStorage.setItem("ristorante_attivo", loginData.restaurant.name || "");
+        localStorage.setItem("restaurant_slug", loginData.restaurant.slug || "");
+        localStorage.setItem("restaurant_id", loginData.restaurant.id || "");
+      }
+
+      setDemoSeedMessage("Demo pronta. Ricarico la dashboard...");
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 500);
+    } catch (error) {
+      setDemoSeedMessage(error.message || "Non sono riuscito a completare la demo.");
+    } finally {
+      setDemoSeeding(false);
+    }
+  }
 
   useEffect(() => {
     load();
@@ -186,6 +230,22 @@ function Dashboard() {
           onRefresh={() => load(true)}
         />
 
+        {isDemoRestaurant && readinessProgress < 100 ? (
+          <section className="dash-demo-fix">
+            <div>
+              <span>Demo incompleta</span>
+              <h2>Questa demo non ha ancora logo, tavoli, menu e storico completi.</h2>
+              <p>
+                Premi il bottone: creo l'account demo completo nel database, entro con l'utente demo corretto e ricarico questa pagina.
+              </p>
+              {demoSeedMessage ? <small>{demoSeedMessage}</small> : null}
+            </div>
+            <button type="button" onClick={completeDemoAccount} disabled={demoSeeding}>
+              {demoSeeding ? "Creo demo..." : "Completa demo ora"}
+            </button>
+          </section>
+        ) : null}
+
         <ServiceReadinessChecklist items={readinessItems} progress={readinessProgress} />
 
         {data?.privacyMode ? (
@@ -214,6 +274,16 @@ function Dashboard() {
             <span>Controllo</span>
             <b>{alertCount ? `${alertCount} alert` : "Tutto regolare"}</b>
             <small>Verifica pagamenti, errori e avvisi.</small>
+          </Link>
+          <Link className="dash-service-card is-report" to="/statistiche">
+            <span>Statistiche</span>
+            <b>Report e consigli</b>
+            <small>Apri numeri, prodotti top e consulente EasyMenu.</small>
+          </Link>
+          <Link className="dash-service-card is-report" to="/storico">
+            <span>Storico</span>
+            <b>Ordini chiusi</b>
+            <small>Rivedi conti, pagamenti e comande concluse.</small>
           </Link>
         </section>
 
