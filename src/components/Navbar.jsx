@@ -105,6 +105,8 @@ export default function Navbar() {
       canCashier && { to: "/cassa", label: "Cassa", icon: "C", match: ["/cassa"] },
       isAdmin && { to: "/tavoli", label: "Tavoli", icon: "T", match: ["/tavoli"] },
       isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "M", match: ["/admin"], adminTab: "menu" },
+      isAdmin && { to: "/statistiche", label: "Statistiche", icon: "ST", match: ["/statistiche"] },
+      isAdmin && { to: "/storico", label: "Storico", icon: "SO", match: ["/storico"] },
     ].filter(Boolean);
   }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
 

@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check:build": "npm run build",
+    "demo:seed": "cd backend && npm run demo:seed",
+    "demo:check": "cd backend && npm run demo:check",
     "sell:check": "npm run build && cd backend && npm run check:env"
   },
   "dependencies": {
