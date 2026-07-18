@@ -2,8 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const API = (process.env.API_URL || process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
-const EMAIL = process.env.DEMO_OWNER_EMAIL || 'owner@demo.it';
-const PASSWORD = process.env.DEMO_OWNER_PASSWORD || 'password123';
+const EMAIL = process.env.DEMO_OWNER_EMAIL || 'owner@demo.test';
+const PASSWORD = process.env.DEMO_OWNER_PASSWORD || 'EasyMenu2026!';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API}${path}`, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });

@@ -18,6 +18,16 @@
 .onb-command-strip strong { font-size:22px; line-height:1; letter-spacing:0; }
 .onb-command-strip small { color:#64748b; font-weight:850; }
 .onb-command-strip button:first-child small { color:rgba(255,255,255,.72); }
+.onb-coach-card { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 16px; border:1px solid #bfdbfe; border-radius:24px; padding:18px; background:linear-gradient(135deg,#ffffff,#f8fbff); box-shadow:0 18px 42px rgba(15,23,42,.08); }
+.onb-coach-card.brand { border-color:#99f6e4; background:linear-gradient(135deg,#ecfeff,#fff); }
+.onb-coach-card.tables { border-color:#fed7aa; background:linear-gradient(135deg,#fff7ed,#fff); }
+.onb-coach-card.menu { border-color:#bbf7d0; background:linear-gradient(135deg,#f0fdf4,#fff); }
+.onb-coach-card.qr { border-color:#c7d2fe; background:linear-gradient(135deg,#eef2ff,#fff); }
+.onb-coach-card.billing { border-color:#fecaca; background:linear-gradient(135deg,#fff7f7,#fff); }
+.onb-coach-card.done { border-color:#86efac; background:linear-gradient(135deg,#ecfdf5,#fff); }
+.onb-coach-card span { color:#2563eb; font-size:12px; font-weight:1000; text-transform:uppercase; }
+.onb-coach-card h2 { margin:5px 0 4px; color:#0f172a; font-size:25px; line-height:1; letter-spacing:0; }
+.onb-coach-card p { margin:0; max-width:820px; color:#475569; font-weight:800; line-height:1.45; }
 .onb-service-grid { display:grid; grid-template-columns:minmax(300px,.78fr) minmax(0,1.22fr); gap:16px; align-items:start; }
 .onb-action-card { background:rgba(255,255,255,.95); border:1px solid rgba(226,232,240,.95); border-radius:24px; padding:18px; box-shadow:0 18px 42px rgba(15,23,42,.08); }
 .onb-action-card.is-done { border-color:#86efac; background:linear-gradient(135deg,#f0fdf4,#fff); }
@@ -70,5 +80,5 @@
 .onb-qr-card { border:2px dashed #cbd5e1; border-radius:20px; padding:16px; text-align:center; break-inside:avoid; }
 .onb-qr-card h3 { margin:0 0 12px; font-size:24px; }
 .onb-qr-card p { font-size:10px; color:#475569; word-break:break-all; margin:10px 0 0; }
-@media (max-width:900px){ .onb-hero,.onb-grid,.onb-command-strip,.onb-service-grid{grid-template-columns:1fr}.onb-form-row,.onb-logo-card{grid-template-columns:1fr}.onb-hero h1{font-size:34px}.onb-staff-strip{align-items:flex-start;flex-direction:column} }
+@media (max-width:900px){ .onb-hero,.onb-grid,.onb-command-strip,.onb-service-grid{grid-template-columns:1fr}.onb-form-row,.onb-logo-card{grid-template-columns:1fr}.onb-hero h1{font-size:34px}.onb-staff-strip,.onb-coach-card{align-items:flex-start;flex-direction:column} }
 @media print { body * { visibility:hidden!important; } .onb-print-area, .onb-print-area * { visibility:visible!important; } .onb-print-area { position:absolute!important; inset:0!important; margin:0!important; border:0!important; border-radius:0!important; box-shadow:none!important; } .onb-qr-grid { grid-template-columns:repeat(2,1fr)!important; } .onb-qr-card { page-break-inside:avoid; } }

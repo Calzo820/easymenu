@@ -18,7 +18,7 @@ function parseNumber(value) {
 }
 
 function formatEuro(value) {
-  return `€ ${parseNumber(value).toFixed(2)}`;
+  return `${parseNumber(value).toFixed(2)} EUR`;
 }
 
 function mapOrderToLegacy(order) {
@@ -62,9 +62,97 @@ function BarRow({ label, value, max, suffix = "" }) {
   );
 }
 
+function localAdvisorInsights({ storicoFiltrato, piattiTop, ticketMedio }) {
+  const insights = [];
+
+  if (storicoFiltrato.length === 0) {
+    insights.push({
+      priority: "high",
+      title: "Crea movimento nella demo",
+      message: "Chiudi alcuni conti dalla cassa: le statistiche diventano piu credibili quando mostrano incasso e prodotti top.",
+      actionLabel: "Apri cassa",
+      actionHref: "/cassa",
+    });
+  }
+
+  if (piattiTop[0]) {
+    insights.push({
+      priority: "medium",
+      title: `Metti in evidenza ${piattiTop[0].nome}`,
+      message: "Il prodotto piu ordinato deve essere facile da trovare nel menu cliente, con foto chiara e descrizione breve.",
+      actionLabel: "Apri menu",
+      actionHref: "/admin",
+    });
+  }
+
+  if (ticketMedio > 0 && ticketMedio < 18) {
+    insights.push({
+      priority: "medium",
+      title: "Alza il ticket medio",
+      message: "Prova a spingere dolci, calici o cocktail tra i consigliati. Sono aggiunte semplici e visibili al cliente.",
+      actionLabel: "Apri menu",
+      actionHref: "/admin",
+    });
+  }
+
+  if (!insights.length) {
+    insights.push({
+      priority: "low",
+      title: "Dati leggibili",
+      message: "Il ristorante ha abbastanza movimento per leggere vendite, prodotti top e pagamenti in modo utile.",
+      actionLabel: "Apri storico",
+      actionHref: "/storico",
+    });
+  }
+
+  return insights.slice(0, 4);
+}
+
+function AdvisorCard({ advisor, loading, error, fallbackInsights }) {
+  const insights = advisor?.insights?.length ? advisor.insights : fallbackInsights;
+  const sourceLabel = advisor?.source === "openai" ? "AI attiva" : "Consigli operativi";
+
+  return (
+    <div className="management-card advisor-card">
+      <div className="management-section-head">
+        <div>
+          <div className="management-kicker">Consulente EasyMenu</div>
+          <h2 className="management-title">Cosa fare adesso</h2>
+          <p className="management-subtitle">
+            {advisor?.summary || "Suggerimenti pratici basati su menu, tavoli, servizio e vendite."}
+          </p>
+        </div>
+        <span className={`advisor-source ${advisor?.source === "openai" ? "is-ai" : ""}`}>
+          {loading ? "Aggiorno..." : sourceLabel}
+        </span>
+      </div>
+
+      {error ? <div className="advisor-note">Backend lento: sto mostrando consigli locali.</div> : null}
+
+      <div className="advisor-grid">
+        {insights.map((insight, index) => (
+          <article className={`advisor-insight ${insight.priority || "medium"}`} key={`${insight.title}-${index}`}>
+            <span>{insight.priority === "high" ? "Priorita alta" : insight.priority === "low" ? "Ottimizzazione" : "Da fare"}</span>
+            <h3>{insight.title}</h3>
+            <p>{insight.message}</p>
+            {insight.actionHref ? (
+              <button type="button" onClick={() => { window.location.href = insight.actionHref; }}>
+                {insight.actionLabel || "Apri"}
+              </button>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Statistiche() {
   const [storico, setStorico] = useState([]);
   const [periodo, setPeriodo] = useState("30");
+  const [advisor, setAdvisor] = useState(null);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [advisorError, setAdvisorError] = useState("");
   const ristoranteAttivo = getRistoranteAttivo();
 
   useEffect(() => {
@@ -91,6 +179,36 @@ export default function Statistiche() {
       clearInterval(timer);
     };
   }, [ristoranteAttivo]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdvisor() {
+      if (!ristoranteAttivo) {
+        setAdvisor(null);
+        return;
+      }
+
+      try {
+        setAdvisorLoading(true);
+        setAdvisorError("");
+        const data = await apiGet(`/analytics/advisor?days=${periodo}`);
+        if (!cancelled) setAdvisor(data);
+      } catch (error) {
+        if (!cancelled) {
+          setAdvisor(null);
+          setAdvisorError(error.message || "Consulente non disponibile");
+        }
+      } finally {
+        if (!cancelled) setAdvisorLoading(false);
+      }
+    }
+
+    loadAdvisor();
+    return () => {
+      cancelled = true;
+    };
+  }, [ristoranteAttivo, periodo]);
 
   const storicoFiltrato = useMemo(() => {
     const days = parseNumber(periodo) || 30;
@@ -141,6 +259,10 @@ export default function Statistiche() {
   const maxDish = Math.max(...piattiTop.map((p) => p.qty), 0);
   const maxRevenue = Math.max(...dailyRevenue.map((d) => d.value), 0);
   const maxPayment = Math.max(...pagamentiTop.map((p) => p.count), 0);
+  const fallbackInsights = useMemo(
+    () => localAdvisorInsights({ storicoFiltrato, piattiTop, ticketMedio }),
+    [storicoFiltrato, piattiTop, ticketMedio]
+  );
 
   return (
     <div style={glowPageStyle}>
@@ -175,6 +297,13 @@ export default function Statistiche() {
             </div>
           </div>
 
+          <AdvisorCard
+            advisor={advisor}
+            loading={advisorLoading}
+            error={advisorError}
+            fallbackInsights={fallbackInsights}
+          />
+
           {storicoFiltrato.length === 0 ? (
             <div className="management-card">
               <h2 className="management-title">Nessun dato disponibile</h2>
@@ -189,7 +318,7 @@ export default function Statistiche() {
                     <p className="management-subtitle">Ultimi giorni con movimento.</p>
                   </div>
                 </div>
-                {dailyRevenue.map((day) => <BarRow key={day.day} label={day.day} value={Number(day.value.toFixed(0))} max={maxRevenue} suffix="€" />)}
+                {dailyRevenue.map((day) => <BarRow key={day.day} label={day.day} value={Number(day.value.toFixed(0))} max={maxRevenue} suffix=" EUR" />)}
               </div>
 
               <div className="management-card report-bar">
@@ -206,19 +335,10 @@ export default function Statistiche() {
                 <div className="management-section-head">
                   <div>
                     <h2 className="management-title">Pagamenti</h2>
-                    <p className="management-subtitle">Metodo più usato nel periodo.</p>
+                    <p className="management-subtitle">Metodo piu usato nel periodo.</p>
                   </div>
                 </div>
                 {pagamentiTop.map((payment) => <BarRow key={payment.metodo} label={payment.metodo} value={payment.count} max={maxPayment} />)}
-              </div>
-
-              <div className="management-card">
-                <h2 className="management-title">Azioni consigliate</h2>
-                <div className="management-list" style={{ marginTop: 14 }}>
-                  <div className="management-list-row"><div><div className="management-row-title">Controlla i prodotti top</div><div className="management-row-meta">Mettili in evidenza nel menu cliente.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/admin"}>Menu</button></div>
-                  <div className="management-list-row"><div><div className="management-row-title">Verifica ticket medio</div><div className="management-row-meta">Se è basso, spingi combo, dolci o bevande.</div></div><span className="management-badge">{formatEuro(ticketMedio)}</span></div>
-                  <div className="management-list-row"><div><div className="management-row-title">Scarica storico completo</div><div className="management-row-meta">Per analisi avanzate usa lo storico ordini.</div></div><button className="management-btn secondary" onClick={() => window.location.href = "/storico"}>Storico</button></div>
-                </div>
               </div>
             </div>
           )}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { publicApiGet, publicApiPost } from "../lib/api";
+import { demoDishImage, demoRestaurantLogo } from "../lib/demoVisuals";
 import "../styles/customer-menu.css";
 
 const DEMO_SLUG = "demo";
@@ -10,17 +11,24 @@ const FEATURED_CATEGORY = "Consigliati";
 const MONEY_FORMATTER = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
 const DEMO_MENU_ITEMS = [
-  { id: "demo-antipasto-1", name: "Tartare mediterranea", shortDescription: "Manzo battuto, capperi, limone, olio EVO e chips croccanti", price: 14, category: "Antipasti", preparationArea: "kitchen", isFeatured: true, allergens: ["senape"] },
-  { id: "demo-antipasto-2", name: "Burrata e pomodorini", shortDescription: "Burrata fresca, pomodorini confit, basilico e pane tostato", price: 11, category: "Antipasti", preparationArea: "kitchen", isFeatured: false, allergens: ["latte", "glutine"] },
-  { id: "demo-primo-1", name: "Carbonara croccante", shortDescription: "Guanciale, pecorino romano, uovo e pepe tostato", price: 13, category: "Primi", preparationArea: "kitchen", isFeatured: true, allergens: ["glutine", "uova", "latte"] },
-  { id: "demo-primo-2", name: "Risotto limone e gambero", shortDescription: "Riso mantecato, limone, gambero rosso e polvere di cappero", price: 18, category: "Primi", preparationArea: "kitchen", isFeatured: true, allergens: ["crostacei", "latte"] },
-  { id: "demo-secondo-1", name: "Filetto al pepe verde", shortDescription: "Filetto di manzo, salsa al pepe verde e patata fondente", price: 24, category: "Secondi", preparationArea: "kitchen", isFeatured: true, allergens: ["latte"] },
-  { id: "demo-secondo-2", name: "Branzino alle erbe", shortDescription: "Branzino, erbe fini, verdure arrosto e salsa agrumata", price: 21, category: "Secondi", preparationArea: "kitchen", isFeatured: true, allergens: ["pesce"] },
-  { id: "demo-contorno-1", name: "Verdure di stagione", shortDescription: "Verdure grigliate, olio EVO e vinaigrette alle erbe", price: 6, category: "Contorni", preparationArea: "kitchen", isFeatured: false, allergens: [] },
-  { id: "demo-dolce-1", name: "Tiramisu espresso", shortDescription: "Mascarpone, caffe espresso, cacao e biscotto leggero", price: 7, category: "Dolci", preparationArea: "kitchen", isFeatured: true, allergens: ["uova", "latte", "glutine"] },
-  { id: "demo-bar-1", name: "Acqua frizzante", shortDescription: "Bottiglia 75cl", price: 2.5, category: "Bevande", preparationArea: "bar", isFeatured: false, allergens: [] },
-  { id: "demo-bar-2", name: "Spritz Signature", shortDescription: "Aperol, prosecco, soda e arancia", price: 8, category: "Cocktail", preparationArea: "bar", isFeatured: true, allergens: ["solfiti"] },
-  { id: "demo-vino-1", name: "Calice Etna rosso", shortDescription: "Selezione cantina, calice 12cl", price: 7, category: "Vini", preparationArea: "bar", isFeatured: false, allergens: ["solfiti"] },
+  { id: "demo-antipasto-1", name: "Tartare mediterranea", shortDescription: "Manzo battuto, capperi, limone, olio EVO e chips croccanti", price: 14, category: "Antipasti", preparationArea: "kitchen", isFeatured: true, allergens: ["senape"], imageUrl: demoDishImage("Tartare", "Antipasti", "antipasto") },
+  { id: "demo-antipasto-2", name: "Burrata e pomodorini", shortDescription: "Burrata fresca, pomodorini confit, basilico e pane tostato", price: 11, category: "Antipasti", preparationArea: "kitchen", isFeatured: false, allergens: ["latte", "glutine"], imageUrl: demoDishImage("Burrata", "Antipasti", "antipasto") },
+  { id: "demo-antipasto-3", name: "Calamaro croccante", shortDescription: "Calamaro dorato, maionese al lime e insalata aromatica", price: 13, category: "Antipasti", preparationArea: "kitchen", isFeatured: false, allergens: ["molluschi", "uova"], imageUrl: demoDishImage("Calamaro", "Antipasti", "pesce") },
+  { id: "demo-primo-1", name: "Carbonara croccante", shortDescription: "Guanciale, pecorino romano, uovo e pepe tostato", price: 13, category: "Primi", preparationArea: "kitchen", isFeatured: true, allergens: ["glutine", "uova", "latte"], imageUrl: demoDishImage("Carbonara", "Primi", "primo") },
+  { id: "demo-primo-2", name: "Risotto limone e gambero", shortDescription: "Riso mantecato, limone, gambero rosso e polvere di cappero", price: 18, category: "Primi", preparationArea: "kitchen", isFeatured: true, allergens: ["crostacei", "latte"], imageUrl: demoDishImage("Risotto", "Primi", "pesce") },
+  { id: "demo-primo-3", name: "Pacchero al ragu bianco", shortDescription: "Pasta fresca, vitello, rosmarino e fonduta leggera", price: 15, category: "Primi", preparationArea: "kitchen", isFeatured: false, allergens: ["glutine", "latte"], imageUrl: demoDishImage("Pacchero", "Primi", "primo") },
+  { id: "demo-secondo-1", name: "Filetto al pepe verde", shortDescription: "Filetto di manzo, salsa al pepe verde e patata fondente", price: 24, category: "Secondi", preparationArea: "kitchen", isFeatured: true, allergens: ["latte"], imageUrl: demoDishImage("Filetto", "Secondi", "carne") },
+  { id: "demo-secondo-2", name: "Branzino alle erbe", shortDescription: "Branzino, erbe fini, verdure arrosto e salsa agrumata", price: 21, category: "Secondi", preparationArea: "kitchen", isFeatured: true, allergens: ["pesce"], imageUrl: demoDishImage("Branzino", "Secondi", "pesce") },
+  { id: "demo-secondo-3", name: "Parmigiana leggera", shortDescription: "Melanzana, pomodoro dolce, basilico e provola affumicata", price: 12, category: "Vegetariano", preparationArea: "kitchen", isFeatured: false, allergens: ["latte"], imageUrl: demoDishImage("Parmigiana", "Vegetariano", "vegetariano") },
+  { id: "demo-contorno-1", name: "Patate fondenti", shortDescription: "Patate dorate, burro chiarificato e sale affumicato", price: 6, category: "Contorni", preparationArea: "kitchen", isFeatured: false, allergens: ["latte"], imageUrl: demoDishImage("Patate", "Contorni", "vegetariano") },
+  { id: "demo-contorno-2", name: "Verdure di stagione", shortDescription: "Verdure grigliate, olio EVO e vinaigrette alle erbe", price: 6, category: "Contorni", preparationArea: "kitchen", isFeatured: false, allergens: [], imageUrl: demoDishImage("Verdure", "Contorni", "vegetariano") },
+  { id: "demo-dolce-1", name: "Tiramisu espresso", shortDescription: "Mascarpone, caffe espresso, cacao e biscotto leggero", price: 7, category: "Dolci", preparationArea: "kitchen", isFeatured: true, allergens: ["uova", "latte", "glutine"], imageUrl: demoDishImage("Tiramisu", "Dolci", "dolce") },
+  { id: "demo-dolce-2", name: "Cheesecake agrumi", shortDescription: "Crema al formaggio, crumble e gel agli agrumi", price: 8, category: "Dolci", preparationArea: "kitchen", isFeatured: false, allergens: ["latte", "glutine"], imageUrl: demoDishImage("Cheesecake", "Dolci", "dolce") },
+  { id: "demo-bar-1", name: "Acqua frizzante", shortDescription: "Bottiglia 75cl", price: 2.5, category: "Bevande", preparationArea: "bar", isFeatured: false, allergens: [], imageUrl: demoDishImage("Acqua", "Bevande", "drink") },
+  { id: "demo-bar-2", name: "Spritz Signature", shortDescription: "Aperol, prosecco, soda e arancia", price: 8, category: "Cocktail", preparationArea: "bar", isFeatured: true, allergens: ["solfiti"], imageUrl: demoDishImage("Spritz", "Cocktail", "drink") },
+  { id: "demo-bar-3", name: "Gin tonic botanico", shortDescription: "Gin secco, tonica mediterranea e scorza di limone", price: 10, category: "Cocktail", preparationArea: "bar", isFeatured: false, allergens: [], imageUrl: demoDishImage("Gin Tonic", "Cocktail", "drink") },
+  { id: "demo-vino-1", name: "Calice Etna rosso", shortDescription: "Selezione cantina, calice 12cl", price: 7, category: "Vini", preparationArea: "bar", isFeatured: false, allergens: ["solfiti"], imageUrl: demoDishImage("Etna Rosso", "Vini", "vino") },
+  { id: "demo-vino-2", name: "Calice Franciacorta", shortDescription: "Metodo classico, perlage fine e finale agrumato", price: 9, category: "Vini", preparationArea: "bar", isFeatured: true, allergens: ["solfiti"], imageUrl: demoDishImage("Franciacorta", "Vini", "vino") },
 ];
 
 function money(value) {
@@ -194,7 +202,7 @@ export default function Cliente() {
 
   const isDemo = [DEMO_SLUG, LEGACY_DEMO_SLUG].includes(slug) && String(tableToken).startsWith("demo-table");
 
-  const [restaurant, setRestaurant] = useState({ name: isDemo ? "EasyMenu Demo" : "Ristorante", slug, logoUrl: "", primaryColor: "#0f172a" });
+  const [restaurant, setRestaurant] = useState({ name: isDemo ? "EasyMenu Demo Bistro" : "Ristorante", slug, logoUrl: isDemo ? demoRestaurantLogo() : "", primaryColor: isDemo ? "#0f766e" : "#0f172a" });
   const [table, setTable] = useState({ name: `Tavolo ${params.tavolo || "1"}`, qrToken: tableToken });
   const [items, setItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState(FEATURED_CATEGORY);
@@ -224,7 +232,7 @@ export default function Cliente() {
           if (!isDemo) throw err;
           const demoItems = DEMO_MENU_ITEMS.map(normalizeItem);
           if (!active) return;
-          setRestaurant({ name: "EasyMenu Demo", slug: DEMO_SLUG, logoUrl: "", primaryColor: "#0f172a" });
+          setRestaurant({ name: "EasyMenu Demo Bistro", slug: DEMO_SLUG, logoUrl: demoRestaurantLogo(), primaryColor: "#0f766e" });
           setTable({ name: `Tavolo ${String(tableToken).replace("demo-table-", "") || "1"}`, qrToken: tableToken });
           setItems(demoItems);
           setActiveCategory(getCategories(demoItems)[0] || "Menu");
@@ -233,7 +241,10 @@ export default function Cliente() {
 
         const mapped = (data?.items || []).map(normalizeItem);
         if (!active) return;
-        setRestaurant(data.restaurant || { name: "Ristorante", slug, logoUrl: "", primaryColor: "#0f172a" });
+        const nextRestaurant = data.restaurant || { name: "Ristorante", slug, logoUrl: "", primaryColor: "#0f172a" };
+        setRestaurant(isDemo
+          ? { ...nextRestaurant, name: nextRestaurant.name || "EasyMenu Demo Bistro", logoUrl: nextRestaurant.logoUrl || demoRestaurantLogo(), primaryColor: nextRestaurant.primaryColor || "#0f766e" }
+          : nextRestaurant);
         setTable(data.table || { name: "Tavolo", qrToken: tableToken });
         setItems(mapped);
         setActiveCategory(getCategories(mapped)[0] || "Menu");

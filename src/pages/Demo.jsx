@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
-import placeholderFood from "../assets/placeholder-food.png";
+import { demoDishImage } from "../lib/demoVisuals";
 import "../styles/demo.css";
 
 const tableStatuses = {
@@ -12,16 +12,16 @@ const tableStatuses = {
   reserved: { label: "Prenotato", tone: "reserved" },
 };
 
-const demoTables = Array.from({ length: 20 }, (_, index) => {
+const demoTables = Array.from({ length: 24 }, (_, index) => {
   const tableNumber = index + 1;
   const status =
-    [2, 5, 9, 14, 18].includes(tableNumber)
+    [2, 5, 9, 14, 18, 23].includes(tableNumber)
       ? "occupied"
-      : [3, 12].includes(tableNumber)
+      : [3, 12, 21].includes(tableNumber)
         ? "ready"
-        : [7, 16].includes(tableNumber)
+        : [7, 16, 22].includes(tableNumber)
           ? "bill"
-          : [11, 20].includes(tableNumber)
+          : [11, 20, 24].includes(tableNumber)
             ? "reserved"
             : "free";
 
@@ -36,14 +36,16 @@ const demoTables = Array.from({ length: 20 }, (_, index) => {
 });
 
 const demoMenu = [
-  { name: "Tartare mediterranea", category: "Antipasti", price: 14, allergens: "pesce, sedano", featured: true },
-  { name: "Risotto limone e gambero", category: "Primi", price: 18, allergens: "crostacei, latte", featured: true },
-  { name: "Carbonara croccante", category: "Primi", price: 13, allergens: "glutine, uova, latte", featured: false },
-  { name: "Filetto al pepe verde", category: "Secondi", price: 24, allergens: "latte", featured: true },
-  { name: "Parmigiana leggera", category: "Vegetariano", price: 12, allergens: "latte", featured: false },
-  { name: "Tiramisu espresso", category: "Dolci", price: 7, allergens: "uova, latte, glutine", featured: true },
-  { name: "Spritz Signature", category: "Bar", price: 8, allergens: "solfiti", featured: true },
-  { name: "Calice Etna rosso", category: "Vini", price: 7, allergens: "solfiti", featured: false },
+  { name: "Tartare mediterranea", category: "Antipasti", price: 14, allergens: "senape", featured: true, imageUrl: demoDishImage("Tartare", "Antipasti", "antipasto") },
+  { name: "Burrata e pomodorini", category: "Antipasti", price: 11, allergens: "latte, glutine", featured: false, imageUrl: demoDishImage("Burrata", "Antipasti", "antipasto") },
+  { name: "Risotto limone e gambero", category: "Primi", price: 18, allergens: "crostacei, latte", featured: true, imageUrl: demoDishImage("Risotto", "Primi", "pesce") },
+  { name: "Carbonara croccante", category: "Primi", price: 13, allergens: "glutine, uova, latte", featured: false, imageUrl: demoDishImage("Carbonara", "Primi", "primo") },
+  { name: "Filetto al pepe verde", category: "Secondi", price: 24, allergens: "latte", featured: true, imageUrl: demoDishImage("Filetto", "Secondi", "carne") },
+  { name: "Branzino alle erbe", category: "Secondi", price: 21, allergens: "pesce", featured: true, imageUrl: demoDishImage("Branzino", "Secondi", "pesce") },
+  { name: "Parmigiana leggera", category: "Vegetariano", price: 12, allergens: "latte", featured: false, imageUrl: demoDishImage("Parmigiana", "Vegetariano", "vegetariano") },
+  { name: "Tiramisu espresso", category: "Dolci", price: 7, allergens: "uova, latte, glutine", featured: true, imageUrl: demoDishImage("Tiramisu", "Dolci", "dolce") },
+  { name: "Spritz Signature", category: "Cocktail", price: 8, allergens: "solfiti", featured: true, imageUrl: demoDishImage("Spritz", "Cocktail", "drink") },
+  { name: "Calice Etna rosso", category: "Vini", price: 7, allergens: "solfiti", featured: false, imageUrl: demoDishImage("Etna Rosso", "Vini", "vino") },
 ];
 
 const demoOrders = [
@@ -78,7 +80,7 @@ function DemoTable({ table }) {
     <article className={`demo-table-card ${meta.tone}`}>
       <div>
         <strong>{table.name}</strong>
-        <span>{table.seats} coperti</span>
+        <span>QR attivo</span>
       </div>
       <div className="demo-table-bottom">
         <span>{meta.label}</span>
@@ -91,7 +93,7 @@ function DemoTable({ table }) {
 function DemoMenuCard({ item }) {
   return (
     <article className="demo-menu-card">
-      <img src={placeholderFood} alt="" />
+      <img src={item.imageUrl} alt="" />
       <div>
         <div className="demo-menu-meta">
           <span>{item.category}</span>
@@ -152,7 +154,7 @@ export default function Demo() {
         </div>
         <div className="demo-live-panel">
           <span>Ristorante demo</span>
-          <strong>20 tavoli gia pronti</strong>
+          <strong>24 tavoli gia pronti</strong>
           <div className="demo-kpis">
             <div><span>Occupati</span><strong>{stats.occupied}</strong></div>
             <div><span>Ordini</span><strong>{demoOrders.length}</strong></div>

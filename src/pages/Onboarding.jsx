@@ -57,6 +57,68 @@ export default function Onboarding() {
     return (qrPayload?.tables || []).map((table) => ({ ...table, link: `${baseUrl()}/menu/${slug}/${table.qrToken}` }));
   }, [qrPayload, restaurant]);
 
+  const setupCoach = useMemo(() => {
+    if (loading) return null;
+
+    if (!checks.profile) {
+      return {
+        tone: "brand",
+        title: "Parti dal logo",
+        text: "Il menu cliente deve sembrare del ristorante, non una demo generica. Carica il logo dal PC e salvalo.",
+        actionLabel: "Carica logo",
+        action: () => document.querySelector(".onb-logo-card")?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      };
+    }
+
+    if (!checks.tables) {
+      return {
+        tone: "tables",
+        title: "Crea la sala",
+        text: "Prepara tutti i tavoli prima di stampare i QR. Per la demo commerciale consiglio almeno 20 tavoli.",
+        actionLabel: "Crea tavoli",
+        action: runAutoSetup,
+      };
+    }
+
+    if (!checks.menu) {
+      return {
+        tone: "menu",
+        title: "Completa il menu",
+        text: "Aggiungi almeno antipasti, primi, secondi, dolci e bevande. Le foto dei piatti fanno molta differenza nella prova.",
+        actionLabel: "Importa menu",
+        action: importMenu,
+      };
+    }
+
+    if (!checks.qr || qrLinks.length === 0) {
+      return {
+        tone: "qr",
+        title: "Prepara i QR",
+        text: "Quando tavoli e menu sono pronti, stampa i QR e prova un ordine reale dal telefono.",
+        actionLabel: "Anteprima QR",
+        action: () => setShowQrPreview(true),
+      };
+    }
+
+    if (!checks.billing) {
+      return {
+        tone: "billing",
+        title: "Controlla l'abbonamento",
+        text: "Prima di vendere o far provare il locale, assicurati che il ristorante risulti attivo.",
+        actionLabel: "Apri billing",
+        action: () => { window.location.href = "/billing"; },
+      };
+    }
+
+    return {
+      tone: "done",
+      title: "Pronto per il servizio",
+      text: "Logo, tavoli, menu e QR sono allineati. Ora fai provare menu cliente, cucina e cassa nello stesso flusso.",
+      actionLabel: "Apri demo",
+      action: () => { window.location.href = "/demo"; },
+    };
+  }, [checks.billing, checks.menu, checks.profile, checks.qr, checks.tables, loading, qrLinks.length]);
+
   async function load() {
     try {
       setError("");
@@ -197,6 +259,19 @@ export default function Onboarding() {
               <small>{qrLinks.length} pronti</small>
             </button>
           </section>
+
+          {setupCoach ? (
+            <section className={`onb-coach-card ${setupCoach.tone}`}>
+              <div>
+                <span>Assistente setup</span>
+                <h2>{setupCoach.title}</h2>
+                <p>{setupCoach.text}</p>
+              </div>
+              <button type="button" className="onb-primary" onClick={setupCoach.action} disabled={working}>
+                {working ? "Attendi..." : setupCoach.actionLabel}
+              </button>
+            </section>
+          ) : null}
 
           <section className="onb-service-grid">
             <SetupActionCard done={checks.profile} kicker="Passo 1" title="Logo ristorante" text="Carica il logo dal PC: comparira nel menu cliente e nei QR." >
