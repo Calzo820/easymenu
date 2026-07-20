@@ -98,15 +98,40 @@ export const autoSetupRestaurant = async (req, res) => {
     const createDemoMenu = req.body?.createDemoMenu !== false;
 
     const result = await prisma.$transaction(async (tx) => {
-      const existingTables = await tx.table.findMany({ where: { restaurantId }, select: { code: true } });
-      const existingCodes = new Set(existingTables.map((t) => t.code));
+      const existingTables = await tx.table.findMany({
+        where: { restaurantId },
+        select: { id: true, code: true, isActive: true },
+      });
+      const existingByCode = new Map(existingTables.map((table) => [table.code, table]));
       const tablesToCreate = [];
+      let tablesReactivated = 0;
+
       for (let i = 1; i <= tablesCount; i += 1) {
         const code = normalizeCode(`T${i}`);
-        if (existingCodes.has(code)) continue;
-        const zone = zoneMode === "zones" ? (i <= Math.ceil(tablesCount / 2) ? "Sala" : "Dehors") : "Sala";
+        const existing = existingByCode.get(code);
+        const zone = zoneMode === "zones" ? (i <= Math.ceil(tablesCount / 2) ? "Sala" : "Dehors") : null;
+
+        if (existing) {
+          if (!existing.isActive) {
+            await tx.table.update({
+              where: { id: existing.id },
+              data: {
+                name: `Tavolo ${i}`,
+                seats,
+                zone,
+                sortOrder: i,
+                isActive: true,
+                qrToken: crypto.randomUUID(),
+              },
+            });
+            tablesReactivated += 1;
+          }
+          continue;
+        }
+
         tablesToCreate.push({ restaurantId, name: `Tavolo ${i}`, code, qrToken: crypto.randomUUID(), seats, zone, sortOrder: i, isActive: true });
       }
+
       if (tablesToCreate.length) await tx.table.createMany({ data: tablesToCreate, skipDuplicates: true });
 
       const currentMenuCount = await tx.menuItem.count({ where: { restaurantId, isDeleted: false } });
@@ -120,7 +145,8 @@ export const autoSetupRestaurant = async (req, res) => {
           demoMenuCreated = items.length;
         }
       }
-      return { tablesCreated: tablesToCreate.length, demoMenuCreated };
+      const activeTablesAfter = await tx.table.count({ where: { restaurantId, isActive: true } });
+      return { tablesCreated: tablesToCreate.length, tablesReactivated, activeTablesAfter, demoMenuCreated };
     });
 
     await updateOnboardingSettings(restaurantId, { autoSetupCompleted: true, autoSetupAt: new Date().toISOString(), tablesRequested: tablesCount });

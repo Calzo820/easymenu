@@ -6,7 +6,7 @@ import { imageFileToDataUrl } from "../lib/imageFiles";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import "../styles/onboarding.css";
 
-const DEMO_IMPORT = `nome;prezzo;categoria;area;descrizione;allergeni
+const DEMO_IMPORT = `nome;prezzo;categoria;cucina_o_bar;descrizione;allergeni
 Bruschetta classica;5;Antipasti;kitchen;Pomodoro basilico e olio EVO;glutine
 Carbonara;12;Primi;kitchen;Guanciale uova pecorino;glutine,uova,latte
 Grigliata mista;18;Secondi;kitchen;Carne mista alla griglia;
@@ -85,7 +85,7 @@ export default function Onboarding() {
         tone: "menu",
         title: "Completa il menu",
         text: "Aggiungi almeno antipasti, primi, secondi, dolci e bevande. Le foto dei piatti fanno molta differenza nella prova.",
-        actionLabel: "Importa menu",
+        actionLabel: "Aggiungi prodotti",
         action: importMenu,
       };
     }
@@ -150,7 +150,15 @@ export default function Onboarding() {
         createDemoMenu: false,
         overwriteEmptyOnly: true,
       });
-      setMessage(`Tavoli creati: ${result.tablesCreated || 0}.`);
+      const activeTables = result.status?.counts?.activeTables || result.activeTablesAfter || 0;
+      const created = Number(result.tablesCreated || 0);
+      const reactivated = Number(result.tablesReactivated || 0);
+      if (activeTables > 0) {
+        setMessage(`Sala pronta: ${activeTables} tavoli attivi. Nuovi: ${created}. Riattivati: ${reactivated}.`);
+      } else {
+        setError("Non ho trovato tavoli attivi dopo la creazione. Riprova o contattaci.");
+      }
+      if (result.status) setStatus(result.status);
       await load();
     } catch (err) {
       setError(err.message || "Errore creazione tavoli");
@@ -165,7 +173,14 @@ export default function Onboarding() {
       setError("");
       setMessage("");
       const result = await apiPost("/onboarding/import-menu", { text: importText });
-      setMessage(`Prodotti importati: ${result.imported || 0}. Duplicati saltati: ${result.skipped || 0}.`);
+      const imported = Number(result.imported || 0);
+      const skipped = Number(result.skipped || 0);
+      if (imported > 0) {
+        setMessage(`Prodotti aggiunti al menu: ${imported}. Gia presenti: ${skipped}.`);
+      } else {
+        setMessage(`Nessun nuovo prodotto aggiunto: ${skipped} erano gia presenti nel menu.`);
+      }
+      if (result.status) setStatus(result.status);
       await load();
     } catch (err) {
       setError(err.message || "Errore import menu");
@@ -250,7 +265,7 @@ export default function Onboarding() {
             </button>
             <button type="button" onClick={importMenu} disabled={working}>
               <span>3</span>
-              <strong>Importa menu</strong>
+              <strong>Aggiungi prodotti</strong>
               <small>{counts.menuItems || 0} prodotti</small>
             </button>
             <button type="button" onClick={printQrPdf} disabled={!qrLinks.length}>
@@ -300,9 +315,14 @@ export default function Onboarding() {
               <small>{counts.activeTables || 0} tavoli attivi.</small>
             </SetupActionCard>
 
-            <SetupActionCard done={checks.menu} kicker="Passo 3" title="Menu" text="Incolla o modifica la lista prodotti. Dopo puoi rifinirla dalla pagina Menu.">
+            <SetupActionCard done={checks.menu} kicker="Passo 3" title="Prodotti menu" text="Scrivi o lascia gli esempi qui sotto: ogni riga diventa un piatto o una bevanda nella pagina Menu.">
+              <div className="onb-menu-help">
+                <strong>Come funziona</strong>
+                <span>Formato riga: nome; prezzo; categoria; kitchen oppure bar; descrizione; allergeni.</span>
+                <span>Esempio: Carbonara;12;Primi;kitchen;Guanciale uova pecorino;glutine,uova,latte</span>
+              </div>
               <textarea className="onb-textarea" value={importText} onChange={(event) => setImportText(event.target.value)} rows={8} />
-              <button className="onb-primary" disabled={working} onClick={importMenu}>{working ? "Importo..." : "Importa prodotti"}</button>
+              <button className="onb-primary" disabled={working} onClick={importMenu}>{working ? "Aggiungo..." : "Aggiungi prodotti al menu"}</button>
               <small>{counts.menuItems || 0} prodotti nel menu.</small>
             </SetupActionCard>
 
