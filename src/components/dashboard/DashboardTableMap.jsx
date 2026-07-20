@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
-export default function DashboardTableMap({ activeTables = [], totalTables = 0, activeCount = 0 }) {
-  const tables = activeTables.length
-    ? activeTables
+export default function DashboardTableMap({ tables = [], totalTables = 0 }) {
+  const displayTables = tables.length
+    ? tables
     : Array.from({ length: Math.min(Number(totalTables) || 0, 18) }, (_, index) => ({ id: `free-${index}`, name: `T${index + 1}`, isPlaceholder: true }));
 
   return (
@@ -15,10 +15,10 @@ export default function DashboardTableMap({ activeTables = [], totalTables = 0, 
         </div>
         <Link to="/tavoli">Gestisci</Link>
       </div>
-      {tables.length ? (
+      {displayTables.length ? (
         <div className="dash-table-grid">
-          {tables.map((table, index) => {
-            const occupied = !table.isPlaceholder && index < activeCount;
+          {displayTables.map((table, index) => {
+            const occupied = Boolean(table.isOccupied);
             return (
               <div className={occupied ? "dash-table-seat dash-table-seat--busy" : "dash-table-seat"} key={table.id || table.name || index}>
                 <b>{table.name || table.code || `T${index + 1}`}</b>

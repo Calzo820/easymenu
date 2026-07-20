@@ -1,12 +1,17 @@
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const API = (process.env.API_URL || process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
 const EMAIL = process.env.DEMO_OWNER_EMAIL || 'owner@demo.test';
 const PASSWORD = process.env.DEMO_OWNER_PASSWORD || 'EasyMenu2026!';
 
 async function request(path, options = {}) {
-  const res = await fetch(`${API}${path}`, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
+  let res;
+  try {
+    res = await fetch(`${API}${path}`, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
+  } catch {
+    throw new Error(`Backend non raggiungibile su ${API}. Avvia il backend o controlla API_URL/BACKEND_URL.`);
+  }
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(`${options.method || 'GET'} ${path} -> ${res.status}: ${data?.message || res.statusText}`);
   return data;
@@ -14,7 +19,7 @@ async function request(path, options = {}) {
 
 function assert(value, label) {
   if (!value) throw new Error(`Test fallito: ${label}`);
-  console.log(`✓ ${label}`);
+  console.log(`OK ${label}`);
 }
 
 async function main() {
@@ -50,7 +55,7 @@ async function main() {
     const checkout = await request(`/payments/public/${order.publicToken}/checkout`, { method: 'POST', body: JSON.stringify({ splitCount: 1, payerIndex: 1 }) });
     assert(checkout.checkoutUrl && checkout.sessionId, 'Stripe checkout test creato');
   } else {
-    console.log('ℹ Stripe saltato: STRIPE_SECRET_KEY non configurata');
+    console.log('Info: Stripe saltato, STRIPE_SECRET_KEY non configurata');
   }
 
   console.log('Smoke test completato.');

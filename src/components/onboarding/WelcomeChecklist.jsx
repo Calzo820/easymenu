@@ -1,7 +1,7 @@
 export default function WelcomeChecklist() {
   const steps = [
     "Configura tavoli",
-    "Importa menu",
+    "Aggiungi prodotti",
     "Collega stampanti",
     "Attiva ordini live",
   ];

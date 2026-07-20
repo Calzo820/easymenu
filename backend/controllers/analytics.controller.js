@@ -298,6 +298,14 @@ export const getAnalyticsSummary = async (req, res) => {
         zone: table.zone,
       }));
 
+    const tableMap = tables.slice(0, 60).map((table) => ({
+      id: table.id,
+      name: table.name,
+      code: table.code,
+      zone: table.zone,
+      isOccupied: activeTableIds.has(table.id),
+    }));
+
     const byDayMap = new Map();
     const byPaymentMap = new Map();
 
@@ -386,6 +394,7 @@ export const getAnalyticsSummary = async (req, res) => {
       },
 
       live: {
+        tables: tableMap,
         activeTables,
 
         activeOrders: activeOrders.slice(0, 12).map((order) => ({
