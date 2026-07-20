@@ -167,9 +167,6 @@ function Dashboard() {
   const alerts = data?.alerts || {};
 
   const alertCount = num(kpis.unresolvedErrors) + num(kpis.paymentAlerts) + num(kpis.unavailableItems);
-  const busyTables = num(kpis.activeTables);
-  const freeTables = num(kpis.freeTables);
-  const openOrders = num(kpis.openOrders);
   const moneyHidden = Boolean(data?.privacyMode);
   const setupChecks = setupStatus?.checks || {};
   const readinessItems = useMemo(() => [
@@ -255,16 +252,6 @@ function Dashboard() {
         ) : null}
 
         <section className="dash-service-strip">
-          <Link className={openOrders ? "dash-service-card is-hot" : "dash-service-card"} to="/cucina">
-            <span>Servizio</span>
-            <b>{openOrders ? `${openOrders} ordini attivi` : "Nessun ordine attivo"}</b>
-            <small>Apri cucina e bar per seguire il pass.</small>
-          </Link>
-          <Link className={busyTables ? "dash-service-card" : "dash-service-card is-calm"} to="/tavoli">
-            <span>Sala</span>
-            <b>{busyTables} occupati / {freeTables} liberi</b>
-            <small>Controlla tavoli, QR e prenotazioni.</small>
-          </Link>
           <Link className={num(kpis.unavailableItems) ? "dash-service-card is-warning" : "dash-service-card"} to="/admin">
             <span>Menu</span>
             <b>{num(kpis.unavailableItems)} piatti non disponibili</b>
@@ -311,10 +298,10 @@ function Dashboard() {
         {advancedOpen ? (
           <>
             <section className="dash-kpi-grid dash-kpi-grid--advanced">
-              <DashboardStat label="Incasso oggi" value={moneyHidden ? "Nascosto" : euro(kpis.revenueToday)} detail={`${num(kpis.completedOrdersToday)} ordini completati`} tone="money" />
-              <DashboardStat label="Ordini attivi" value={num(kpis.openOrders)} detail="Da cucina, bar e cassa" tone="live" />
-              <DashboardStat label="Tavoli occupati" value={`${num(kpis.activeTables)}/${num(kpis.totalTables)}`} detail={`${num(kpis.freeTables)} tavoli liberi`} />
+              <DashboardStat label="Incasso oggi" value={moneyHidden ? "Nascosto" : euro(kpis.revenueToday)} detail="Totale chiuso oggi" tone="money" />
               <DashboardStat label="Ticket medio" value={moneyHidden ? "Nascosto" : euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
+              <DashboardStat label="Ordini completati" value={num(kpis.completedOrdersToday)} detail="Serviti e chiusi oggi" tone="live" />
+              <DashboardStat label="Incasso periodo" value={moneyHidden ? "Nascosto" : euro(kpis.revenueRange)} detail={`${num(kpis.completedOrdersRange)} ordini nel periodo`} tone="money" />
             </section>
 
             <section className="dash-main-grid dash-main-grid--advanced">

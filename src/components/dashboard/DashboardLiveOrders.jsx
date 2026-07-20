@@ -23,7 +23,7 @@ export default function DashboardLiveOrders({ orders = [] }) {
           <span>Live service</span>
           <h2>Ordini attivi</h2>
         </div>
-        <Link to="/cucina">Monitor cucina →</Link>
+        <Link to="/cucina">Monitor cucina</Link>
       </div>
       {orders.length ? (
         <div className="dash-order-list">

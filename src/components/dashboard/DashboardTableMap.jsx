@@ -13,7 +13,7 @@ export default function DashboardTableMap({ activeTables = [], totalTables = 0, 
           <span>Sala</span>
           <h2>Mappa rapida</h2>
         </div>
-        <Link to="/tavoli">Gestisci →</Link>
+        <Link to="/tavoli">Gestisci</Link>
       </div>
       {tables.length ? (
         <div className="dash-table-grid">
