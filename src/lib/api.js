@@ -1,5 +1,5 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-export const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 12000);
+export const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 60000);
 
 export function getAuthToken() {
   return localStorage.getItem("auth_token") || "";
@@ -47,19 +47,25 @@ function buildUrl(endpoint) {
 }
 
 async function performFetch(endpoint, options = {}, withAuth = true) {
+  const {
+    timeoutMs = API_TIMEOUT_MS,
+    skipRefresh,
+    withAuth: _withAuth,
+    ...fetchOptions
+  } = options;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(buildUrl(endpoint), {
-      ...options,
-      signal: options.signal || controller.signal,
+      ...fetchOptions,
+      signal: fetchOptions.signal || controller.signal,
       credentials: "include",
       headers: withAuth
-        ? getAuthHeaders(options.headers || {})
+        ? getAuthHeaders(fetchOptions.headers || {})
         : {
             "Content-Type": "application/json",
-            ...(options.headers || {}),
+            ...(fetchOptions.headers || {}),
           },
     });
 
@@ -69,7 +75,7 @@ async function performFetch(endpoint, options = {}, withAuth = true) {
       if (response.status === 402) {
         throw new Error(data?.message || "Piano non attivo: riattiva l'abbonamento da Billing per usare i dati reali del ristorante.");
       }
-      if (response.status === 401 && withAuth && !options.skipRefresh) {
+      if (response.status === 401 && withAuth && !skipRefresh) {
         try {
           const refresh = await fetch(buildUrl("/auth/refresh"), {
             method: "POST",
@@ -93,10 +99,10 @@ async function performFetch(endpoint, options = {}, withAuth = true) {
     return data;
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error("Connessione lenta o server non raggiungibile. Riprova tra poco.");
+      throw new Error("Il server si sta avviando. Attendi qualche secondo e riprova.");
     }
     if (error?.name === "TypeError" || /failed to fetch|network/i.test(error?.message || "")) {
-      throw new Error("Server temporaneamente non disponibile. Se Render si sta riavviando, riprova tra qualche secondo.");
+      throw new Error("Server in avvio o temporaneamente non disponibile. Riprova tra qualche secondo.");
     }
     throw error;
   } finally {
@@ -137,12 +143,13 @@ export async function apiDelete(endpoint, extraHeaders = {}) {
   return apiFetch(endpoint, { method: "DELETE", headers: extraHeaders });
 }
 
-export async function publicApiGet(endpoint, extraHeaders = {}) {
-  return publicApiFetch(endpoint, { method: "GET", headers: extraHeaders });
+export async function publicApiGet(endpoint, extraHeaders = {}, options = {}) {
+  return publicApiFetch(endpoint, { ...options, method: "GET", headers: extraHeaders });
 }
 
-export async function publicApiPost(endpoint, body = {}, extraHeaders = {}) {
+export async function publicApiPost(endpoint, body = {}, extraHeaders = {}, options = {}) {
   return publicApiFetch(endpoint, {
+    ...options,
     method: "POST",
     headers: extraHeaders,
     body: JSON.stringify(body),

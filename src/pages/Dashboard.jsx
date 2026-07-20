@@ -103,7 +103,7 @@ function Dashboard() {
     try {
       setDemoSeeding(true);
       setDemoSeedMessage("Preparo la demo completa nel database...");
-      await publicApiPost("/demo/ensure", {});
+      await publicApiPost("/demo/ensure", {}, {}, { timeoutMs: 120000 });
 
       const loginData = await publicApiPost("/auth/login", {
         email: "owner@demo.test",

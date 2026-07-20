@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   apiPost,
   getAuthToken,
+  publicApiGet,
   publicApiPost,
   setAuthToken,
 } from "../lib/api";
@@ -29,6 +30,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errore, setErrore] = useState("");
   const [successo, setSuccesso] = useState("");
+  const [avviso, setAvviso] = useState("");
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
 
@@ -43,7 +45,35 @@ export default function Login() {
       // così non ti incasino durante lo sviluppo.
       // Se vuoi, dopo possiamo validarlo con /auth/me.
     }
+
+    let cancelled = false;
+    async function wakeBackend() {
+      try {
+        await publicApiGet("/health", {}, { timeoutMs: 60000 });
+        if (!cancelled) setAvviso("");
+      } catch {
+        if (!cancelled) {
+          setAvviso("Sto preparando il server. Se Render era fermo, il primo accesso puo richiedere 30-60 secondi.");
+        }
+      }
+    }
+    wakeBackend();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  function showError(error, fallback) {
+    const message = error?.message || fallback || "Operazione non riuscita.";
+    if (/server.*avviando|server in avvio|temporaneamente non disponibile|render|riprova tra qualche secondo/i.test(message)) {
+      setErrore("");
+      setAvviso("Il server si sta avviando. Attendi qualche secondo e riprova: non e un problema delle credenziali.");
+      return;
+    }
+    setAvviso("");
+    setErrore(message);
+  }
 
   function updateField(field, value) {
     setForm((prev) => ({
@@ -53,11 +83,13 @@ export default function Login() {
 
     if (errore) setErrore("");
     if (successo) setSuccesso("");
+    if (avviso) setAvviso("");
   }
 
   async function loginWithCredentials(email, password) {
     try {
       setLoading(true);
+      setAvviso("");
 
       const data = await apiPost("/auth/login", {
         email,
@@ -96,7 +128,7 @@ export default function Login() {
         navigate(redirectPath);
       }, 500);
     } catch (error) {
-      setErrore(error.message || "Errore durante il login.");
+      showError(error, "Errore durante il login.");
     } finally {
       setLoading(false);
     }
@@ -107,6 +139,7 @@ export default function Login() {
 
     setErrore("");
     setSuccesso("");
+    setAvviso("");
 
     const email = form.email.trim().toLowerCase();
     const password = form.password;
@@ -133,13 +166,14 @@ export default function Login() {
     try {
       setDemoLoading(true);
       setErrore("");
+      setAvviso("");
       setSuccesso("Preparo la demo completa: logo, tavoli, menu, ordini e storico...");
-      await publicApiPost("/demo/ensure", {});
+      await publicApiPost("/demo/ensure", {}, {}, { timeoutMs: 120000 });
       setForm({ email: "owner@demo.test", password: "EasyMenu2026!" });
       setSuccesso("Demo completa pronta. Accesso in corso...");
       await loginWithCredentials("owner@demo.test", "EasyMenu2026!");
     } catch (error) {
-      setErrore(error.message || "Non sono riuscito a preparare la demo completa.");
+      showError(error, "Non sono riuscito a preparare la demo completa.");
     } finally {
       setDemoLoading(false);
     }
@@ -291,6 +325,23 @@ export default function Login() {
                 }}
               >
                 {errore}
+              </div>
+            ) : null}
+
+            {avviso ? (
+              <div
+                style={{
+                  marginBottom: 14,
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  color: "#92400e",
+                  borderRadius: 14,
+                  padding: 12,
+                  fontWeight: 800,
+                  lineHeight: 1.45,
+                }}
+              >
+                {avviso}
               </div>
             ) : null}
 
