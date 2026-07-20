@@ -54,10 +54,10 @@ function ServiceReadinessChecklist({ items, progress }) {
       </div>
       <div className="dash-ready-service__grid">
         {items.map((item) => (
-          <Link key={item.label} to={item.to} className={item.done ? "is-done" : ""}>
+          <div key={item.label} className={item.done ? "is-done" : ""}>
             <i>{item.done ? "OK" : "NO"}</i>
             <span>{item.label}</span>
-          </Link>
+          </div>
         ))}
       </div>
     </section>
@@ -170,13 +170,13 @@ function Dashboard() {
   const moneyHidden = Boolean(data?.privacyMode);
   const setupChecks = setupStatus?.checks || {};
   const readinessItems = useMemo(() => [
-    { label: "Logo caricato", done: Boolean(setupChecks.profile), to: "/admin?tab=settings" },
-    { label: "Tavoli creati", done: Boolean(setupChecks.tables), to: "/tavoli" },
-    { label: "Menu inserito", done: Boolean(setupChecks.menu), to: "/admin?tab=menu" },
-    { label: "QR generati", done: Boolean(setupChecks.qr), to: "/qr" },
-    { label: "Cucina pronta", done: Boolean(setupChecks.menu), to: "/cucina" },
-    { label: "Cassa pronta", done: Boolean(setupChecks.tables), to: "/cassa" },
-    { label: "Abbonamento attivo", done: Boolean(setupChecks.billing), to: "/billing" },
+    { label: "Logo caricato", done: Boolean(setupChecks.profile) },
+    { label: "Tavoli creati", done: Boolean(setupChecks.tables) },
+    { label: "Menu inserito", done: Boolean(setupChecks.menu) },
+    { label: "QR generati", done: Boolean(setupChecks.qr) },
+    { label: "Cucina pronta", done: Boolean(setupChecks.menu) },
+    { label: "Cassa pronta", done: Boolean(setupChecks.tables) },
+    { label: "Abbonamento attivo", done: Boolean(setupChecks.billing) },
   ], [setupChecks.billing, setupChecks.menu, setupChecks.profile, setupChecks.qr, setupChecks.tables]);
   const readinessProgress = setupStatus?.progress ?? Math.round((readinessItems.filter((item) => item.done).length / readinessItems.length) * 100);
 
@@ -252,26 +252,26 @@ function Dashboard() {
         ) : null}
 
         <section className="dash-service-strip">
-          <Link className={num(kpis.unavailableItems) ? "dash-service-card is-warning" : "dash-service-card"} to="/admin">
+          <article className={num(kpis.unavailableItems) ? "dash-service-card is-warning" : "dash-service-card"}>
             <span>Menu</span>
             <b>{num(kpis.unavailableItems)} piatti non disponibili</b>
             <small>Aggiorna solo cosa il cliente puo ordinare.</small>
-          </Link>
-          <Link className={alertCount ? "dash-service-card is-warning" : "dash-service-card is-calm"} to="/errori">
+          </article>
+          <article className={alertCount ? "dash-service-card is-warning" : "dash-service-card is-calm"}>
             <span>Controllo</span>
             <b>{alertCount ? `${alertCount} alert` : "Tutto regolare"}</b>
             <small>Verifica pagamenti, errori e avvisi.</small>
-          </Link>
-          <Link className="dash-service-card is-report" to="/statistiche">
+          </article>
+          <article className="dash-service-card is-report">
             <span>Statistiche</span>
             <b>Report e consigli</b>
             <small>Apri numeri, prodotti top e consulente EasyMenu.</small>
-          </Link>
-          <Link className="dash-service-card is-report" to="/storico">
+          </article>
+          <article className="dash-service-card is-report">
             <span>Storico</span>
             <b>Ordini chiusi</b>
             <small>Rivedi conti, pagamenti e comande concluse.</small>
-          </Link>
+          </article>
         </section>
 
         <section className="dash-main-grid dash-main-grid--focus">
@@ -281,9 +281,8 @@ function Dashboard() {
 
           <aside className="dash-side-stack">
             <DashboardTableMap
-              activeTables={live.activeTables || []}
+              tables={live.tables || []}
               totalTables={kpis.totalTables || 0}
-              activeCount={kpis.activeTables || 0}
             />
           </aside>
         </section>

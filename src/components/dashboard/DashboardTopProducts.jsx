@@ -21,14 +21,14 @@ export default function DashboardTopProducts({ products = [] }) {
             const pct = Math.max(6, Math.min(100, ((Number(product.quantity) || 0) / max) * 100));
             return (
               <div className="dash-bar-row" key={product.id || product.name}>
-                <div><b>{product.name}</b><span>{product.quantity} venduti · {euro(product.revenue)}</span></div>
+                <div><b>{product.name}</b><span>{product.quantity} venduti - {euro(product.revenue)}</span></div>
                 <div className="dash-bar-track"><i style={{ width: `${pct}%` }} /></div>
               </div>
             );
           })}
         </div>
       ) : (
-        <DashboardEmptyState title="Nessuna vendita" text="I prodotti più venduti compariranno durante il turno." />
+        <DashboardEmptyState title="Nessuna vendita" text="I prodotti piu venduti compariranno durante il turno." />
       )}
     </section>
   );

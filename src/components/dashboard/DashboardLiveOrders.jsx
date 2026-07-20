@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
 function euro(value) {
@@ -15,6 +14,15 @@ function timeAgo(value) {
   return `${Math.round(min / 60)} h`;
 }
 
+function orderStatusMeta(status) {
+  const normalized = String(status || "pending").toLowerCase();
+  if (normalized === "in_progress") return { tone: "progress", label: "In preparazione" };
+  if (normalized === "ready") return { tone: "ready", label: "Pronto" };
+  if (normalized === "served") return { tone: "served", label: "Servito" };
+  if (normalized === "cancelled") return { tone: "cancelled", label: "Annullato" };
+  return { tone: "pending", label: "Nuovo ordine" };
+}
+
 export default function DashboardLiveOrders({ orders = [] }) {
   return (
     <section className="dash-panel dash-live-orders">
@@ -23,23 +31,25 @@ export default function DashboardLiveOrders({ orders = [] }) {
           <span>Live service</span>
           <h2>Ordini attivi</h2>
         </div>
-        <Link to="/cucina">Monitor cucina</Link>
       </div>
       {orders.length ? (
         <div className="dash-order-list">
-          {orders.slice(0, 8).map((order) => (
-            <article className="dash-order-row" key={order.id}>
-              <div className="dash-order-table">
-                <strong>{order.table}</strong>
-                <small>#{order.orderNumber || order.id} · {timeAgo(order.createdAt)}</small>
-              </div>
-              <div className="dash-order-meta">
-                <b>{order.itemsCount || 0} articoli</b>
-                <small>{order.status || "in corso"}</small>
-              </div>
-              <div className="dash-order-total">{euro(order.totalAmount)}</div>
-            </article>
-          ))}
+          {orders.slice(0, 8).map((order) => {
+            const status = orderStatusMeta(order.status);
+            return (
+              <article className={`dash-order-row dash-order-row--${status.tone}`} key={order.id}>
+                <div className="dash-order-table">
+                  <strong>{order.table}</strong>
+                  <small>#{order.orderNumber || order.id} - {timeAgo(order.createdAt)}</small>
+                </div>
+                <div className="dash-order-meta">
+                  <b>{order.itemsCount || 0} articoli</b>
+                  <small className={`dash-order-status dash-order-status--${status.tone}`}>{status.label}</small>
+                </div>
+                <div className="dash-order-total">{euro(order.totalAmount)}</div>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <DashboardEmptyState title="Nessun ordine aperto" text="Quando arrivano nuove comande compariranno qui." />

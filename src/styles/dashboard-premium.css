@@ -188,7 +188,6 @@
   z-index: 1;
 }
 
-.dash-hero-actions a,
 .dash-hero-actions button {
   border: 1px solid rgba(255,255,255,.18);
   border-radius: 16px;
@@ -230,7 +229,6 @@
   border: 1px solid #e2e8f0;
   background: #fff;
   color: var(--dash-ink);
-  text-decoration: none;
   box-shadow: 0 14px 30px rgba(15,23,42,.06);
 }
 
@@ -338,7 +336,7 @@
   gap: 9px;
 }
 
-.dash-ready-service__grid a {
+.dash-ready-service__grid div {
   min-height: 74px;
   display: grid;
   gap: 7px;
@@ -348,11 +346,10 @@
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   color: var(--dash-ink);
-  text-decoration: none;
   font-weight: 900;
 }
 
-.dash-ready-service__grid a.is-done {
+.dash-ready-service__grid div.is-done {
   background: #f0fdf4;
   border-color: #bbf7d0;
 }
@@ -368,7 +365,7 @@
   font-weight: 950;
 }
 
-.dash-ready-service__grid a.is-done i {
+.dash-ready-service__grid div.is-done i {
   background: #dcfce7;
   color: #166534;
 }
@@ -513,6 +510,38 @@
   border-radius: 18px;
   background: #f8fafc;
   border: 1px solid #eef2f7;
+  border-left: 7px solid #2563eb;
+  box-shadow: 0 10px 24px rgba(15,23,42,.04);
+}
+
+.dash-order-row--pending {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  border-left-color: #2563eb;
+}
+
+.dash-order-row--progress {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  border-left-color: #f97316;
+}
+
+.dash-order-row--ready {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  border-left-color: #16a34a;
+}
+
+.dash-order-row--served {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  border-left-color: #64748b;
+}
+
+.dash-order-row--cancelled {
+  background: #fef2f2;
+  border-color: #fecaca;
+  border-left-color: #dc2626;
 }
 
 .dash-order-table strong,
@@ -531,8 +560,48 @@
   font-weight: 800;
 }
 
+.dash-order-status {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.dash-order-status--pending {
+  color: #1d4ed8 !important;
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.dash-order-status--progress {
+  color: #9a3412 !important;
+  background: #ffedd5;
+  border-color: #fed7aa;
+}
+
+.dash-order-status--ready {
+  color: #166534 !important;
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.dash-order-status--served {
+  color: #475569 !important;
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.dash-order-status--cancelled {
+  color: #991b1b !important;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
 .dash-order-total {
-  color: var(--dash-green);
+  color: var(--dash-ink);
 }
 
 .dash-table-grid {

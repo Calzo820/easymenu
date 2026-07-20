@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
 export default function DashboardTableMap({ tables = [], totalTables = 0 }) {
@@ -13,7 +12,6 @@ export default function DashboardTableMap({ tables = [], totalTables = 0 }) {
           <span>Sala</span>
           <h2>Mappa rapida</h2>
         </div>
-        <Link to="/tavoli">Gestisci</Link>
       </div>
       {displayTables.length ? (
         <div className="dash-table-grid">

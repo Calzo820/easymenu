@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
 function timeAgo(value) {
@@ -24,7 +23,6 @@ export default function DashboardAlerts({ alerts = {} }) {
           <span>Controllo</span>
           <h2>Da sistemare</h2>
         </div>
-        <Link to="/errori">Log</Link>
       </div>
       {items.length ? (
         <div className="dash-alert-list">

@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom";
-
 export default function DashboardHeader({ restaurantName, liveBadge, refreshing, onRefresh }) {
   const live = liveBadge?.includes("attivo");
   return (
@@ -13,8 +11,6 @@ export default function DashboardHeader({ restaurantName, liveBadge, refreshing,
       </div>
       <div className="dash-hero-actions">
         <button type="button" onClick={onRefresh}>{refreshing ? "Aggiorno..." : "Aggiorna"}</button>
-        <Link to="/tavoli">Apri sala</Link>
-        <Link to="/cassa">Vai alla cassa</Link>
       </div>
     </header>
   );
