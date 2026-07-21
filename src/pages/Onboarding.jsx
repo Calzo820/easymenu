@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import { apiGet, apiPatch, apiPost } from "../lib/api";
@@ -12,6 +13,24 @@ Carbonara;12;Primi;kitchen;Guanciale uova pecorino;glutine,uova,latte
 Grigliata mista;18;Secondi;kitchen;Carne mista alla griglia;
 Acqua frizzante;2.5;Bevande;bar;Bottiglia 0,75;
 Calice vino rosso;5;Vini;bar;Selezione della casa;solfiti`;
+
+const PRINT_LAYOUTS = [
+  {
+    key: "labels",
+    title: "Etichette A4",
+    text: "Formato compatto: piu QR per pagina.",
+  },
+  {
+    key: "large",
+    title: "QR grande",
+    text: "Un tavolo per pagina, ideale per plastificare.",
+  },
+  {
+    key: "tent",
+    title: "Segnaposto tavolo",
+    text: "Formato piu elegante da mettere in piedi sul tavolo.",
+  },
+];
 
 function SetupActionCard({ done, kicker, title, text, children }) {
   return (
@@ -33,6 +52,31 @@ function baseUrl() {
   return window.location.origin;
 }
 
+function QrPrintDocument({ preview = false, layout, qrLinks, restaurant }) {
+  return (
+    <div className={`${preview ? "onb-preview-document" : "onb-print-document"} onb-print-document--${layout}`}>
+      <div className="onb-print-title">
+        <span>{layout === "tent" ? "Materiale da tavolo" : "QR tavoli"}</span>
+        <h2>{restaurant?.name || "Ristorante"}</h2>
+        <p>Scansiona il QR, apri il menu e ordina direttamente dal tavolo.</p>
+      </div>
+      <div className="onb-qr-grid">
+        {qrLinks.map((table) => (
+          <article className="onb-qr-card" key={table.id}>
+            <div className="onb-qr-brand">{restaurant?.name || "EasyMenu"}</div>
+            <h3>{table.name}</h3>
+            <QRCodeSVG className="onb-qr-code" value={table.link} size={180} includeMargin />
+            <strong className="onb-qr-cta">Ordina dal tavolo</strong>
+            {layout === "tent" ? <small className="onb-qr-hint">Inquadra con la fotocamera del telefono</small> : null}
+            <p>{table.link}</p>
+          </article>
+        ))}
+        {!qrLinks.length ? <div className="onb-qr-empty">Crea prima i tavoli per generare i QR.</div> : null}
+      </div>
+    </div>
+  );
+}
+
 export default function Onboarding() {
   const [status, setStatus] = useState(null);
   const [qrPayload, setQrPayload] = useState(null);
@@ -43,6 +87,7 @@ export default function Onboarding() {
   const [tablesCount, setTablesCount] = useState(20);
   const [importText, setImportText] = useState(DEMO_IMPORT);
   const [showQrPreview, setShowQrPreview] = useState(false);
+  const [printLayout, setPrintLayout] = useState("labels");
   const [logoUrl, setLogoUrl] = useState("");
   const [savingLogo, setSavingLogo] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -246,10 +291,11 @@ export default function Onboarding() {
     }
   }
 
-  function printQrPdf() {
+  function printQrPdf(layout = printLayout) {
     if (!qrLinks.length) return;
+    setPrintLayout(layout);
     setShowQrPreview(true);
-    setTimeout(() => window.print(), 350);
+    setTimeout(() => window.print(), 450);
   }
 
   function openQrPreview() {
@@ -345,7 +391,7 @@ export default function Onboarding() {
             <SetupActionCard done={checks.qr} kicker="Passo 4" title="QR tavoli" text="Controlla l'anteprima e stampa i QR da mettere sui tavoli.">
               <div className="onb-actions">
                 <button className="onb-secondary" onClick={openQrPreview}>Apri anteprima QR</button>
-                <button className="onb-primary" disabled={!qrLinks.length} onClick={printQrPdf}>Stampa PDF QR</button>
+                <button className="onb-primary" disabled={!qrLinks.length} onClick={() => printQrPdf()}>Stampa PDF QR</button>
               </div>
               <small>{qrLinks.length} QR pronti.</small>
             </SetupActionCard>
@@ -367,32 +413,38 @@ export default function Onboarding() {
                   <div>
                     <span>Anteprima stampa</span>
                     <h2>{restaurant?.name || "Ristorante"} - QR Tavoli</h2>
-                    <p>Controlla i QR prima di stamparli e metterli sui tavoli.</p>
+                    <p>Scegli il formato piu comodo per il ristorante e stampa solo il materiale pronto per i tavoli.</p>
                   </div>
                   <div className="onb-modal-actions">
                     <button className="onb-secondary" type="button" onClick={() => setShowQrPreview(false)}>Chiudi</button>
-                    <button className="onb-primary" type="button" disabled={!qrLinks.length} onClick={printQrPdf}>Stampa QR</button>
+                    <button className="onb-primary" type="button" disabled={!qrLinks.length} onClick={() => printQrPdf()}>Stampa QR</button>
                   </div>
                 </div>
-                <div className="onb-print-area">
-                  <div className="onb-print-title">
-                    <h2>{restaurant?.name || "Ristorante"} - QR Tavoli</h2>
-                    <p>Scansiona per ordinare dal tavolo.</p>
-                  </div>
-                  <div className="onb-qr-grid">
-                    {qrLinks.map((table) => (
-                      <div className="onb-qr-card" key={table.id}>
-                        <h3>{table.name}</h3>
-                        <QRCodeSVG className="onb-qr-code" value={table.link} size={180} includeMargin />
-                        <p>{table.link}</p>
-                      </div>
-                    ))}
-                    {!qrLinks.length ? <div className="onb-qr-empty">Crea prima i tavoli per generare i QR.</div> : null}
-                  </div>
+                <div className="onb-print-options">
+                  {PRINT_LAYOUTS.map((layout) => (
+                    <button
+                      className={printLayout === layout.key ? "is-active" : ""}
+                      type="button"
+                      key={layout.key}
+                      onClick={() => setPrintLayout(layout.key)}
+                    >
+                      <strong>{layout.title}</strong>
+                      <span>{layout.text}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="onb-preview-scroll">
+                  <QrPrintDocument preview layout={printLayout} qrLinks={qrLinks} restaurant={restaurant} />
                 </div>
               </section>
             </div>
           ) : null}
+          {showQrPreview && typeof document !== "undefined"
+            ? createPortal(
+                <QrPrintDocument layout={printLayout} qrLinks={qrLinks} restaurant={restaurant} />,
+                document.body
+              )
+            : null}
         </main>
       </div>
     </div>
