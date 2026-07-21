@@ -47,7 +47,6 @@ export default function Onboarding() {
   const [savingLogo, setSavingLogo] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  const progress = status?.progress || 0;
   const restaurant = status?.restaurant;
   const checks = status?.checks || {};
   const counts = status?.counts || {};
@@ -82,6 +81,7 @@ export default function Onboarding() {
       current: checks.profile && checks.tables && checks.menu && !checks.qr,
     },
   ];
+  const progress = Math.round((commandSteps.filter((step) => step.done).length / commandSteps.length) * 100);
 
   const qrLinks = useMemo(() => {
     const slug = qrPayload?.restaurant?.slug || restaurant?.slug;
@@ -131,24 +131,14 @@ export default function Onboarding() {
       };
     }
 
-    if (!checks.billing) {
-      return {
-        tone: "billing",
-        title: "Controlla l'abbonamento",
-        text: "Prima di vendere o far provare il locale, assicurati che il ristorante risulti attivo.",
-        actionLabel: "Apri billing",
-        action: () => { window.location.href = "/billing"; },
-      };
-    }
-
     return {
       tone: "done",
       title: "Pronto per il servizio",
-      text: "Logo, tavoli, menu e QR sono allineati. Ora fai provare menu cliente, cucina e cassa nello stesso flusso.",
-      actionLabel: "Apri demo",
-      action: () => { window.location.href = "/demo"; },
+      text: "Logo, tavoli, menu e QR sono allineati. Ora puoi provare il flusso con menu cliente, cucina e cassa.",
+      actionLabel: "Rivedi QR",
+      action: () => setShowQrPreview(true),
     };
-  }, [checks.billing, checks.menu, checks.profile, checks.qr, checks.tables, loading, qrLinks.length]);
+  }, [checks.menu, checks.profile, checks.qr, checks.tables, loading, qrLinks.length]);
 
   async function load() {
     try {
@@ -261,6 +251,10 @@ export default function Onboarding() {
     setTimeout(() => window.print(), 150);
   }
 
+  function openQrPreview() {
+    setShowQrPreview(true);
+  }
+
   return (
     <div style={glowPageStyle}>
       <Navbar />
@@ -349,20 +343,10 @@ export default function Onboarding() {
 
             <SetupActionCard done={checks.qr} kicker="Passo 4" title="QR tavoli" text="Controlla l'anteprima e stampa i QR da mettere sui tavoli.">
               <div className="onb-actions">
-                <button className="onb-secondary" onClick={() => setShowQrPreview((value) => !value)}>{showQrPreview ? "Nascondi anteprima" : "Anteprima QR"}</button>
+                <button className="onb-secondary" onClick={openQrPreview}>Apri anteprima QR</button>
                 <button className="onb-primary" disabled={!qrLinks.length} onClick={printQrPdf}>Stampa PDF QR</button>
               </div>
               <small>{qrLinks.length} QR pronti.</small>
-            </SetupActionCard>
-
-            <SetupActionCard done={checks.billing} kicker="Passo 5" title="Abbonamento" text="Quando logo, tavoli, menu e QR sono pronti, controlla piano e stato pagamento.">
-              <div className="onb-checklist">
-                <span className={checks.profile ? "ok" : ""}>Logo</span>
-                <span className={checks.tables ? "ok" : ""}>Tavoli</span>
-                <span className={checks.menu ? "ok" : ""}>Menu</span>
-                <span className={checks.qr ? "ok" : ""}>QR</span>
-              </div>
-              <button className="onb-primary" type="button" onClick={() => { window.location.href = "/billing"; }}>Apri abbonamento</button>
             </SetupActionCard>
           </section>
 
@@ -376,21 +360,37 @@ export default function Onboarding() {
           </section>
 
           {showQrPreview ? (
-            <section className="onb-print-area">
-              <div className="onb-print-title">
-                <h2>{restaurant?.name || "Ristorante"} - QR Tavoli</h2>
-                <p>Scansiona per ordinare dal tavolo.</p>
-              </div>
-              <div className="onb-qr-grid">
-                {qrLinks.map((table) => (
-                  <div className="onb-qr-card" key={table.id}>
-                    <h3>{table.name}</h3>
-                    <QRCodeCanvas value={table.link} size={180} includeMargin />
-                    <p>{table.link}</p>
+            <div className="onb-modal-backdrop" role="presentation" onClick={() => setShowQrPreview(false)}>
+              <section className="onb-qr-modal" role="dialog" aria-modal="true" aria-label="Anteprima QR tavoli" onClick={(event) => event.stopPropagation()}>
+                <div className="onb-modal-head">
+                  <div>
+                    <span>Anteprima stampa</span>
+                    <h2>{restaurant?.name || "Ristorante"} - QR Tavoli</h2>
+                    <p>Controlla i QR prima di stamparli e metterli sui tavoli.</p>
                   </div>
-                ))}
-              </div>
-            </section>
+                  <div className="onb-modal-actions">
+                    <button className="onb-secondary" type="button" onClick={() => setShowQrPreview(false)}>Chiudi</button>
+                    <button className="onb-primary" type="button" disabled={!qrLinks.length} onClick={printQrPdf}>Stampa QR</button>
+                  </div>
+                </div>
+                <div className="onb-print-area">
+                  <div className="onb-print-title">
+                    <h2>{restaurant?.name || "Ristorante"} - QR Tavoli</h2>
+                    <p>Scansiona per ordinare dal tavolo.</p>
+                  </div>
+                  <div className="onb-qr-grid">
+                    {qrLinks.map((table) => (
+                      <div className="onb-qr-card" key={table.id}>
+                        <h3>{table.name}</h3>
+                        <QRCodeCanvas value={table.link} size={180} includeMargin />
+                        <p>{table.link}</p>
+                      </div>
+                    ))}
+                    {!qrLinks.length ? <div className="onb-qr-empty">Crea prima i tavoli per generare i QR.</div> : null}
+                  </div>
+                </div>
+              </section>
+            </div>
           ) : null}
         </main>
       </div>
