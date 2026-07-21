@@ -52,6 +52,37 @@ export default function Onboarding() {
   const checks = status?.checks || {};
   const counts = status?.counts || {};
 
+  const commandSteps = [
+    {
+      number: 1,
+      title: "Logo",
+      detail: checks.profile ? "Caricato" : "Da completare",
+      done: Boolean(checks.profile),
+      current: !checks.profile,
+    },
+    {
+      number: 2,
+      title: "Crea tavoli",
+      detail: `${counts.activeTables || 0} attivi`,
+      done: Boolean(checks.tables),
+      current: checks.profile && !checks.tables,
+    },
+    {
+      number: 3,
+      title: "Aggiungi prodotti",
+      detail: `${counts.menuItems || 0} prodotti`,
+      done: Boolean(checks.menu),
+      current: checks.profile && checks.tables && !checks.menu,
+    },
+    {
+      number: 4,
+      title: "Stampa QR",
+      detail: `${qrPayload?.tables?.length || 0} pronti`,
+      done: Boolean(checks.qr),
+      current: checks.profile && checks.tables && checks.menu && !checks.qr,
+    },
+  ];
+
   const qrLinks = useMemo(() => {
     const slug = qrPayload?.restaurant?.slug || restaurant?.slug;
     return (qrPayload?.tables || []).map((table) => ({ ...table, link: `${baseUrl()}/menu/${slug}/${table.qrToken}` }));
@@ -253,26 +284,16 @@ export default function Onboarding() {
           {loading ? <div className="onb-card">Caricamento setup...</div> : null}
 
           <section className="onb-command-strip">
-            <button type="button" onClick={() => document.querySelector(".onb-logo-card")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
-              <span>1</span>
-              <strong>Logo</strong>
-              <small>{checks.profile ? "Caricato" : "Da completare"}</small>
-            </button>
-            <button type="button" onClick={runAutoSetup} disabled={working}>
-              <span>2</span>
-              <strong>Crea tavoli</strong>
-              <small>{counts.activeTables || 0} attivi</small>
-            </button>
-            <button type="button" onClick={importMenu} disabled={working}>
-              <span>3</span>
-              <strong>Aggiungi prodotti</strong>
-              <small>{counts.menuItems || 0} prodotti</small>
-            </button>
-            <button type="button" onClick={printQrPdf} disabled={!qrLinks.length}>
-              <span>4</span>
-              <strong>Stampa QR</strong>
-              <small>{qrLinks.length} pronti</small>
-            </button>
+            {commandSteps.map((step) => (
+              <article
+                className={`onb-command-card ${step.done ? "is-done" : ""} ${step.current ? "is-current" : ""}`}
+                key={step.number}
+              >
+                <span>{step.number}</span>
+                <strong>{step.title}</strong>
+                <small>{step.detail}</small>
+              </article>
+            ))}
           </section>
 
           {setupCoach ? (

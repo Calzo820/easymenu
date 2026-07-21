@@ -10,14 +10,15 @@
 .onb-progress-label { font-weight:900; }
 .onb-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .onb-command-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-.onb-command-strip button { min-height:116px; display:grid; align-content:space-between; gap:8px; text-align:left; border:1px solid #dbeafe; border-radius:24px; padding:18px; background:#fff; color:#0f172a; cursor:pointer; box-shadow:0 18px 42px rgba(15,23,42,.08); }
-.onb-command-strip button:first-child { background:#0f172a; color:#fff; border-color:#0f172a; }
-.onb-command-strip button:disabled { opacity:.55; cursor:not-allowed; }
+.onb-command-card { min-height:116px; display:grid; align-content:space-between; gap:8px; text-align:left; border:1px solid #dbeafe; border-radius:24px; padding:18px; background:#fff; color:#0f172a; box-shadow:0 18px 42px rgba(15,23,42,.08); }
+.onb-command-card.is-current { background:#0f172a; color:#fff; border-color:#0f172a; }
+.onb-command-card.is-done { background:#f0fdf4; border-color:#bbf7d0; }
 .onb-command-strip span { width:36px; height:36px; display:grid; place-items:center; border-radius:13px; background:#eff6ff; color:#1d4ed8; font-weight:1000; }
-.onb-command-strip button:first-child span { background:#fff; color:#0f172a; }
+.onb-command-card.is-current span { background:#fff; color:#0f172a; }
+.onb-command-card.is-done span { background:#dcfce7; color:#166534; }
 .onb-command-strip strong { font-size:22px; line-height:1; letter-spacing:0; }
 .onb-command-strip small { color:#64748b; font-weight:850; }
-.onb-command-strip button:first-child small { color:rgba(255,255,255,.72); }
+.onb-command-card.is-current small { color:rgba(255,255,255,.72); }
 .onb-coach-card { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 16px; border:1px solid #bfdbfe; border-radius:24px; padding:18px; background:linear-gradient(135deg,#ffffff,#f8fbff); box-shadow:0 18px 42px rgba(15,23,42,.08); }
 .onb-coach-card.brand { border-color:#99f6e4; background:linear-gradient(135deg,#ecfeff,#fff); }
 .onb-coach-card.tables { border-color:#fed7aa; background:linear-gradient(135deg,#fff7ed,#fff); }
