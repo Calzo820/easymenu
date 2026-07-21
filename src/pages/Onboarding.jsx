@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import { apiGet, apiPatch, apiPost } from "../lib/api";
 import { imageFileToDataUrl } from "../lib/imageFiles";
@@ -247,8 +247,9 @@ export default function Onboarding() {
   }
 
   function printQrPdf() {
+    if (!qrLinks.length) return;
     setShowQrPreview(true);
-    setTimeout(() => window.print(), 150);
+    setTimeout(() => window.print(), 350);
   }
 
   function openQrPreview() {
@@ -382,7 +383,7 @@ export default function Onboarding() {
                     {qrLinks.map((table) => (
                       <div className="onb-qr-card" key={table.id}>
                         <h3>{table.name}</h3>
-                        <QRCodeCanvas value={table.link} size={180} includeMargin />
+                        <QRCodeSVG className="onb-qr-code" value={table.link} size={180} includeMargin />
                         <p>{table.link}</p>
                       </div>
                     ))}
