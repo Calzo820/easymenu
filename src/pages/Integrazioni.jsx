@@ -7,7 +7,7 @@ const integrations = [
     area: "Pagamenti",
     status: "Da collegare",
     priority: "Alta",
-    impact: "Incasso al tavolo, meno passaggi in cassa e riconciliazione piu semplice.",
+    impact: "Incasso al tavolo, meno passaggi in cassa e riconciliazione più semplice.",
     setup: "Serve account SumUp del ristorante e scelta dei metodi di pagamento.",
   },
   {
@@ -23,7 +23,7 @@ const integrations = [
     area: "Fiscale",
     status: "A richiesta",
     priority: "Alta",
-    impact: "Export contabile e documenti fiscali piu ordinati a fine giornata.",
+    impact: "Export contabile e documenti fiscali più ordinati a fine giornata.",
     setup: "Serve account fiscale e configurazione azienda.",
   },
   {
@@ -39,7 +39,7 @@ const integrations = [
     area: "POS",
     status: "In valutazione",
     priority: "Media",
-    impact: "EasyMenu lavora insieme alla cassa gia presente nel locale.",
+    impact: "EasyMenu lavora insieme alla cassa già presente nel locale.",
     setup: "Da verificare piano, API e gestione reparti.",
   },
   {
@@ -47,7 +47,7 @@ const integrations = [
     area: "Prenotazioni",
     status: "A richiesta",
     priority: "Media",
-    impact: "Prenotazioni, tavoli e coperti piu facili da controllare.",
+    impact: "Prenotazioni, tavoli e coperti più facili da controllare.",
     setup: "Serve account TheFork e regole turni del ristorante.",
   },
   {
@@ -116,7 +116,7 @@ export default function Integrazioni() {
           <div className="topbar-chip">Collegamenti ristorante</div>
           <h1>Pagamenti, POS, fatture, prenotazioni e delivery in un solo posto.</h1>
           <p>
-            Questa pagina serve al ristorante per capire cosa si puo collegare, cosa e gia prioritario e cosa richiedere
+            Questa pagina serve al ristorante per capire cosa si può collegare, cosa è già prioritario e cosa richiedere
             al supporto EasyMenu.
           </p>
         </section>
@@ -154,7 +154,7 @@ export default function Integrazioni() {
                   <span className="integration-area">{item.area}</span>
                   <p>{item.impact}</p>
                   <span className={`integration-priority integration-priority--${priorityTone(item.priority)}`}>
-                    Priorita {item.priority}
+                    Priorità {item.priority}
                   </span>
                 </button>
               );

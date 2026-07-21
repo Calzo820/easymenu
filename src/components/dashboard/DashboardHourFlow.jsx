@@ -23,7 +23,7 @@ export default function DashboardHourFlow({ hours = [] }) {
           })}
         </div>
       ) : (
-        <DashboardEmptyState title="Giornata appena iniziata" text="Qui vedrai gli orari piu intensi." />
+        <DashboardEmptyState title="Giornata appena iniziata" text="Qui vedrai gli orari più intensi." />
       )}
     </section>
   );

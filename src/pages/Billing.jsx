@@ -4,7 +4,7 @@ import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import { createSubscriptionCheckout, getBillingStatus, openBillingPortal } from "../lib/api";
 
 const WHATSAPP_NUMBER = "3240467723";
-const CHAIN_MESSAGE = "Ciao, ho piu ristoranti e vorrei informazioni su EasyMenu per catene o multi-sede.";
+const CHAIN_MESSAGE = "Ciao, ho più ristoranti e vorrei informazioni su EasyMenu per catene o multi-sede.";
 const chainContactUrl = `https://wa.me/39${WHATSAPP_NUMBER}?text=${encodeURIComponent(CHAIN_MESSAGE)}`;
 
 function formatDate(value) {
@@ -38,7 +38,7 @@ const planDetails = {
     price: "254,99 €",
     period: "/6 mesi + IVA",
     badge: "15% OFF",
-    saving: "Piu continuita, meno pensieri",
+    saving: "Più continuità, meno pensieri",
     note: "Perfetto per stabilizzarlo nel servizio.",
     highlighted: true,
   },
@@ -48,7 +48,7 @@ const planDetails = {
     period: "/anno + IVA",
     badge: "25% OFF",
     saving: "Miglior prezzo",
-    note: "La scelta piu conveniente.",
+    note: "La scelta più conveniente.",
   },
 };
 
@@ -129,7 +129,7 @@ function ChainCard() {
         <div style={chainBadgeStyle}>Multi-sede</div>
         <h2 style={{ margin: "12px 0 8px", fontSize: 28, letterSpacing: "-0.05em", color: "#0f172a" }}>Hai una catena?</h2>
         <p style={{ margin: 0, color: "#475569", fontWeight: 800, lineHeight: 1.55, maxWidth: 620 }}>
-          Stesse funzioni EasyMenu, con condizioni dedicate per piu ristoranti, setup multi-locale e supporto personalizzato.
+          Stesse funzioni EasyMenu, con condizioni dedicate per più ristoranti, setup multi-locale e supporto personalizzato.
         </p>
       </div>
       <a href={chainContactUrl} target="_blank" rel="noreferrer" style={chainButtonStyle}>

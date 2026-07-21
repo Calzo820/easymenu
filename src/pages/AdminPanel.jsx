@@ -236,7 +236,7 @@ export default function AdminPanel({ embedded = false } = {}) {
     ? "Profilo, abbonamento, privacy e supporto in un posto solo."
     : activeTab === "staff"
       ? "Puoi partire con un solo account owner e aggiungere ruoli separati quando servono davvero."
-      : "Prodotti, prezzi, disponibilita e anteprima cliente senza funzioni duplicate.";
+      : "Prodotti, prezzi, disponibilità e anteprima cliente senza funzioni duplicate.";
 
   async function handleRestaurantSubmit(event) {
     event.preventDefault();
@@ -386,7 +386,7 @@ export default function AdminPanel({ embedded = false } = {}) {
       await apiPatch(`/menu/${item.id}`, { isAvailable: !item.isAvailable });
       await loadData();
     } catch (err) {
-      setError(err.message || "Errore aggiornamento disponibilita");
+      setError(err.message || "Errore aggiornamento disponibilità");
     }
   }
 
@@ -483,7 +483,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="management-card menu-health-main">
           <SectionHead
             title="Stato menu"
-            subtitle="Controllo essenziale di cio che il cliente puo ordinare dal tavolo."
+            subtitle="Controllo essenziale di ciò che il cliente può ordinare dal tavolo."
           />
           <div className="menu-health-metrics">
             <div><span>Menu</span><strong>{menuQuality.total}</strong></div>
@@ -495,7 +495,7 @@ export default function AdminPanel({ embedded = false } = {}) {
       {customerMenuLink ? (
         <a className="menu-customer-strip" href={customerMenuLink} target="_blank" rel="noreferrer">
           <span>Menu cliente</span>
-          <strong>Visualizza cio che vede il cliente</strong>
+          <strong>Visualizza ciò che vede il cliente</strong>
           <small>Apri l'anteprima reale collegata al primo QR tavolo attivo.</small>
         </a>
       ) : (
@@ -509,7 +509,7 @@ export default function AdminPanel({ embedded = false } = {}) {
       <div className="menu-action-board">
         {[
           ["all", "Menu", menuQuality.total, "Tutti i prodotti visibili nella gestione menu."],
-          ["offline", "Non disponibili", menuQuality.unavailable, "Controlla cosa il cliente non puo ordinare."],
+          ["offline", "Non disponibili", menuQuality.unavailable, "Controlla cosa il cliente non può ordinare."],
         ].map(([filter, title, value, hint]) => (
           <button
             key={filter}
@@ -528,7 +528,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         <form className="management-card menu-editor-card" onSubmit={handleItemSubmit}>
           <SectionHead
             title={editingItemId ? "Modifica prodotto" : "Nuovo prodotto"}
-            subtitle="Scheda pulita come la vede il ristoratore: foto, prezzo, categoria, descrizione e disponibilita."
+            subtitle="Scheda pulita come la vede il ristoratore: foto, prezzo, categoria, descrizione e disponibilità."
           />
           <datalist id="menu-categories">{categorySuggestions.map((category) => <option key={category} value={category} />)}</datalist>
           <div className="menu-editor-grid">
@@ -589,7 +589,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="management-card menu-catalog-card">
           <SectionHead
             title="Catalogo"
-            subtitle={`${filteredMenu.length} prodotti visibili. Modifica disponibilita, prezzo e dettagli senza cambiare pagina.`}
+            subtitle={`${filteredMenu.length} prodotti visibili. Modifica disponibilità, prezzo e dettagli senza cambiare pagina.`}
             action={
               <div className="management-inline-tools">
                 <TextInput placeholder="Cerca prodotto" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -722,9 +722,9 @@ export default function AdminPanel({ embedded = false } = {}) {
 
   function renderSettings() {
     const privacyItems = [
-      "SuperAdmin: dati economici nascosti in modalita assistenza",
+      "SuperAdmin: dati economici nascosti in modalità assistenza",
       "Accesso al ristorante solo con motivo supporto o consenso",
-      "Pagine pubbliche privacy, termini e cookie gia disponibili",
+      "Pagine pubbliche privacy, termini e cookie già disponibili",
     ];
 
     return (
@@ -732,7 +732,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         <form className="management-card management-form settings-brand-panel" onSubmit={handleRestaurantSubmit}>
           <SectionHead
             title="Profilo ristorante"
-            subtitle="Identita pubblica, brand, valuta e stato del locale."
+            subtitle="Identità pubblica, brand, valuta e stato del locale."
           />
           <Field label="Nome ristorante"><TextInput value={restaurantForm.name} onChange={(e) => setRestaurantForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
           <div className="settings-brand-row">
@@ -771,18 +771,18 @@ export default function AdminPanel({ embedded = false } = {}) {
           </div>
 
           <div className="management-card settings-staff-note">
-            <SectionHead title="Staff opzionale" subtitle="Non e obbligatorio registrare subito piu email o piu personale." />
+            <SectionHead title="Staff opzionale" subtitle="Non è obbligatorio registrare subito più email o più personale." />
             <p>
-              Il ristorante puo partire con un solo account owner. Gli accessi separati per cucina, bar e cassa servono solo
+              Il ristorante può partire con un solo account owner. Gli accessi separati per cucina, bar e cassa servono solo
               se il locale vuole tablet o operatori dedicati.
             </p>
             <button className="management-btn secondary" type="button" onClick={() => { setActiveTab("staff"); navigate("/admin?tab=staff", { replace: true }); }}>
-              Configura staff piu avanti
+              Configura staff più avanti
             </button>
           </div>
 
           <div className="management-card settings-group-card">
-            <SectionHead title="Amministrazione" subtitle="Piano, documenti e assistenza: solo cio che serve per gestire il locale." />
+            <SectionHead title="Amministrazione" subtitle="Piano, documenti e assistenza: solo ciò che serve per gestire il locale." />
             <div className="settings-card-grid two">
               <SettingsCard icon="PAY" title="Abbonamento" subtitle={`Piano attuale: ${restaurant?.plan || "mensile"}`} action="Gestisci" tone="billing" onClick={() => window.location.href = "/billing"} />
               <SettingsCard icon="DOC" title="Privacy e documenti" subtitle="Policy, termini, cookie e trattamento dati." action="Apri" onClick={() => document.querySelector(".settings-privacy-panel")?.scrollIntoView({ behavior: "smooth" })} />

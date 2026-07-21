@@ -129,7 +129,7 @@ function buildUpsellSuggestions(products) {
       trigger: food.name,
       offer: drink ? `${drink.name} in abbinamento` : "Bibita o contorno consigliato",
       script: `Quando il cliente ordina ${food.name}, proponi subito ${drink?.name || "una bibita o un extra"}.`,
-      expectedLift: "+6-12% ticket medio",
+      expectedLift: "Da misurare sullo storico reale",
     });
   }
 
@@ -138,7 +138,7 @@ function buildUpsellSuggestions(products) {
       trigger: "Prodotto principale",
       offer: "Extra o bevanda suggerita",
       script: "Aggiungi un suggerimento automatico al carrello prima della conferma ordine.",
-      expectedLift: "+4-8% ticket medio",
+      expectedLift: "Da misurare sullo storico reale",
     });
   }
 
@@ -182,9 +182,9 @@ function buildCommercialActions({ orders, products, tables, hours, openOrders })
     ? paidOrders.reduce((sum, order) => sum + toNumber(order.totalAmount), 0) / paidOrders.length
     : 0;
 
-  if (avgTicket < 25) {
+  if (paidOrders.length >= 5 && avgTicket < 25) {
     pushAction(actions, {
-      title: "Alza il ticket medio con upsell obbligatorio",
+      title: "Proponi extra in modo leggero",
       reason: `Ticket medio attuale ${MONEY.format(avgTicket)}: c'è spazio per proporre extra, bevande e dolci prima della conferma ordine.`,
       nextStep: "Mostra 2 suggerimenti automatici nel carrello: bevanda + dolce/contorno.",
       impact: "alto",

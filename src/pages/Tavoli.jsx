@@ -523,7 +523,7 @@ export default function Tavoli() {
           <div className="tables-alert">
             <b>Attenzione</b>
             <span>{error}</span>
-            {localMode ? <small>Modalita locale di emergenza: le prenotazioni rimangono su questo dispositivo finche il backend torna disponibile.</small> : null}
+            {localMode ? <small>Modalità locale di emergenza: le prenotazioni rimangono su questo dispositivo finché il backend torna disponibile.</small> : null}
           </div>
         ) : null}
 

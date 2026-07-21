@@ -11,7 +11,7 @@ const PRINT_LAYOUTS = [
   {
     key: "labels",
     title: "Etichette A4",
-    text: "Formato compatto: piu QR per pagina.",
+    text: "Formato compatto: più QR per pagina.",
   },
   {
     key: "large",
@@ -21,7 +21,7 @@ const PRINT_LAYOUTS = [
   {
     key: "tent",
     title: "Segnaposto tavolo",
-    text: "Formato piu elegante da mettere in piedi sul tavolo.",
+    text: "Formato più elegante da mettere in piedi sul tavolo.",
   },
 ];
 
@@ -152,7 +152,7 @@ export default function Onboarding() {
       return {
         tone: "menu",
         title: "Completa il menu",
-        text: "Aggiungi piatti, foto e disponibilita dalla pagina Menu. Il setup resta solo una guida veloce.",
+        text: "Aggiungi piatti, foto e disponibilità dalla pagina Menu. Il setup resta solo una guida veloce.",
         actionLabel: "Apri menu",
         action: () => { window.location.href = "/admin?tab=menu"; },
       };
@@ -356,7 +356,7 @@ export default function Onboarding() {
               <div className="onb-menu-shortcut">
                 <div>
                   <strong>{counts.menuItems || 0} prodotti nel menu</strong>
-                  <span>Apri Menu per aggiungere piatti con foto, allergeni e disponibilita.</span>
+                  <span>Apri Menu per aggiungere piatti con foto, allergeni e disponibilità.</span>
                 </div>
                 <button className="onb-primary" type="button" onClick={() => { window.location.href = "/admin?tab=menu"; }}>
                   Apri pagina Menu
@@ -376,10 +376,10 @@ export default function Onboarding() {
           <section className="onb-staff-strip">
             <div>
               <span>Staff opzionale</span>
-              <strong>Non serve creare subito piu email.</strong>
+              <strong>Non serve creare subito più email.</strong>
               <small>Parti con l'account owner. Aggiungi cucina, bar o cassa solo se il locale usa tablet separati.</small>
             </div>
-            <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=staff"; }}>Configura piu avanti</button>
+            <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=staff"; }}>Configura più avanti</button>
           </section>
 
           {showQrPreview ? (
@@ -389,7 +389,7 @@ export default function Onboarding() {
                   <div>
                     <span>Anteprima stampa</span>
                     <h2>{restaurant?.name || "Ristorante"} - QR Tavoli</h2>
-                    <p>Scegli il formato piu comodo per il ristorante e stampa solo il materiale pronto per i tavoli.</p>
+                    <p>Scegli il formato più comodo per il ristorante e stampa solo il materiale pronto per i tavoli.</p>
                   </div>
                   <div className="onb-modal-actions">
                     <button className="onb-secondary" type="button" onClick={() => setShowQrPreview(false)}>Chiudi</button>

@@ -75,7 +75,7 @@ const INTEGRATIONS = [
 
 export function listIntegrations(_req, res) {
   res.json({
-    positioning: "EasyMenu Growth OS: integrazioni orientate a ROI, velocità e riduzione errori.",
+    positioning: "EasyMenu Growth OS: integrazioni orientate a margine, velocità e riduzione errori.",
     disclaimer: "planned/discovery non significa integrazione attiva: servono credenziali e accessi API ufficiali.",
     integrations: INTEGRATIONS,
   });

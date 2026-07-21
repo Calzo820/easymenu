@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import { apiGet } from "../lib/api";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import { ActionCard, MetricCard, PeakHours, ProductPowerList, TableRanking } from "../components/commercial/CommercialImpactCards";
-import { buildUpsellScripts, formatCurrency, getScoreLabel } from "../lib/commercialImpact";
+import { buildUpsellScripts, formatCurrency } from "../lib/commercialImpact";
 import "../styles/commercial-impact.css";
 
 const periods = [
@@ -51,24 +51,24 @@ export default function CommercialImpact() {
         <div className="app-shell commercial-impact-page">
           <section className="commercial-hero">
             <div>
-              <div className="commercial-eyebrow">Revenue Operating System</div>
-              <h1>Crescita commerciale</h1>
+              <div className="commercial-eyebrow">Dati reali del locale</div>
+              <h1>Statistiche operative</h1>
               <p>
-                Una schermata pensata per vendere il valore del SaaS al ristoratore: cosa spingere, quando spingerlo,
-                quali tavoli rendono di più e quali azioni fare subito per aumentare incassi e velocità.
+                Una schermata pensata per leggere cosa succede davvero nel ristorante: ordini pagati, ticket medio,
+                prodotti venduti, tavoli attivi e suggerimenti pratici basati sui dati disponibili.
               </p>
             </div>
 
             <div className="commercial-score-card">
-              <span>Commercial score</span>
-              <strong>{data?.score ?? "--"}</strong>
-              <small>{data ? getScoreLabel(data.score) : "Analisi in caricamento"}</small>
+              <span>Stato dati</span>
+              <strong>{loading ? "..." : data ? "Live" : "--"}</strong>
+              <small>{data ? "Solo ordini registrati nel periodo" : "In attesa dei dati"}</small>
             </div>
           </section>
 
           <div className="commercial-toolbar">
             <div>
-              <strong>Periodo analisi</strong>
+              <strong>Periodo dati</strong>
               <small>Usa periodi brevi per decisioni operative, lunghi per strategia menu.</small>
             </div>
             <div className="commercial-periods">
@@ -81,7 +81,7 @@ export default function CommercialImpact() {
           </div>
 
           {error ? <div className="commercial-error">{error}</div> : null}
-          {loading ? <div className="commercial-loading">Caricamento analisi commerciale...</div> : null}
+          {loading ? <div className="commercial-loading">Caricamento dati reali...</div> : null}
 
           <section className="commercial-metrics">
             <MetricCard label="Fatturato periodo" value={formatCurrency(summary.revenue)} note={`${summary.paidOrders || 0} ordini monetizzati`} accent="green" />
@@ -103,8 +103,8 @@ export default function CommercialImpact() {
 
             <div className="commercial-panel dark">
               <div className="commercial-panel-head">
-                <span>Script upsell staff</span>
-                <small>Frasi pronte da usare in sala senza rallentare il servizio.</small>
+                <span>Suggerimenti sala</span>
+                <small>Frasi pronte da usare solo quando hanno senso per il servizio.</small>
               </div>
               <div className="commercial-script-list">
                 {scripts.map((script) => (
@@ -146,15 +146,15 @@ export default function CommercialImpact() {
 
           <section className="commercial-playbook">
             <div>
-              <span>Playbook settimanale</span>
-              <h2>Come venderlo al ristoratore</h2>
-              <p>Mostra questa pagina in demo: non parla di “gestione ordini”, parla di più incassi, meno errori e decisioni più rapide.</p>
+              <span>Metodo operativo</span>
+              <h2>Usala a fine servizio</h2>
+              <p>Questa pagina deve aiutare il ristoratore a decidere cosa sistemare, senza inseguire numeri non verificati.</p>
             </div>
             <ol>
-              <li>Apri la dashboard davanti al titolare e parti dal ticket medio.</li>
-              <li>Mostra il prodotto top e proponi una combo automatica.</li>
-              <li>Mostra la fascia oraria migliore e collega il valore alla stampa/KDS.</li>
-              <li>Chiudi con azioni prioritarie: sono il motivo per cui pagare ogni mese.</li>
+              <li>Controlla prima ordini pagati e ticket medio.</li>
+              <li>Guarda i prodotti più venduti e quelli non disponibili.</li>
+              <li>Verifica le fasce orarie più intense.</li>
+              <li>Scegli una sola azione concreta da provare nel servizio successivo.</li>
             </ol>
           </section>
         </div>

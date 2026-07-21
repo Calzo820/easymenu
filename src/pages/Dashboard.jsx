@@ -201,7 +201,7 @@ function Dashboard() {
       <main className="dash-os-shell">
         {isSuperAdminMode ? (
           <div className="dash-super-banner">
-            <div><b>Modalita assistenza SuperAdmin</b> - valori economici nascosti per privacy del ristorante.</div>
+            <div><b>Modalità assistenza SuperAdmin</b> - valori economici nascosti per privacy del ristorante.</div>
             <button
               type="button"
               onClick={() => {
@@ -255,7 +255,7 @@ function Dashboard() {
           <article className={num(kpis.unavailableItems) ? "dash-service-card is-warning" : "dash-service-card"}>
             <span>Menu</span>
             <b>{num(kpis.unavailableItems)} piatti non disponibili</b>
-            <small>Aggiorna solo cosa il cliente puo ordinare.</small>
+            <small>Aggiorna solo cosa il cliente può ordinare.</small>
           </article>
           <article className={alertCount ? "dash-service-card is-warning" : "dash-service-card is-calm"}>
             <span>Controllo</span>

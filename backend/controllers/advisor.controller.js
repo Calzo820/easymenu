@@ -63,7 +63,7 @@ function buildRuleInsights(facts) {
     insights.push(makeInsight(
       "high",
       "Carica il logo prima della demo",
-      "Il menu cliente sembra subito piu credibile quando il ristorante vede il proprio brand in alto.",
+      "Il menu cliente sembra subito più credibile quando il ristorante vede il proprio brand in alto.",
       "Apri setup",
       "/onboarding"
     ));
@@ -82,7 +82,7 @@ function buildRuleInsights(facts) {
   if (facts.setup.availableMenuItems < 12 || facts.setup.categories < 4) {
     insights.push(makeInsight(
       "high",
-      "Rendi il menu piu completo",
+      "Rendi il menu più completo",
       "Per una prova commerciale servono antipasti, primi, secondi, dolci e bevande. Il cliente deve capire il flusso in pochi tocchi.",
       "Apri menu",
       "/admin"
@@ -103,7 +103,7 @@ function buildRuleInsights(facts) {
     insights.push(makeInsight(
       "high",
       "Libera subito i piatti pronti",
-      "Ci sono piatti pronti in attesa. In servizio reale questa e la cosa che rovina di piu la percezione del cliente.",
+      "Ci sono piatti pronti in attesa. In servizio reale questa è la cosa che rovina di più la percezione del cliente.",
       "Apri cucina",
       "/cucina"
     ));
@@ -112,7 +112,7 @@ function buildRuleInsights(facts) {
   if (facts.service.pendingOrders >= 3) {
     insights.push(makeInsight(
       "medium",
-      "Accetta le nuove comande piu velocemente",
+      "Accetta le nuove comande più velocemente",
       "La cucina deve vedere poche decisioni chiare: nuovo, in preparazione, pronto. Tieni la coda pulita.",
       "Apri cucina",
       "/cucina"
@@ -162,7 +162,7 @@ function buildRuleInsights(facts) {
     insights.push(makeInsight(
       "low",
       `Metti in evidenza ${top.name}`,
-      "Il prodotto piu ordinato deve essere facile da trovare: consigliato, foto chiara e descrizione breve.",
+      "Il prodotto più ordinato deve essere facile da trovare: consigliato, foto chiara e descrizione breve.",
       "Apri menu",
       "/admin"
     ));

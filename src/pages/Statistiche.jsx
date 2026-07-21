@@ -69,7 +69,7 @@ function localAdvisorInsights({ storicoFiltrato, piattiTop, ticketMedio }) {
     insights.push({
       priority: "high",
       title: "Crea movimento nella demo",
-      message: "Chiudi alcuni conti dalla cassa: le statistiche diventano piu credibili quando mostrano incasso e prodotti top.",
+      message: "Chiudi alcuni conti dalla cassa: le statistiche diventano più credibili quando mostrano incasso e prodotti top.",
       actionLabel: "Apri cassa",
       actionHref: "/cassa",
     });
@@ -79,7 +79,7 @@ function localAdvisorInsights({ storicoFiltrato, piattiTop, ticketMedio }) {
     insights.push({
       priority: "medium",
       title: `Metti in evidenza ${piattiTop[0].nome}`,
-      message: "Il prodotto piu ordinato deve essere facile da trovare nel menu cliente, con foto chiara e descrizione breve.",
+      message: "Il prodotto più ordinato deve essere facile da trovare nel menu cliente, con foto chiara e descrizione breve.",
       actionLabel: "Apri menu",
       actionHref: "/admin",
     });
@@ -132,7 +132,7 @@ function AdvisorCard({ advisor, loading, error, fallbackInsights }) {
       <div className="advisor-grid">
         {insights.map((insight, index) => (
           <article className={`advisor-insight ${insight.priority || "medium"}`} key={`${insight.title}-${index}`}>
-            <span>{insight.priority === "high" ? "Priorita alta" : insight.priority === "low" ? "Ottimizzazione" : "Da fare"}</span>
+            <span>{insight.priority === "high" ? "Priorità alta" : insight.priority === "low" ? "Ottimizzazione" : "Da fare"}</span>
             <h3>{insight.title}</h3>
             <p>{insight.message}</p>
             {insight.actionHref ? (
@@ -335,7 +335,7 @@ export default function Statistiche() {
                 <div className="management-section-head">
                   <div>
                     <h2 className="management-title">Pagamenti</h2>
-                    <p className="management-subtitle">Metodo piu usato nel periodo.</p>
+                    <p className="management-subtitle">Metodo più usato nel periodo.</p>
                   </div>
                 </div>
                 {pagamentiTop.map((payment) => <BarRow key={payment.metodo} label={payment.metodo} value={payment.count} max={maxPayment} />)}

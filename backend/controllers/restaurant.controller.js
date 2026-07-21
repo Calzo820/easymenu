@@ -165,8 +165,8 @@ export const createRestaurantForSuperAdmin = async (req, res) => {
       prisma.user.findUnique({ where: { email: ownerEmail } }),
     ]);
 
-    if (existingRestaurant) return res.status(409).json({ message: "Slug gia in uso" });
-    if (existingUser) return res.status(409).json({ message: "Email owner gia registrata" });
+    if (existingRestaurant) return res.status(409).json({ message: "Slug già in uso" });
+    if (existingUser) return res.status(409).json({ message: "Email owner già registrata" });
 
     const passwordHash = await bcrypt.hash(ownerPassword, 12);
 
@@ -251,7 +251,7 @@ export const updateRestaurantForSuperAdmin = async (req, res) => {
       if (!slug) return res.status(400).json({ message: "Slug non valido" });
       if (slug !== current.slug) {
         const collision = await prisma.restaurant.findUnique({ where: { slug } });
-        if (collision && collision.id !== current.id) return res.status(409).json({ message: "Slug gia in uso" });
+        if (collision && collision.id !== current.id) return res.status(409).json({ message: "Slug già in uso" });
       }
       data.slug = slug;
     }
@@ -336,7 +336,7 @@ export const impersonateRestaurantForSuperAdmin = async (req, res) => {
       restaurantId: restaurant.id,
       source: "superadmin-support-access",
       level: "audit",
-      message: "Accesso superadmin in modalita supporto",
+      message: "Accesso superadmin in modalità supporto",
       metadata: {
         supportReason,
         superAdminEmail: req.user?.email,
@@ -423,7 +423,7 @@ export const updateMyRestaurant = async (req, res) => {
       if (nextSlug !== current.slug) {
         const collision = await prisma.restaurant.findUnique({ where: { slug: nextSlug } });
         if (collision && collision.id !== current.id) {
-          return res.status(409).json({ message: "Slug gia in uso da un altro ristorante" });
+          return res.status(409).json({ message: "Slug già in uso da un altro ristorante" });
         }
         data.slug = nextSlug;
       }

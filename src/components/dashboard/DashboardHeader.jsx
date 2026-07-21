@@ -7,7 +7,7 @@ export default function DashboardHeader({ restaurantName, liveBadge, refreshing,
           <span className={live ? "dash-live-dot" : "dash-live-dot dash-live-dot--warn"} /> EasyMenu live - {liveBadge}
         </div>
         <h1>{restaurantName}</h1>
-        <p>Solo le priorita del turno: ordini aperti, sala, cassa e setup essenziale. Meno pagine da studiare, piu servizio da gestire.</p>
+        <p>Solo le priorità del turno: ordini aperti, sala, cassa e setup essenziale. Meno pagine da studiare, più servizio da gestire.</p>
       </div>
       <div className="dash-hero-actions">
         <button type="button" onClick={onRefresh}>{refreshing ? "Aggiorno..." : "Aggiorna"}</button>

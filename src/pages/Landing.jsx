@@ -2,20 +2,20 @@ import { Link } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
 
 const WHATSAPP_NUMBER = "3240467723";
-const WHATSAPP_MESSAGE = "Ciao, voglio capire quanto EasyMenu puo aumentare margine e velocita nel mio ristorante.";
+const WHATSAPP_MESSAGE = "Ciao, vorrei provare EasyMenu nel mio ristorante con una beta assistita.";
 const whatsappUrl = `https://wa.me/39${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 
-const roiMetrics = [
-  { value: "-35%", label: "errori evitabili tra sala, cucina e cassa" },
-  { value: "+18%", label: "scontrino medio con upsell guidato" },
-  { value: "+1", label: "turno tavolo recuperabile nelle fasce di picco" },
-  { value: "<7 min", label: "ordine ricevuto e smistato senza passaggi manuali" },
+const serviceProof = [
+  "Menu QR collegato a cucina, bar e cassa",
+  "Comande tracciate per tavolo e stato",
+  "Cassa e sala leggono gli stessi conti",
+  "Setup assistito prima della prova reale",
 ];
 
 const outcomes = [
-  ["Servi piu tavoli con lo stesso personale", "Il cliente ordina dal QR, cucina e bar ricevono subito la comanda e la sala interviene solo dove genera valore."],
+  ["Servi più tavoli con lo stesso personale", "Il cliente ordina dal QR, cucina e bar ricevono subito la comanda e la sala interviene solo dove genera valore."],
   ["Riduci errori e piatti rifatti", "Note, varianti, stato ordine e tavolo sono tracciati in un unico flusso: meno foglietti, meno telefonate interne, meno incomprensioni."],
-  ["Aumenti margine per coperto", "Il menu puo spingere piatti ad alto margine, extra, bevande e dessert nel momento giusto."],
+  ["Aumenti margine per coperto", "Il menu può valorizzare piatti ad alto margine, extra, bevande e dessert nel momento giusto."],
   ["Misuri cosa rende davvero", "Dashboard orientata a coperti, tempi di servizio, venduto per categoria, tavoli lenti ed errori ricorrenti."],
 ];
 
@@ -24,8 +24,8 @@ const integrations = ["SumUp", "Nexi", "Fatture in Cloud", "Tilby", "Cassa in Cl
 const pricingPlans = [
   ["Mensile", "49,99 €/mese + IVA", "Beta assistita, rinnovo mensile e disdetta dal portale Stripe."],
   ["Trimestrale", "134,99 €/3 mesi + IVA", "Per testare EasyMenu su una stagione breve con supporto incluso."],
-  ["Semestrale", "254,99 €/6 mesi + IVA", "Il piano piu equilibrato per stabilizzare menu, QR e operativita."],
-  ["Annuale", "449,99 €/anno + IVA", "Miglior prezzo per chi vuole partire con continuita."],
+  ["Semestrale", "254,99 €/6 mesi + IVA", "Il piano più equilibrato per stabilizzare menu, QR e operatività."],
+  ["Annuale", "449,99 €/anno + IVA", "Miglior prezzo per chi vuole partire con continuità."],
 ];
 
 function Card({ children, className = "" }) {
@@ -45,32 +45,32 @@ export default function Landing() {
             <Link to="/demo">Demo</Link>
             <Link to="/privacy">Privacy</Link>
             <Link to="/login">Login</Link>
-            <a className="landing-nav-cta" href={whatsappUrl} target="_blank" rel="noreferrer">Analisi ROI</a>
+            <a className="landing-nav-cta" href={whatsappUrl} target="_blank" rel="noreferrer">Parla con noi</a>
           </div>
         </nav>
 
         <div className="landing-hero-grid">
           <div>
-            <div className="landing-eyebrow">Menu QR + cucina + cassa + tavoli, pensato per margine e velocita</div>
-            <h1>Riduci gli errori di sala e servi piu tavoli con lo stesso personale.</h1>
+            <div className="landing-eyebrow">Menu QR + cucina + cassa + tavoli, pensato per margine e velocità</div>
+            <h1>Riduci gli errori di sala e servi più tavoli con lo stesso personale.</h1>
             <p className="landing-lead">
-              EasyMenu non e solo un menu digitale: e un flusso operativo per prendere ordini, smistarli in cucina, incassare meglio e controllare cosa succede durante il servizio.
+              EasyMenu non è solo un menu digitale: è un flusso operativo per prendere ordini, smistarli in cucina, incassare meglio e controllare cosa succede durante il servizio.
             </p>
             <div className="landing-cta-row">
-              <a className="landing-primary" href={whatsappUrl} target="_blank" rel="noreferrer">Calcola il ROI del locale</a>
+              <a className="landing-primary" href={whatsappUrl} target="_blank" rel="noreferrer">Prenota beta assistita</a>
               <Link className="landing-secondary" to="/demo">Guarda demo pubblica</Link>
             </div>
             <p className="landing-proof">Proposta consigliata: 30 giorni di beta assistita, setup incluso e decisione solo dopo la prova reale.</p>
           </div>
 
-          <Card className="landing-roi-panel">
-            <span className="landing-panel-label">ROI operativo</span>
-            <h2>Ogni comanda deve aumentare margine, non lavoro.</h2>
+          <Card className="landing-proof-panel">
+            <span className="landing-panel-label">Prova reale</span>
+            <h2>Prima fai funzionare il servizio, poi misuri i risultati.</h2>
             <div className="landing-metrics">
-              {roiMetrics.map((metric) => (
-                <div className="landing-metric" key={metric.label}>
-                  <strong>{metric.value}</strong>
-                  <span>{metric.label}</span>
+              {serviceProof.map((item, index) => (
+                <div className="landing-metric" key={item}>
+                  <strong>{index + 1}</strong>
+                  <span>{item}</span>
                 </div>
               ))}
             </div>
@@ -80,8 +80,8 @@ export default function Landing() {
 
       <section className="landing-section">
         <div className="landing-section-title">
-          <span>Perche cambiare software</span>
-          <h2>La differenza non e avere un QR. E far guadagnare di piu il ristorante.</h2>
+          <span>Perché cambiare software</span>
+          <h2>La differenza non è avere un QR. È far lavorare meglio il ristorante.</h2>
         </div>
         <div className="landing-grid-4">
           {outcomes.map(([title, text]) => (
@@ -121,14 +121,14 @@ export default function Landing() {
       <section className="landing-section landing-contrast">
         <div>
           <span className="landing-section-kicker">Mercato competitivo</span>
-          <h2>Contro menu digitali e POS generici serve una promessa piu forte.</h2>
+          <h2>Contro menu digitali e POS generici serve una promessa più forte.</h2>
           <p>
-            EasyMenu va venduto come sistema operativo del servizio: menu, ordini, cucina, cassa, tavoli e integrazioni. L'obiettivo non e sostituire un PDF: e aumentare coperti, margine e controllo operativo.
+            EasyMenu va venduto come sistema operativo del servizio: menu, ordini, cucina, cassa, tavoli e integrazioni. L'obiettivo non è sostituire un PDF: è aumentare controllo operativo, qualità del servizio e margine misurabile nel tempo.
           </p>
         </div>
         <div className="landing-comparison">
           <div><strong>Software classico</strong><span>QR, dashboard, statistiche, gestione tavoli.</span></div>
-          <div><strong>EasyMenu Growth</strong><span>Meno errori, piu velocita, upsell, KPI ROI e flusso operativo unico.</span></div>
+          <div><strong>EasyMenu Growth</strong><span>Meno errori, più velocità, menu ordinato e flusso operativo unico.</span></div>
         </div>
       </section>
 
@@ -136,7 +136,7 @@ export default function Landing() {
         <div className="landing-section-title">
           <span>Integrazioni strategiche</span>
           <h2>Roadmap integrata per entrare nel flusso reale del ristorante.</h2>
-          <p>La roadmap mostra chiaramente cosa e gia operativo e cosa arriva dopo: pagamenti, fiscale, POS, prenotazioni e delivery.</p>
+          <p>La roadmap mostra chiaramente cosa è già operativo e cosa arriva dopo: pagamenti, fiscale, POS, prenotazioni e delivery.</p>
         </div>
         <div className="landing-integration-cloud">
           {integrations.map((name) => <span key={name}>{name}</span>)}
@@ -148,8 +148,8 @@ export default function Landing() {
       </section>
 
       <section className="landing-section landing-final">
-        <h2>Il messaggio e semplice: non gestisci solo il ristorante, guadagni piu margine con meno attrito.</h2>
-        <p>La vendita piu forte oggi e la beta assistita: installazione guidata, QR pronti, prova servizio e decisione dopo 30 giorni.</p>
+        <h2>Il messaggio è semplice: gestisci meglio il servizio e costruisci margine con meno attrito.</h2>
+        <p>La vendita più forte oggi è la beta assistita: installazione guidata, QR pronti, prova servizio e decisione dopo 30 giorni.</p>
       </section>
     </main>
   );

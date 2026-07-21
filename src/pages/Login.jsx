@@ -53,7 +53,7 @@ export default function Login() {
         if (!cancelled) setAvviso("");
       } catch {
         if (!cancelled) {
-          setAvviso("Sto preparando il server. Se Render era fermo, il primo accesso puo richiedere 30-60 secondi.");
+          setAvviso("Sto preparando il server. Se Render era fermo, il primo accesso può richiedere 30-60 secondi.");
         }
       }
     }
@@ -68,7 +68,7 @@ export default function Login() {
     const message = error?.message || fallback || "Operazione non riuscita.";
     if (/server.*avviando|server in avvio|temporaneamente non disponibile|render|riprova tra qualche secondo/i.test(message)) {
       setErrore("");
-      setAvviso("Il server si sta avviando. Attendi qualche secondo e riprova: non e un problema delle credenziali.");
+      setAvviso("Il server si sta avviando. Attendi qualche secondo e riprova: non è un problema delle credenziali.");
       return;
     }
     setAvviso("");

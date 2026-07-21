@@ -43,7 +43,7 @@ const demoMenu = [
   { name: "Filetto al pepe verde", category: "Secondi", price: 24, allergens: "latte", featured: true, imageUrl: demoDishImage("Filetto", "Secondi", "carne") },
   { name: "Branzino alle erbe", category: "Secondi", price: 21, allergens: "pesce", featured: true, imageUrl: demoDishImage("Branzino", "Secondi", "pesce") },
   { name: "Parmigiana leggera", category: "Vegetariano", price: 12, allergens: "latte", featured: false, imageUrl: demoDishImage("Parmigiana", "Vegetariano", "vegetariano") },
-  { name: "Tiramisu espresso", category: "Dolci", price: 7, allergens: "uova, latte, glutine", featured: true, imageUrl: demoDishImage("Tiramisu", "Dolci", "dolce") },
+  { name: "Tiramisù espresso", category: "Dolci", price: 7, allergens: "uova, latte, glutine", featured: true, imageUrl: demoDishImage("Tiramisù", "Dolci", "dolce") },
   { name: "Spritz Signature", category: "Cocktail", price: 8, allergens: "solfiti", featured: true, imageUrl: demoDishImage("Spritz", "Cocktail", "drink") },
   { name: "Calice Etna rosso", category: "Vini", price: 7, allergens: "solfiti", featured: false, imageUrl: demoDishImage("Etna Rosso", "Vini", "vino") },
 ];
@@ -154,13 +154,13 @@ export default function Demo() {
         </div>
         <div className="demo-live-panel">
           <span>Ristorante demo</span>
-          <strong>24 tavoli gia pronti</strong>
+          <strong>24 tavoli già pronti</strong>
           <div className="demo-kpis">
             <div><span>Occupati</span><strong>{stats.occupied}</strong></div>
             <div><span>Ordini</span><strong>{demoOrders.length}</strong></div>
             <div><span>Totale live</span><strong>{money(stats.total, { compact: true })}</strong></div>
           </div>
-          <p>Menu completo, ordini finti e flusso operativo gia configurato.</p>
+          <p>Menu completo, ordini di esempio e flusso operativo già configurato.</p>
         </div>
       </section>
 

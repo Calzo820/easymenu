@@ -33,14 +33,14 @@ const PLATFORM_ROADMAP = [
   {
     area: "Pagamenti",
     title: "SumUp / Nexi",
-    status: "Priorita alta",
+    status: "Priorità alta",
     impact: "Incasso al tavolo e riconciliazione pagamenti: aumenta il valore percepito del prodotto.",
   },
   {
     area: "Fiscale",
     title: "Fatture in Cloud",
-    status: "Priorita alta",
-    impact: "Export fiscale e documenti contabili: utile per ristoranti piu strutturati.",
+    status: "Priorità alta",
+    impact: "Export fiscale e documenti contabili: utile per ristoranti più strutturati.",
   },
   {
     area: "POS",
@@ -368,7 +368,7 @@ export default function SuperAdmin() {
             <div>
               <h2 className="superadmin-card-title">Roadmap competitiva</h2>
               <p className="superadmin-card-subtitle">
-                Questa sezione e solo tua: serve a decidere quali integrazioni rendono EasyMenu piu forte come SaaS.
+                Questa sezione è solo tua: serve a decidere quali integrazioni rendono EasyMenu più forte come SaaS.
               </p>
             </div>
           </div>

@@ -65,7 +65,7 @@ export const ensureDemoAccount = async (_req, res) => {
 
   if (demoSeedRunning) {
     return res.status(409).json({
-      message: "Demo gia in preparazione. Riprova tra qualche secondo.",
+      message: "Demo già in preparazione. Riprova tra qualche secondo.",
     });
   }
 

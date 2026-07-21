@@ -74,9 +74,9 @@ export default function Crescita() {
           <header className="glass-hero" style={{ marginBottom: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "flex-start", flexWrap: "wrap" }}>
               <div>
-                <div className="topbar-chip" style={{ marginBottom: 12 }}>🚀 Commercial impact cockpit</div>
+                <div className="topbar-chip" style={{ marginBottom: 12 }}>Crescita operativa</div>
                 <h1 style={{ margin: 0, fontSize: "clamp(34px,5vw,58px)", lineHeight: 1, letterSpacing: "-.06em" }}>Crescita ristorante</h1>
-                <p style={{ margin: "14px 0 0", maxWidth: 820, color: "rgba(255,255,255,.88)", fontSize: 17, lineHeight: 1.65 }}>Trasforma i dati operativi in decisioni vendibili: cosa spingere, quando prepararsi, quali tavoli valgono di più e quali prodotti migliorare.</p>
+                <p style={{ margin: "14px 0 0", maxWidth: 820, color: "rgba(255,255,255,.88)", fontSize: 17, lineHeight: 1.65 }}>Trasforma i dati operativi in decisioni semplici: cosa controllare, quando prepararsi, quali tavoli lavorano di più e quali prodotti migliorare.</p>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <select value={range} onChange={(e) => setRange(e.target.value)} style={controlStyle}>
@@ -99,7 +99,7 @@ export default function Crescita() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1.05fr .95fr", gap: 18, alignItems: "start", marginBottom: 18 }} className="growth-grid">
-            <Section title="Azioni prioritarie" subtitle="Le mosse più concrete per aumentare incasso e percezione premium.">
+            <Section title="Azioni prioritarie" subtitle="Le mosse più concrete da provare nel prossimo servizio.">
               {(data?.actions || []).length ? data.actions.map((action) => (
                 <div key={action.priority} style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 14, padding: "14px 0", borderBottom: "1px solid #e2e8f0" }}>
                   <div style={{ width: 44, height: 44, borderRadius: 16, background: "#0f172a", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 1000 }}>{action.priority}</div>
@@ -116,7 +116,7 @@ export default function Crescita() {
               )) : <Empty text="Servono più ordini per generare azioni affidabili." />}
             </Section>
 
-            <Section title="Script upsell" subtitle="Frasi operative da dare a camerieri/cassa.">
+            <Section title="Suggerimenti sala" subtitle="Frasi operative da usare solo quando sono coerenti con il tavolo.">
               {(data?.upsell || []).map((item) => (
                 <div key={`${item.trigger}-${item.offer}`} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 18, padding: 15, marginBottom: 12 }}>
                   <div style={{ fontWeight: 1000, color: "#0f172a" }}>{item.trigger} → {item.offer}</div>

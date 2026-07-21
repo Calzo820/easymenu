@@ -28,7 +28,7 @@ export default function DashboardTopProducts({ products = [] }) {
           })}
         </div>
       ) : (
-        <DashboardEmptyState title="Nessuna vendita" text="I prodotti piu venduti compariranno durante il turno." />
+        <DashboardEmptyState title="Nessuna vendita" text="I prodotti più venduti compariranno durante il turno." />
       )}
     </section>
   );
