@@ -18,7 +18,6 @@ const emptyItem = {
   sortOrder: 0,
   vatRate: 10,
   isAvailable: true,
-  isFeatured: false,
 };
 
 const emptyTable = {
@@ -39,20 +38,12 @@ const SUPPORT_EMAIL = "easy.menu.service@gmail.com";
 const SUPPORT_PHONE = "+39 324 046 7723";
 const supportWhatsAppUrl = `https://wa.me/393240467723?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
 
-function hasText(value) {
-  return String(value || "").trim().length > 0;
-}
-
 function getMenuQualityStats(items) {
   const total = items.length;
   const online = items.filter((item) => item.isAvailable).length;
-  const missingPhoto = items.filter((item) => !hasText(item.imageUrl)).length;
-  const missingDescription = items.filter((item) => !hasText(item.shortDescription) && !hasText(item.description)).length;
-  const missingCategory = items.filter((item) => !hasText(item.category)).length;
-  const featured = items.filter((item) => item.isFeatured).length;
   const unavailable = total - online;
 
-  return { total, online, unavailable, missingPhoto, missingDescription, missingCategory, featured };
+  return { total, unavailable };
 }
 
 function formatEuro(value) {
@@ -216,11 +207,7 @@ export default function AdminPanel({ embedded = false } = {}) {
       .filter((item) => {
         if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
         if (areaFilter !== "all" && item.preparationArea !== areaFilter) return false;
-        if (qualityFilter === "missingPhoto" && hasText(item.imageUrl)) return false;
-        if (qualityFilter === "missingDescription" && (hasText(item.shortDescription) || hasText(item.description))) return false;
-        if (qualityFilter === "missingCategory" && hasText(item.category)) return false;
         if (qualityFilter === "offline" && item.isAvailable) return false;
-        if (qualityFilter === "featured" && !item.isFeatured) return false;
         if (!term) return true;
         return [item.name, item.category, item.preparationArea, item.shortDescription, item.description]
           .filter(Boolean)
@@ -282,6 +269,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         sortOrder: Number(itemForm.sortOrder || 0),
         vatRate: Number(itemForm.vatRate || 10),
         allergens: itemForm.allergens,
+        isFeatured: false,
       };
 
       if (editingItemId) {
@@ -365,7 +353,6 @@ export default function AdminPanel({ embedded = false } = {}) {
         sortOrder: Number(item.sortOrder || 0) + 1,
         vatRate: Number(item.vatRate || 10),
         isAvailable: false,
-        isFeatured: false,
       });
       setSuccess("Prodotto duplicato come bozza offline");
       await loadData();
@@ -389,7 +376,6 @@ export default function AdminPanel({ embedded = false } = {}) {
       sortOrder: item.sortOrder ?? 0,
       vatRate: item.vatRate ?? 10,
       isAvailable: Boolean(item.isAvailable),
-      isFeatured: Boolean(item.isFeatured),
     });
   }
 
@@ -500,10 +486,8 @@ export default function AdminPanel({ embedded = false } = {}) {
             subtitle="Controllo essenziale di cio che il cliente puo ordinare dal tavolo."
           />
           <div className="menu-health-metrics">
-            <div><span>Prodotti</span><strong>{menuQuality.total}</strong></div>
-            <div><span>Online</span><strong>{menuQuality.online}</strong></div>
+            <div><span>Menu</span><strong>{menuQuality.total}</strong></div>
             <div><span>Non disponibili</span><strong>{menuQuality.unavailable}</strong></div>
-            <div><span>In evidenza</span><strong>{menuQuality.featured}</strong></div>
           </div>
         </div>
       </div>
@@ -524,14 +508,14 @@ export default function AdminPanel({ embedded = false } = {}) {
 
       <div className="menu-action-board">
         {[
+          ["all", "Menu", menuQuality.total, "Tutti i prodotti visibili nella gestione menu."],
           ["offline", "Non disponibili", menuQuality.unavailable, "Controlla cosa il cliente non puo ordinare."],
-          ["featured", "In evidenza", menuQuality.featured, "Piatti da spingere nel menu cliente."],
         ].map(([filter, title, value, hint]) => (
           <button
             key={filter}
             type="button"
             className={qualityFilter === filter ? "is-active" : ""}
-            onClick={() => setQualityFilter(qualityFilter === filter ? "all" : filter)}
+            onClick={() => setQualityFilter(filter === "all" || qualityFilter === filter ? "all" : filter)}
           >
             <span>{title}</span>
             <b>{value}</b>
@@ -540,57 +524,69 @@ export default function AdminPanel({ embedded = false } = {}) {
         ))}
       </div>
 
-      <div className="management-grid-2">
-        <form className="management-card management-form" onSubmit={handleItemSubmit}>
+      <div className="menu-editor-layout">
+        <form className="management-card menu-editor-card" onSubmit={handleItemSubmit}>
           <SectionHead
             title={editingItemId ? "Modifica prodotto" : "Nuovo prodotto"}
-            subtitle="Campi essenziali in alto. Dettagli opzionali solo se servono al menu cliente."
+            subtitle="Scheda pulita come la vede il ristoratore: foto, prezzo, categoria, descrizione e disponibilita."
           />
-          <Field label="Nome"><TextInput placeholder="Es. Carbonara" value={itemForm.name} onChange={(e) => setItemForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 130px", gap: 10 }}>
-            <Field label="Categoria"><TextInput placeholder="Primi" list="menu-categories" value={itemForm.category} onChange={(e) => setItemForm((prev) => ({ ...prev, category: e.target.value }))} /></Field>
-            <Field label="Prezzo"><TextInput placeholder="12.00" type="number" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((prev) => ({ ...prev, price: e.target.value }))} /></Field>
-          </div>
           <datalist id="menu-categories">{categorySuggestions.map((category) => <option key={category} value={category} />)}</datalist>
-          <Field label="Preparazione">
-            <SelectInput value={itemForm.preparationArea} onChange={(e) => setItemForm((prev) => ({ ...prev, preparationArea: e.target.value }))}>
-              <option value="kitchen">Cucina</option>
-              <option value="bar">Bar</option>
-            </SelectInput>
-          </Field>
-          <Field label="Descrizione breve"><TextInput placeholder="Una riga sul menu" value={itemForm.shortDescription} onChange={(e) => setItemForm((prev) => ({ ...prev, shortDescription: e.target.value }))} /></Field>
-          <Field label="Ingredienti / descrizione"><TextArea placeholder="Ingredienti, preparazione, dettagli utili al cliente" value={itemForm.description} onChange={(e) => setItemForm((prev) => ({ ...prev, description: e.target.value }))} /></Field>
-          <Field label="Allergeni"><TextInput placeholder="Glutine, lattosio, frutta a guscio" value={itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, allergens: e.target.value }))} /></Field>
-          <Field label="Immagine piatto">
-            <div className="management-upload-row">
-              <TextInput placeholder="URL immagine oppure carica da PC" value={itemForm.imageUrl} onChange={(e) => setItemForm((prev) => ({ ...prev, imageUrl: e.target.value }))} />
-              <label className="management-file-button">
-                {uploadingItemImage ? "Carico..." : "Da PC"}
-                <input type="file" accept="image/*" onChange={handleItemImageFile} disabled={uploadingItemImage} />
-              </label>
-            </div>
-            {itemForm.imageUrl ? (
-              <div className="management-image-preview">
-                <img src={itemForm.imageUrl} alt="Anteprima piatto" />
-                <button type="button" onClick={() => setItemForm((prev) => ({ ...prev, imageUrl: "" }))}>Rimuovi</button>
+          <div className="menu-editor-grid">
+            <div className="menu-editor-fields">
+              <div className="menu-editor-row wide-price">
+                <Field label="Nome prodotto">
+                  <TextInput placeholder="Es. Carbonara" value={itemForm.name} onChange={(e) => setItemForm((prev) => ({ ...prev, name: e.target.value }))} />
+                </Field>
+                <Field label="Prezzo">
+                  <TextInput placeholder="12.00" type="number" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((prev) => ({ ...prev, price: e.target.value }))} />
+                </Field>
               </div>
-            ) : null}
-          </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Field label="Ordine"><TextInput type="number" value={itemForm.sortOrder} onChange={(e) => setItemForm((prev) => ({ ...prev, sortOrder: e.target.value }))} /></Field>
-            <Field label="IVA"><TextInput type="number" step="0.01" value={itemForm.vatRate} onChange={(e) => setItemForm((prev) => ({ ...prev, vatRate: e.target.value }))} /></Field>
-          </div>
-          <div className="management-row">
-            <label className="management-badge green"><input type="checkbox" checked={itemForm.isAvailable} onChange={(e) => setItemForm((prev) => ({ ...prev, isAvailable: e.target.checked }))} /> Disponibile</label>
-            <label className="management-badge"><input type="checkbox" checked={itemForm.isFeatured} onChange={(e) => setItemForm((prev) => ({ ...prev, isFeatured: e.target.checked }))} /> In evidenza</label>
-          </div>
-          <div className="management-row">
-            <button className="management-btn" type="submit" disabled={savingItem}>{savingItem ? "Salvataggio..." : editingItemId ? "Salva modifica" : "Aggiungi prodotto"}</button>
-            {editingItemId ? <button className="management-btn secondary" type="button" onClick={() => { setEditingItemId(""); setItemForm(emptyItem); }}>Annulla</button> : null}
+              <div className="menu-editor-row wide-price">
+                <Field label="Categoria">
+                  <TextInput placeholder="Primi" list="menu-categories" value={itemForm.category} onChange={(e) => setItemForm((prev) => ({ ...prev, category: e.target.value }))} />
+                </Field>
+                <Field label="Reparto">
+                  <SelectInput value={itemForm.preparationArea} onChange={(e) => setItemForm((prev) => ({ ...prev, preparationArea: e.target.value }))}>
+                    <option value="kitchen">Cucina</option>
+                    <option value="bar">Bar</option>
+                  </SelectInput>
+                </Field>
+              </div>
+              <Field label="Descrizione breve">
+                <TextArea placeholder="Es. Guanciale croccante, uova e pecorino romano" value={itemForm.shortDescription} onChange={(e) => setItemForm((prev) => ({ ...prev, shortDescription: e.target.value, description: e.target.value }))} />
+              </Field>
+              <Field label="Allergeni">
+                <TextInput placeholder="Es. glutine, uova, latte" value={itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, allergens: e.target.value }))} />
+              </Field>
+              <Field label="Foto piatto">
+                <div className="management-upload-row">
+                  <TextInput placeholder="URL immagine oppure carica da PC" value={itemForm.imageUrl} onChange={(e) => setItemForm((prev) => ({ ...prev, imageUrl: e.target.value }))} />
+                  <label className="management-file-button">
+                    {uploadingItemImage ? "Carico..." : "Da PC"}
+                    <input type="file" accept="image/*" onChange={handleItemImageFile} disabled={uploadingItemImage} />
+                  </label>
+                </div>
+              </Field>
+              <div className="menu-editor-actions">
+                <label className="management-badge green"><input type="checkbox" checked={itemForm.isAvailable} onChange={(e) => setItemForm((prev) => ({ ...prev, isAvailable: e.target.checked }))} /> Disponibile</label>
+                <button className="management-btn" type="submit" disabled={savingItem}>{savingItem ? "Salvataggio..." : editingItemId ? "Salva modifica" : "Aggiungi prodotto"}</button>
+                {editingItemId ? <button className="management-btn secondary" type="button" onClick={() => { setEditingItemId(""); setItemForm(emptyItem); }}>Annulla</button> : null}
+              </div>
+            </div>
+
+            <aside className="menu-product-preview">
+              {itemForm.imageUrl ? <img src={itemForm.imageUrl} alt="Anteprima piatto" /> : <div className="menu-product-image-empty">Foto</div>}
+              <span>{itemForm.category || "Menu"}</span>
+              <h3>{itemForm.name || "Nome prodotto"}</h3>
+              <p>{itemForm.shortDescription || itemForm.description || "Descrizione breve visibile nel menu cliente."}</p>
+              <strong>{itemForm.price ? formatEuro(itemForm.price) : "Prezzo"}</strong>
+              <small>{itemForm.isAvailable ? "Visibile nel menu cliente" : "Non disponibile"}</small>
+              {itemForm.imageUrl ? <button type="button" onClick={() => setItemForm((prev) => ({ ...prev, imageUrl: "" }))}>Rimuovi foto</button> : null}
+            </aside>
           </div>
         </form>
 
-        <div className="management-card">
+        <div className="management-card menu-catalog-card">
           <SectionHead
             title="Catalogo"
             subtitle={`${filteredMenu.length} prodotti visibili. Modifica disponibilita, prezzo e dettagli senza cambiare pagina.`}
@@ -609,7 +605,6 @@ export default function AdminPanel({ embedded = false } = {}) {
                 <SelectInput value={qualityFilter} onChange={(e) => setQualityFilter(e.target.value)}>
                   <option value="all">Stato: tutti</option>
                   <option value="offline">Non disponibili</option>
-                  <option value="featured">In evidenza</option>
                 </SelectInput>
               </div>
             }
@@ -621,9 +616,6 @@ export default function AdminPanel({ embedded = false } = {}) {
                   <div className="management-row-title">{item.name}</div>
                   <div className="management-row-meta">{item.category || "Senza categoria"} - {item.preparationArea === "bar" ? "Bar" : "Cucina"}</div>
                   <div className="management-price">{formatEuro(item.price)}</div>
-                  <div className="management-row" style={{ marginTop: 8 }}>
-                    {item.isFeatured ? <span className="management-badge">In evidenza</span> : null}
-                  </div>
                 </div>
                 <div className="management-row" style={{ justifyContent: "flex-end" }}>
                   <span className={`management-badge ${item.isAvailable ? "green" : "red"}`}>{item.isAvailable ? "Online" : "Esaurito"}</span>

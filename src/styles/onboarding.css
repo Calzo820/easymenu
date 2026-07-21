@@ -54,20 +54,9 @@
 .onb-form-row label { font-weight:900; color:#334155; display:flex; flex-direction:column; gap:6px; }
 .onb-form-row input, .onb-form-row select, .onb-field input, .onb-field textarea, .onb-textarea { width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:14px; padding:11px 12px; font:inherit; background:white; color:#0f172a; }
 .onb-textarea { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; resize:vertical; }
-.onb-field { display:flex; flex-direction:column; gap:6px; color:#334155; font-weight:900; }
-.onb-field textarea { resize:vertical; min-height:92px; }
-.onb-product-form { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr); gap:16px; align-items:start; }
-.onb-product-fields { display:flex; flex-direction:column; gap:12px; }
-.onb-upload-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; }
-.onb-product-switches { display:flex; gap:10px; flex-wrap:wrap; }
-.onb-product-switches label { display:inline-flex; align-items:center; gap:8px; border:1px solid #dbeafe; border-radius:999px; padding:9px 12px; background:#f8fbff; color:#0f172a; font-weight:900; }
-.onb-product-preview { border:1px solid #dbeafe; border-radius:22px; padding:14px; background:linear-gradient(135deg,#fff,#f8fbff); display:flex; flex-direction:column; gap:9px; min-height:100%; }
-.onb-product-preview img, .onb-product-image-empty { width:100%; aspect-ratio:4/3; border-radius:18px; object-fit:cover; background:#e0f2fe; }
-.onb-product-image-empty { display:grid; place-items:center; color:#0369a1; font-size:28px; font-weight:1000; }
-.onb-product-preview span { width:fit-content; border-radius:999px; padding:6px 10px; background:#eff6ff; color:#1d4ed8; font-size:11px; font-weight:1000; text-transform:uppercase; }
-.onb-product-preview h4 { margin:0; color:#0f172a; font-size:25px; line-height:1.05; letter-spacing:0; }
-.onb-product-preview p { margin:0; color:#64748b; font-weight:750; line-height:1.4; }
-.onb-product-preview strong { color:#0f172a; font-size:22px; }
+.onb-menu-shortcut { display:flex; justify-content:space-between; align-items:center; gap:14px; border:1px solid #dbeafe; border-radius:18px; padding:14px; background:#f8fbff; }
+.onb-menu-shortcut strong { display:block; color:#0f172a; font-size:20px; line-height:1; }
+.onb-menu-shortcut span { display:block; margin-top:5px; color:#64748b; font-weight:800; line-height:1.35; }
 .onb-menu-help { display:grid; gap:5px; border:1px solid #dbeafe; border-radius:16px; background:#f8fbff; padding:12px; color:#475569; font-size:13px; font-weight:800; line-height:1.35; }
 .onb-menu-help strong { color:#0f172a; font-size:14px; font-weight:950; }
 .onb-menu-help span { display:block; }
@@ -122,7 +111,7 @@
 .onb-preview-document.onb-print-document--tent .onb-qr-card { min-height:330px; display:flex; flex-direction:column; justify-content:center; background:linear-gradient(180deg,#fff,#f8fbff); border-style:solid; }
 .onb-preview-document.onb-print-document--tent .onb-qr-code { width:210px; height:210px; }
 .onb-qr-empty { grid-column:1/-1; border:1px dashed #cbd5e1; border-radius:18px; padding:18px; text-align:center; color:#64748b; font-weight:900; background:#f8fafc; }
-@media (max-width:900px){ .onb-hero,.onb-grid,.onb-command-strip,.onb-service-grid,.onb-print-options,.onb-product-form{grid-template-columns:1fr}.onb-form-row,.onb-form-row.two,.onb-logo-card,.onb-upload-row{grid-template-columns:1fr}.onb-hero h1{font-size:34px}.onb-staff-strip,.onb-coach-card,.onb-modal-head{align-items:flex-start;flex-direction:column}.onb-modal-actions{width:100%}.onb-modal-actions button{flex:1} }
+@media (max-width:900px){ .onb-hero,.onb-grid,.onb-command-strip,.onb-service-grid,.onb-print-options{grid-template-columns:1fr}.onb-form-row,.onb-form-row.two,.onb-logo-card{grid-template-columns:1fr}.onb-hero h1{font-size:34px}.onb-staff-strip,.onb-coach-card,.onb-modal-head,.onb-menu-shortcut{align-items:flex-start;flex-direction:column}.onb-modal-actions{width:100%}.onb-modal-actions button{flex:1} }
 @page { size:A4 portrait; margin:10mm; }
 @media print {
   html, body { width:auto!important; height:auto!important; min-height:0!important; margin:0!important; padding:0!important; overflow:visible!important; background:#fff!important; }

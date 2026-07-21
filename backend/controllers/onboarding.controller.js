@@ -2,13 +2,13 @@ import crypto from "node:crypto";
 import prisma from "../lib/prisma.js";
 
 const DEMO_MENU = [
-  { name: "Margherita", description: "Pomodoro, mozzarella, basilico fresco", price: 7.5, category: "Pizze", preparationArea: "kitchen", allergens: ["glutine", "latte"], sortOrder: 10, isFeatured: true },
+  { name: "Margherita", description: "Pomodoro, mozzarella, basilico fresco", price: 7.5, category: "Pizze", preparationArea: "kitchen", allergens: ["glutine", "latte"], sortOrder: 10 },
   { name: "Diavola", description: "Pomodoro, mozzarella, salame piccante", price: 9, category: "Pizze", preparationArea: "kitchen", allergens: ["glutine", "latte"], sortOrder: 20 },
-  { name: "Tagliatelle al ragù", description: "Pasta fresca con ragù della casa", price: 12, category: "Primi", preparationArea: "kitchen", allergens: ["glutine", "uova"], sortOrder: 30, isFeatured: true },
+  { name: "Tagliatelle al ragù", description: "Pasta fresca con ragù della casa", price: 12, category: "Primi", preparationArea: "kitchen", allergens: ["glutine", "uova"], sortOrder: 30 },
   { name: "Spaghetti alle vongole", description: "Vongole, aglio, olio, prezzemolo", price: 14, category: "Primi", preparationArea: "kitchen", allergens: ["glutine", "molluschi"], sortOrder: 40 },
   { name: "Cotoletta con patate", description: "Secondo completo per servizio veloce", price: 13, category: "Secondi", preparationArea: "kitchen", allergens: ["glutine", "uova"], sortOrder: 50 },
   { name: "Insalatona vegetariana", description: "Verdure fresche, feta, olive", price: 10, category: "Insalate", preparationArea: "kitchen", allergens: ["latte"], sortOrder: 60 },
-  { name: "Tiramisù", description: "Dolce classico della casa", price: 5.5, category: "Dolci", preparationArea: "kitchen", allergens: ["glutine", "latte", "uova"], sortOrder: 70, isFeatured: true },
+  { name: "Tiramisù", description: "Dolce classico della casa", price: 5.5, category: "Dolci", preparationArea: "kitchen", allergens: ["glutine", "latte", "uova"], sortOrder: 70 },
   { name: "Acqua naturale 0,75", description: "Bottiglia vetro", price: 2.5, category: "Bevande", preparationArea: "bar", sortOrder: 80 },
   { name: "Coca-Cola", description: "Lattina 33cl", price: 3, category: "Bevande", preparationArea: "bar", sortOrder: 90 },
   { name: "Birra alla spina media", description: "0,4L", price: 5, category: "Birre", preparationArea: "bar", allergens: ["glutine"], sortOrder: 100 },
@@ -24,54 +24,6 @@ function parsePositiveInt(value, fallback, max = 300) {
   const n = Number(value);
   if (!Number.isInteger(n) || n <= 0) return fallback;
   return Math.min(n, max);
-}
-
-function parseMenuImport(raw) {
-  const lines = String(raw || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  if (!lines.length) return [];
-  const maybeHeader = lines[0].toLowerCase();
-  const hasHeader = maybeHeader.includes("nome") || maybeHeader.includes("name") || maybeHeader.includes("prezzo") || maybeHeader.includes("price");
-  const dataLines = hasHeader ? lines.slice(1) : lines;
-  return dataLines.map((line, index) => {
-    const separator = line.includes(";") ? ";" : ",";
-    const [name, price, category = "Menu", preparationArea = "kitchen", description = "", allergens = ""] = line.split(separator).map((cell) => cell.trim());
-    const parsedPrice = Number(String(price || "").replace("€", "").replace(",", "."));
-    if (!name || !Number.isFinite(parsedPrice) || parsedPrice <= 0) return null;
-    const area = preparationArea === "bar" ? "bar" : "kitchen";
-    return { name, price: parsedPrice, category: category || "Menu", preparationArea: area, description: description || null, allergens: allergens ? allergens.split(/[|,]/).map((a) => a.trim()).filter(Boolean) : [], sortOrder: 1000 + index };
-  }).filter(Boolean);
-}
-
-function normalizeAllergens(input) {
-  if (!input) return [];
-  if (Array.isArray(input)) {
-    return [...new Set(input.map((item) => String(item || "").trim()).filter(Boolean))];
-  }
-  return [...new Set(String(input).split(",").map((item) => item.trim()).filter(Boolean))];
-}
-
-function buildQuickMenuItem(payload = {}) {
-  const name = String(payload.name || "").trim();
-  const price = Number(payload.price);
-  const preparationArea = payload.preparationArea === "bar" ? "bar" : "kitchen";
-
-  if (!name) throw new Error("Inserisci il nome del prodotto");
-  if (!Number.isFinite(price) || price <= 0) throw new Error("Inserisci un prezzo valido");
-
-  return {
-    name,
-    shortDescription: String(payload.shortDescription || payload.description || "").trim() || null,
-    description: String(payload.description || payload.shortDescription || "").trim() || null,
-    price,
-    category: String(payload.category || "Menu").trim() || "Menu",
-    preparationArea,
-    imageUrl: String(payload.imageUrl || "").trim() || null,
-    allergens: normalizeAllergens(payload.allergens),
-    sortOrder: Number.isInteger(Number(payload.sortOrder)) ? Number(payload.sortOrder) : 0,
-    vatRate: Number.isFinite(Number(payload.vatRate)) ? Number(payload.vatRate) : 10,
-    isAvailable: payload.isAvailable !== false,
-    isFeatured: Boolean(payload.isFeatured),
-  };
 }
 
 async function buildStatus(restaurantId) {
@@ -186,48 +138,6 @@ export const autoSetupRestaurant = async (req, res) => {
   } catch (error) {
     console.error("autoSetupRestaurant error:", error);
     return res.status(500).json({ message: "Errore setup automatico" });
-  }
-};
-
-export const importMenuQuick = async (req, res) => {
-  try {
-    const restaurantId = req.user.restaurantId;
-    const items = parseMenuImport(req.body?.text);
-    if (!items.length) return res.status(400).json({ message: "Nessuna riga valida. Usa: nome;prezzo;categoria;area;descrizione;allergeni" });
-    const existingNames = await prisma.menuItem.findMany({ where: { restaurantId, isDeleted: false }, select: { name: true } });
-    const names = new Set(existingNames.map((item) => item.name.toLowerCase()));
-    const data = items.filter((item) => !names.has(item.name.toLowerCase())).map((item) => ({ restaurantId, ...item }));
-    if (data.length) await prisma.menuItem.createMany({ data });
-    await updateOnboardingSettings(restaurantId, { importCompleted: true, importedAt: new Date().toISOString(), importedRows: data.length });
-    return res.json({ message: "Import menu completato", imported: data.length, skipped: items.length - data.length, status: await buildStatus(restaurantId) });
-  } catch (error) {
-    console.error("importMenuQuick error:", error);
-    return res.status(500).json({ message: "Errore import menu" });
-  }
-};
-
-export const createMenuItemQuick = async (req, res) => {
-  try {
-    const restaurantId = req.user.restaurantId;
-    const data = buildQuickMenuItem(req.body);
-    const existing = await prisma.menuItem.findFirst({
-      where: { restaurantId, isDeleted: false, name: { equals: data.name, mode: "insensitive" } },
-      select: { id: true },
-    });
-
-    if (existing) {
-      return res.status(409).json({ message: "Esiste gia un prodotto con questo nome. Modificalo dalla pagina Menu oppure cambia nome." });
-    }
-
-    const item = await prisma.menuItem.create({
-      data: { restaurantId, ...data },
-    });
-
-    await updateOnboardingSettings(restaurantId, { menuItemCreatedAt: new Date().toISOString() });
-    return res.status(201).json({ message: "Prodotto creato", item, status: await buildStatus(restaurantId) });
-  } catch (error) {
-    console.error("createMenuItemQuick error:", error);
-    return res.status(400).json({ message: error.message || "Errore creazione prodotto" });
   }
 };
 
