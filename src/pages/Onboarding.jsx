@@ -7,12 +7,21 @@ import { imageFileToDataUrl } from "../lib/imageFiles";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import "../styles/onboarding.css";
 
-const DEMO_IMPORT = `nome;prezzo;categoria;cucina_o_bar;descrizione;allergeni
-Bruschetta classica;5;Antipasti;kitchen;Pomodoro basilico e olio EVO;glutine
-Carbonara;12;Primi;kitchen;Guanciale uova pecorino;glutine,uova,latte
-Grigliata mista;18;Secondi;kitchen;Carne mista alla griglia;
-Acqua frizzante;2.5;Bevande;bar;Bottiglia 0,75;
-Calice vino rosso;5;Vini;bar;Selezione della casa;solfiti`;
+const CATEGORY_PRESETS = ["Antipasti", "Primi", "Secondi", "Contorni", "Dolci", "Bevande", "Vini", "Cocktail"];
+
+const EMPTY_MENU_ITEM = {
+  name: "",
+  price: "",
+  category: "Primi",
+  preparationArea: "kitchen",
+  description: "",
+  allergens: "",
+  imageUrl: "",
+  sortOrder: 0,
+  vatRate: 10,
+  isAvailable: true,
+  isFeatured: false,
+};
 
 const PRINT_LAYOUTS = [
   {
@@ -32,9 +41,9 @@ const PRINT_LAYOUTS = [
   },
 ];
 
-function SetupActionCard({ done, kicker, title, text, children }) {
+function SetupActionCard({ done, kicker, title, text, children, className = "" }) {
   return (
-    <article className={`onb-action-card ${done ? "is-done" : ""}`}>
+    <article className={`onb-action-card ${done ? "is-done" : ""} ${className}`}>
       <div className="onb-action-head">
         <div className="onb-check">{done ? "OK" : "..."}</div>
         <div>
@@ -85,12 +94,14 @@ export default function Onboarding() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [tablesCount, setTablesCount] = useState(20);
-  const [importText, setImportText] = useState(DEMO_IMPORT);
+  const [menuItemForm, setMenuItemForm] = useState(EMPTY_MENU_ITEM);
   const [showQrPreview, setShowQrPreview] = useState(false);
   const [printLayout, setPrintLayout] = useState("labels");
   const [logoUrl, setLogoUrl] = useState("");
   const [savingLogo, setSavingLogo] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [savingMenuItem, setSavingMenuItem] = useState(false);
+  const [uploadingMenuImage, setUploadingMenuImage] = useState(false);
 
   const restaurant = status?.restaurant;
   const checks = status?.checks || {};
@@ -161,8 +172,8 @@ export default function Onboarding() {
         tone: "menu",
         title: "Completa il menu",
         text: "Aggiungi almeno antipasti, primi, secondi, dolci e bevande. Le foto dei piatti fanno molta differenza nella prova.",
-        actionLabel: "Aggiungi prodotti",
-        action: importMenu,
+        actionLabel: "Compila prodotto",
+        action: () => document.querySelector(".onb-menu-card")?.scrollIntoView({ behavior: "smooth", block: "center" }),
       };
     }
 
@@ -233,25 +244,48 @@ export default function Onboarding() {
     }
   }
 
-  async function importMenu() {
+  async function saveMenuItem(event) {
+    event.preventDefault();
     try {
-      setWorking(true);
+      setSavingMenuItem(true);
       setError("");
       setMessage("");
-      const result = await apiPost("/onboarding/import-menu", { text: importText });
-      const imported = Number(result.imported || 0);
-      const skipped = Number(result.skipped || 0);
-      if (imported > 0) {
-        setMessage(`Prodotti aggiunti al menu: ${imported}. Gia presenti: ${skipped}.`);
-      } else {
-        setMessage(`Nessun nuovo prodotto aggiunto: ${skipped} erano gia presenti nel menu.`);
-      }
+      const result = await apiPost("/onboarding/menu-item", {
+        ...menuItemForm,
+        price: Number(menuItemForm.price),
+        sortOrder: Number(menuItemForm.sortOrder || 0),
+        vatRate: Number(menuItemForm.vatRate || 10),
+      });
       if (result.status) setStatus(result.status);
+      setMenuItemForm((prev) => ({
+        ...EMPTY_MENU_ITEM,
+        category: prev.category || EMPTY_MENU_ITEM.category,
+        preparationArea: prev.preparationArea || EMPTY_MENU_ITEM.preparationArea,
+        sortOrder: Number(prev.sortOrder || 0) + 10,
+      }));
+      setMessage(`Prodotto aggiunto al menu: ${result.item?.name || "nuovo prodotto"}.`);
       await load();
     } catch (err) {
-      setError(err.message || "Errore import menu");
+      setError(err.message || "Errore salvataggio prodotto");
     } finally {
-      setWorking(false);
+      setSavingMenuItem(false);
+    }
+  }
+
+  async function handleMenuImageFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingMenuImage(true);
+      setError("");
+      const imageUrl = await imageFileToDataUrl(file, { maxWidth: 1400, maxHeight: 1000, quality: 0.82 });
+      setMenuItemForm((prev) => ({ ...prev, imageUrl }));
+      setMessage("Immagine piatto caricata. Salva il prodotto per pubblicarla.");
+    } catch (err) {
+      setError(err.message || "Errore caricamento immagine piatto");
+    } finally {
+      setUploadingMenuImage(false);
+      event.target.value = "";
     }
   }
 
@@ -377,15 +411,123 @@ export default function Onboarding() {
               <small>{counts.activeTables || 0} tavoli attivi.</small>
             </SetupActionCard>
 
-            <SetupActionCard done={checks.menu} kicker="Passo 3" title="Prodotti menu" text="Scrivi o lascia gli esempi qui sotto: ogni riga diventa un piatto o una bevanda nella pagina Menu.">
-              <div className="onb-menu-help">
-                <strong>Come funziona</strong>
-                <span>Formato riga: nome; prezzo; categoria; kitchen oppure bar; descrizione; allergeni.</span>
-                <span>Esempio: Carbonara;12;Primi;kitchen;Guanciale uova pecorino;glutine,uova,latte</span>
-              </div>
-              <textarea className="onb-textarea" value={importText} onChange={(event) => setImportText(event.target.value)} rows={8} />
-              <button className="onb-primary" disabled={working} onClick={importMenu}>{working ? "Aggiungo..." : "Aggiungi prodotti al menu"}</button>
-              <small>{counts.menuItems || 0} prodotti nel menu.</small>
+            <SetupActionCard
+              done={checks.menu}
+              kicker="Passo 3"
+              title="Prodotti menu"
+              text="Inserisci i piatti come nella pagina Menu: campi chiari, foto dal PC e stato disponibile."
+              className="onb-menu-card"
+            >
+              <form className="onb-product-form" onSubmit={saveMenuItem}>
+                <div className="onb-product-fields">
+                  <div className="onb-form-row two">
+                    <label>
+                      Nome prodotto
+                      <input
+                        required
+                        placeholder="Es. Carbonara"
+                        value={menuItemForm.name}
+                        onChange={(event) => setMenuItemForm((prev) => ({ ...prev, name: event.target.value }))}
+                      />
+                    </label>
+                    <label>
+                      Prezzo
+                      <input
+                        required
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="12.00"
+                        value={menuItemForm.price}
+                        onChange={(event) => setMenuItemForm((prev) => ({ ...prev, price: event.target.value }))}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="onb-form-row two">
+                    <label>
+                      Categoria
+                      <input
+                        required
+                        list="onboarding-menu-categories"
+                        placeholder="Primi"
+                        value={menuItemForm.category}
+                        onChange={(event) => setMenuItemForm((prev) => ({ ...prev, category: event.target.value }))}
+                      />
+                      <datalist id="onboarding-menu-categories">
+                        {CATEGORY_PRESETS.map((category) => <option key={category} value={category} />)}
+                      </datalist>
+                    </label>
+                    <label>
+                      Reparto
+                      <select
+                        value={menuItemForm.preparationArea}
+                        onChange={(event) => setMenuItemForm((prev) => ({ ...prev, preparationArea: event.target.value }))}
+                      >
+                        <option value="kitchen">Cucina</option>
+                        <option value="bar">Bar</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="onb-field">
+                    Descrizione breve
+                    <textarea
+                      placeholder="Es. Guanciale croccante, uova e pecorino romano"
+                      value={menuItemForm.description}
+                      onChange={(event) => setMenuItemForm((prev) => ({ ...prev, description: event.target.value }))}
+                      rows={3}
+                    />
+                  </label>
+
+                  <label className="onb-field">
+                    Allergeni
+                    <input
+                      placeholder="Es. glutine, uova, latte"
+                      value={menuItemForm.allergens}
+                      onChange={(event) => setMenuItemForm((prev) => ({ ...prev, allergens: event.target.value }))}
+                    />
+                  </label>
+
+                  <label className="onb-field">
+                    Foto piatto
+                    <div className="onb-upload-row">
+                      <input
+                        placeholder="URL immagine oppure carica da PC"
+                        value={menuItemForm.imageUrl}
+                        onChange={(event) => setMenuItemForm((prev) => ({ ...prev, imageUrl: event.target.value }))}
+                      />
+                      <label className="onb-file-button">
+                        {uploadingMenuImage ? "Carico..." : "Da PC"}
+                        <input type="file" accept="image/*" onChange={handleMenuImageFile} disabled={uploadingMenuImage} />
+                      </label>
+                    </div>
+                  </label>
+
+                  <div className="onb-product-switches">
+                    <label><input type="checkbox" checked={menuItemForm.isAvailable} onChange={(event) => setMenuItemForm((prev) => ({ ...prev, isAvailable: event.target.checked }))} /> Disponibile</label>
+                    <label><input type="checkbox" checked={menuItemForm.isFeatured} onChange={(event) => setMenuItemForm((prev) => ({ ...prev, isFeatured: event.target.checked }))} /> In evidenza</label>
+                  </div>
+
+                  <div className="onb-actions">
+                    <button className="onb-primary" type="submit" disabled={savingMenuItem || uploadingMenuImage}>
+                      {savingMenuItem ? "Salvo..." : "Aggiungi prodotto"}
+                    </button>
+                    <button className="onb-secondary" type="button" onClick={() => { window.location.href = "/admin?tab=menu"; }}>
+                      Apri pagina Menu
+                    </button>
+                  </div>
+                  <small>{counts.menuItems || 0} prodotti nel menu.</small>
+                </div>
+
+                <aside className="onb-product-preview">
+                  {menuItemForm.imageUrl ? <img src={menuItemForm.imageUrl} alt="Anteprima prodotto" /> : <div className="onb-product-image-empty">Foto</div>}
+                  <span>{menuItemForm.category || "Categoria"}</span>
+                  <h4>{menuItemForm.name || "Nome prodotto"}</h4>
+                  <p>{menuItemForm.description || "Descrizione breve visibile nel menu cliente."}</p>
+                  <strong>{menuItemForm.price ? `${Number(menuItemForm.price).toFixed(2)} EUR` : "Prezzo"}</strong>
+                </aside>
+              </form>
             </SetupActionCard>
 
             <SetupActionCard done={checks.qr} kicker="Passo 4" title="QR tavoli" text="Controlla l'anteprima e stampa i QR da mettere sui tavoli.">

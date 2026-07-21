@@ -42,6 +42,38 @@ function parseMenuImport(raw) {
   }).filter(Boolean);
 }
 
+function normalizeAllergens(input) {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return [...new Set(input.map((item) => String(item || "").trim()).filter(Boolean))];
+  }
+  return [...new Set(String(input).split(",").map((item) => item.trim()).filter(Boolean))];
+}
+
+function buildQuickMenuItem(payload = {}) {
+  const name = String(payload.name || "").trim();
+  const price = Number(payload.price);
+  const preparationArea = payload.preparationArea === "bar" ? "bar" : "kitchen";
+
+  if (!name) throw new Error("Inserisci il nome del prodotto");
+  if (!Number.isFinite(price) || price <= 0) throw new Error("Inserisci un prezzo valido");
+
+  return {
+    name,
+    shortDescription: String(payload.shortDescription || payload.description || "").trim() || null,
+    description: String(payload.description || payload.shortDescription || "").trim() || null,
+    price,
+    category: String(payload.category || "Menu").trim() || "Menu",
+    preparationArea,
+    imageUrl: String(payload.imageUrl || "").trim() || null,
+    allergens: normalizeAllergens(payload.allergens),
+    sortOrder: Number.isInteger(Number(payload.sortOrder)) ? Number(payload.sortOrder) : 0,
+    vatRate: Number.isFinite(Number(payload.vatRate)) ? Number(payload.vatRate) : 10,
+    isAvailable: payload.isAvailable !== false,
+    isFeatured: Boolean(payload.isFeatured),
+  };
+}
+
 async function buildStatus(restaurantId) {
   const [restaurant, tablesCount, activeTablesCount, menuCount, staffCount] = await Promise.all([
     prisma.restaurant.findUnique({ where: { id: restaurantId }, include: { subscription: true } }),
@@ -171,6 +203,31 @@ export const importMenuQuick = async (req, res) => {
   } catch (error) {
     console.error("importMenuQuick error:", error);
     return res.status(500).json({ message: "Errore import menu" });
+  }
+};
+
+export const createMenuItemQuick = async (req, res) => {
+  try {
+    const restaurantId = req.user.restaurantId;
+    const data = buildQuickMenuItem(req.body);
+    const existing = await prisma.menuItem.findFirst({
+      where: { restaurantId, isDeleted: false, name: { equals: data.name, mode: "insensitive" } },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return res.status(409).json({ message: "Esiste gia un prodotto con questo nome. Modificalo dalla pagina Menu oppure cambia nome." });
+    }
+
+    const item = await prisma.menuItem.create({
+      data: { restaurantId, ...data },
+    });
+
+    await updateOnboardingSettings(restaurantId, { menuItemCreatedAt: new Date().toISOString() });
+    return res.status(201).json({ message: "Prodotto creato", item, status: await buildStatus(restaurantId) });
+  } catch (error) {
+    console.error("createMenuItemQuick error:", error);
+    return res.status(400).json({ message: error.message || "Errore creazione prodotto" });
   }
 };
 
