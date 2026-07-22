@@ -1073,3 +1073,64 @@
   .settings-card { grid-template-columns: 42px minmax(0, 1fr); }
   .settings-card-action { grid-column: 2; }
 }
+
+.report-hero-clean {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.report-period-switch {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.report-period-switch button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #475569;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.report-period-switch button.is-active { background: #0f172a; color: #fff; }
+.management-stat small { display: block; margin-top: 5px; color: #64748b; font-size: 11px; font-weight: 750; }
+
+.report-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 12px;
+}
+
+.report-insight {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15,23,42,.06);
+}
+.report-insight span { color: #64748b; font-size: 11px; font-weight: 950; text-transform: uppercase; }
+.report-insight b { display: block; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #0f172a; font-size: 22px; }
+.report-insight p { margin: 5px 0 0; color: #475569; font-size: 13px; font-weight: 750; }
+.report-insight--green { border-top: 4px solid #16a34a; }
+.report-insight--blue { border-top: 4px solid #2563eb; }
+.report-insight--amber { border-top: 4px solid #f59e0b; }
+.report-empty-clean { display: grid; gap: 7px; place-items: start; padding: 28px; }
+.report-empty-clean span { color: #2563eb; font-size: 11px; font-weight: 950; text-transform: uppercase; }
+.report-empty-clean h2 { margin: 0; font-size: 24px; }
+.report-empty-clean p { max-width: 720px; margin: 0; color: #64748b; line-height: 1.6; font-weight: 750; }
+
+@media (max-width: 760px) {
+  .report-hero-clean { align-items: stretch; flex-direction: column; }
+  .report-period-switch { align-self: flex-start; }
+  .report-insight-grid { grid-template-columns: 1fr; }
+}

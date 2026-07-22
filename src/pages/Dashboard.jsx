@@ -64,6 +64,28 @@ function ServiceReadinessChecklist({ items, progress }) {
   );
 }
 
+function SupportAccessNotice({ access, onDismiss }) {
+  if (!access) return null;
+  const date = new Date(access.createdAt);
+  const dateLabel = Number.isNaN(date.getTime())
+    ? "recentemente"
+    : date.toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" });
+
+  return (
+    <section className="dash-support-access">
+      <div>
+        <span>Registro sicurezza</span>
+        <b>Ultimo accesso dell'assistenza: {dateLabel}</b>
+        <p>Motivazione: {access.reason || "Assistenza tecnica"}. I dati economici sono rimasti nascosti.</p>
+      </div>
+      <label>
+        <input type="checkbox" onChange={onDismiss} />
+        Ho visto
+      </label>
+    </section>
+  );
+}
+
 function Dashboard() {
   const [data, setData] = useState(null);
   const [setupStatus, setSetupStatus] = useState(null);
@@ -74,6 +96,9 @@ function Dashboard() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [demoSeeding, setDemoSeeding] = useState(false);
   const [demoSeedMessage, setDemoSeedMessage] = useState("");
+  const [dismissedSupportAccess, setDismissedSupportAccess] = useState(
+    () => localStorage.getItem("easymenu_dismissed_support_access") || ""
+  );
 
   const restaurantName = getRestaurantName();
   const restaurantSlug = getRestaurantSlug();
@@ -165,6 +190,15 @@ function Dashboard() {
   const live = data?.live || {};
   const charts = data?.charts || {};
   const alerts = data?.alerts || {};
+  const supportAccess = data?.supportAccess || null;
+  const supportAccessAge = supportAccess?.createdAt ? Date.now() - new Date(supportAccess.createdAt).getTime() : Infinity;
+  const showSupportAccess = Boolean(
+    supportAccess?.id &&
+    supportAccessAge >= 0 &&
+    supportAccessAge < 24 * 60 * 60 * 1000 &&
+    dismissedSupportAccess !== supportAccess.id &&
+    !isSuperAdminMode
+  );
 
   const alertCount = num(kpis.unresolvedErrors) + num(kpis.paymentAlerts) + num(kpis.unavailableItems);
   const moneyHidden = Boolean(data?.privacyMode);
@@ -226,6 +260,16 @@ function Dashboard() {
           refreshing={refreshing || loading}
           onRefresh={() => load(true)}
         />
+
+        {showSupportAccess ? (
+          <SupportAccessNotice
+            access={supportAccess}
+            onDismiss={() => {
+              localStorage.setItem("easymenu_dismissed_support_access", supportAccess.id);
+              setDismissedSupportAccess(supportAccess.id);
+            }}
+          />
+        ) : null}
 
         {isDemoRestaurant && readinessProgress < 100 ? (
           <section className="dash-demo-fix">

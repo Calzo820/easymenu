@@ -185,6 +185,7 @@ function CartBar({ totalItems, totalAmount, loading, onOrder, onToggle, open, ta
 export default function Cliente() {
   const params = useParams();
   const search = new URLSearchParams(window.location.search);
+  const paymentResult = search.get("payment");
 
   const slug =
     params.slug ||
@@ -213,7 +214,8 @@ export default function Cliente() {
   const [order, setOrder] = useState(null);
   const [showMenuAfterOrder, setShowMenuAfterOrder] = useState(false);
   const [serviceMessage, setServiceMessage] = useState("");
-  const [payment, setPayment] = useState({ loading: false, error: "" });
+  const [payment, setPayment] = useState({ loading: false, error: "", open: false, summary: null });
+  const [splitCount, setSplitCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -283,7 +285,10 @@ export default function Cliente() {
     let active = true;
     const sync = async () => {
       try {
-        const data = await publicApiGet(`/orders/public/${encodeURIComponent(token)}`);
+        const [data, summary] = await Promise.all([
+          publicApiGet(`/orders/public/${encodeURIComponent(token)}`),
+          isDemo ? Promise.resolve(null) : publicApiGet(`/payments/public/${encodeURIComponent(token)}/summary`).catch(() => null),
+        ]);
         if (data && active) {
           setOrder((prev) => {
             const next = { ...(prev || {}), ...data };
@@ -291,6 +296,7 @@ export default function Cliente() {
             return next;
           });
         }
+        if (summary && active) setPayment((prev) => ({ ...prev, summary }));
       } catch {
         // La pagina cliente deve restare usabile anche se il backend si risveglia lentamente.
       }
@@ -302,7 +308,17 @@ export default function Cliente() {
       active = false;
       clearInterval(timer);
     };
-  }, [order?.id, order?.publicToken, slug, tableToken]);
+  }, [isDemo, order?.id, order?.publicToken, slug, tableToken]);
+
+  useEffect(() => {
+    if (paymentResult === "success") {
+      setServiceMessage("Pagamento ricevuto. La cassa sta aggiornando il conto.");
+      setPayment((prev) => ({ ...prev, open: true, error: "" }));
+    }
+    if (paymentResult === "cancelled") {
+      setPayment((prev) => ({ ...prev, open: true, error: "Pagamento annullato: il conto non è stato addebitato." }));
+    }
+  }, [paymentResult]);
 
   const categories = useMemo(() => getCategories(items), [items]);
   const categoryCounts = useMemo(() => getCategoryCounts(items), [items]);
@@ -431,12 +447,16 @@ export default function Cliente() {
     if (!token || payment.loading) return;
 
     try {
-      setPayment({ loading: true, error: "" });
-      const data = await publicApiPost(`/payments/public/${encodeURIComponent(token)}/checkout`, { splitCount: 1, payerIndex: 1 });
+      setPayment((prev) => ({ ...prev, loading: true, error: "" }));
+      const paidPayments = (payment.summary?.payments || []).filter((item) => item.status === "paid").length;
+      const data = await publicApiPost(`/payments/public/${encodeURIComponent(token)}/checkout`, {
+        splitCount,
+        payerIndex: Math.min(splitCount, paidPayments + 1),
+      });
       if (!data?.checkoutUrl) throw new Error("Pagamento non disponibile");
       window.location.href = data.checkoutUrl;
     } catch (err) {
-      setPayment({ loading: false, error: err.message || "Pagamento non disponibile" });
+      setPayment((prev) => ({ ...prev, loading: false, error: err.message || "Pagamento non disponibile" }));
     }
   }
 
@@ -519,8 +539,37 @@ export default function Cliente() {
             <strong>{money(order.totalAmount)}</strong>
           </div>
 
+          {order.paymentStatus === "paid" || payment.summary?.paymentStatus === "paid" ? (
+            <div className="cm-payment-paid"><b>Conto pagato</b><span>Il pagamento è stato registrato correttamente.</span></div>
+          ) : null}
+
           {payment.error ? <div className="cm-error">{payment.error}</div> : null}
           {serviceMessage ? <div className="cm-service-message">{serviceMessage}</div> : null}
+
+          {payment.open && order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
+            <section className="cm-payment-panel">
+              <div className="cm-payment-summary">
+                <div><span>Totale</span><b>{money(payment.summary?.totalAmount ?? order.totalAmount)}</b></div>
+                <div><span>Già pagato</span><b>{money(payment.summary?.paidAmount || 0)}</b></div>
+                <div><span>Da pagare</span><b>{money(payment.summary?.remainingAmount ?? order.totalAmount)}</b></div>
+              </div>
+              <div className="cm-payment-split">
+                <span>Come vuoi pagare?</span>
+                <div>
+                  {[1, 2, 3, 4].map((count) => (
+                    <button type="button" key={count} className={splitCount === count ? "is-active" : ""} onClick={() => setSplitCount(count)}>
+                      {count === 1 ? "Tutto" : `${count} quote`}
+                    </button>
+                  ))}
+                </div>
+                <small>{splitCount === 1 ? "Paghi tutto il conto." : `Paghi una quota da circa ${money(Number(payment.summary?.totalAmount ?? order.totalAmount) / splitCount)}.`}</small>
+              </div>
+              <button type="button" className="cm-payment-cta" onClick={payOnline} disabled={payment.loading}>
+                {payment.loading ? "Apro il pagamento..." : splitCount === 1 ? "Paga il conto" : "Paga una quota"}
+              </button>
+              <p>Pagamento sicuro gestito da Stripe. EasyMenu non salva i dati della carta.</p>
+            </section>
+          ) : null}
 
           <div className="cm-confirm-actions">
             <button type="button" className="secondary" onClick={() => requestService("staff")}>
@@ -529,9 +578,9 @@ export default function Cliente() {
             <button type="button" className="secondary" onClick={() => requestService("bill")}>
               Chiedi conto
             </button>
-            {(order.publicToken || (!isDemo && order.id)) ? (
-              <button type="button" onClick={payOnline} disabled={payment.loading}>
-                {payment.loading ? "Apro pagamento..." : "Paga online"}
+            {(order.publicToken || (!isDemo && order.id)) && order.paymentStatus !== "paid" ? (
+              <button type="button" onClick={() => setPayment((prev) => ({ ...prev, open: !prev.open, error: "" }))} disabled={payment.loading}>
+                {payment.open ? "Chiudi pagamento" : "Paga dal tavolo"}
               </button>
             ) : null}
             <button
@@ -643,7 +692,7 @@ export default function Cliente() {
             <span>Totale</span>
             <strong>{money(totalAmount)}</strong>
           </div>
-          <p className="cm-cart-hint">Controlla quantita e note prima di inviare alla cucina.</p>
+          <p className="cm-cart-hint">Controlla quantità e note prima di inviare alla cucina.</p>
         </section>
       ) : null}
 

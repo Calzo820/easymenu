@@ -4,345 +4,210 @@ import { apiGet } from "../lib/api";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 import "../styles/management-os.css";
 
-function getRistoranteAttivo() {
-  return localStorage.getItem("ristorante_attivo") || "";
+function getRestaurantName() {
+  try {
+    return JSON.parse(localStorage.getItem("auth_restaurant") || "null")?.name || localStorage.getItem("ristorante_attivo") || "Ristorante";
+  } catch {
+    return localStorage.getItem("ristorante_attivo") || "Ristorante";
+  }
 }
 
-function storicoKey(nome) {
-  return `storico_${nome}`;
+function number(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function parseNumber(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+function money(value) {
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(number(value));
 }
 
-function formatEuro(value) {
-  return `${parseNumber(value).toFixed(2)} EUR`;
-}
-
-function mapOrderToLegacy(order) {
+function normalizedOrder(order) {
   return {
     ...order,
-    tavolo: order?.table?.name || order?.table?.code || order?.table?.number || order?.tavolo || "-",
-    pagamento: order?.paymentMethod || order?.pagamento || "Non indicato",
-    totale: order?.totalAmount ?? order?.totale ?? 0,
-    chiusoIl: order?.closedAt || order?.servedAt || order?.updatedAt || order?.chiusoIl || order?.time,
-    time: order?.createdAt || order?.time || Date.now(),
-    piatti: (order?.items || order?.piatti || []).map((item) => ({
-      ...item,
-      nome: item?.nameSnapshot || item?.nome || item?.menuItem?.name || "Articolo",
-      qty: item?.quantity ?? item?.qty ?? 1,
-      prezzo: item?.priceSnapshot ?? item?.prezzo ?? 0,
-      categoria: item?.categorySnapshot || item?.categoria || item?.menuItem?.category || "Altro",
+    closedAt: order.closedAt || order.servedAt || order.updatedAt || order.createdAt,
+    total: number(order.totalAmount ?? order.totale),
+    payment: order.paymentMethod || order.pagamento || "Non indicato",
+    items: (order.items || order.piatti || []).map((item) => ({
+      name: item.nameSnapshot || item.nome || item.menuItem?.name || "Articolo",
+      quantity: number(item.quantity ?? item.qty ?? 1),
     })),
   };
 }
 
-function startOfDay(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
+function Stat({ label, value, detail }) {
+  return <article className="management-stat"><span>{label}</span><strong>{value}</strong>{detail ? <small>{detail}</small> : null}</article>;
 }
 
-function Stat({ label, value }) {
-  return <div className="management-stat"><span>{label}</span><strong>{value}</strong></div>;
-}
-
-function BarRow({ label, value, max, suffix = "" }) {
-  const width = max > 0 ? Math.max(5, Math.round((value / max) * 100)) : 0;
+function BarRow({ label, value, max, valueLabel }) {
+  const width = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
   return (
     <div className="report-bar-row">
       <div>
         <div className="management-row-title" style={{ fontSize: 14 }}>{label}</div>
         <div className="report-track"><div className="report-fill" style={{ width: `${width}%` }} /></div>
       </div>
-      <strong>{value}{suffix}</strong>
+      <strong>{valueLabel ?? value}</strong>
     </div>
   );
 }
 
-function localAdvisorInsights({ storicoFiltrato, piattiTop, ticketMedio }) {
-  const insights = [];
-
-  if (storicoFiltrato.length === 0) {
-    insights.push({
-      priority: "high",
-      title: "Crea movimento nella demo",
-      message: "Chiudi alcuni conti dalla cassa: le statistiche diventano più credibili quando mostrano incasso e prodotti top.",
-      actionLabel: "Apri cassa",
-      actionHref: "/cassa",
-    });
-  }
-
-  if (piattiTop[0]) {
-    insights.push({
-      priority: "medium",
-      title: `Metti in evidenza ${piattiTop[0].nome}`,
-      message: "Il prodotto più ordinato deve essere facile da trovare nel menu cliente, con foto chiara e descrizione breve.",
-      actionLabel: "Apri menu",
-      actionHref: "/admin",
-    });
-  }
-
-  if (ticketMedio > 0 && ticketMedio < 18) {
-    insights.push({
-      priority: "medium",
-      title: "Alza il ticket medio",
-      message: "Prova a spingere dolci, calici o cocktail tra i consigliati. Sono aggiunte semplici e visibili al cliente.",
-      actionLabel: "Apri menu",
-      actionHref: "/admin",
-    });
-  }
-
-  if (!insights.length) {
-    insights.push({
-      priority: "low",
-      title: "Dati leggibili",
-      message: "Il ristorante ha abbastanza movimento per leggere vendite, prodotti top e pagamenti in modo utile.",
-      actionLabel: "Apri storico",
-      actionHref: "/storico",
-    });
-  }
-
-  return insights.slice(0, 4);
-}
-
-function AdvisorCard({ advisor, loading, error, fallbackInsights }) {
-  const insights = advisor?.insights?.length ? advisor.insights : fallbackInsights;
-  const sourceLabel = advisor?.source === "openai" ? "AI attiva" : "Consigli operativi";
-
+function Insight({ label, value, text, tone = "neutral" }) {
   return (
-    <div className="management-card advisor-card">
-      <div className="management-section-head">
-        <div>
-          <div className="management-kicker">Consulente EasyMenu</div>
-          <h2 className="management-title">Cosa fare adesso</h2>
-          <p className="management-subtitle">
-            {advisor?.summary || "Suggerimenti pratici basati su menu, tavoli, servizio e vendite."}
-          </p>
-        </div>
-        <span className={`advisor-source ${advisor?.source === "openai" ? "is-ai" : ""}`}>
-          {loading ? "Aggiorno..." : sourceLabel}
-        </span>
-      </div>
-
-      {error ? <div className="advisor-note">Backend lento: sto mostrando consigli locali.</div> : null}
-
-      <div className="advisor-grid">
-        {insights.map((insight, index) => (
-          <article className={`advisor-insight ${insight.priority || "medium"}`} key={`${insight.title}-${index}`}>
-            <span>{insight.priority === "high" ? "Priorità alta" : insight.priority === "low" ? "Ottimizzazione" : "Da fare"}</span>
-            <h3>{insight.title}</h3>
-            <p>{insight.message}</p>
-            {insight.actionHref ? (
-              <button type="button" onClick={() => { window.location.href = insight.actionHref; }}>
-                {insight.actionLabel || "Apri"}
-              </button>
-            ) : null}
-          </article>
-        ))}
-      </div>
-    </div>
+    <article className={`report-insight report-insight--${tone}`}>
+      <span>{label}</span>
+      <b>{value}</b>
+      <p>{text}</p>
+    </article>
   );
 }
 
 export default function Statistiche() {
-  const [storico, setStorico] = useState([]);
-  const [periodo, setPeriodo] = useState("30");
-  const [advisor, setAdvisor] = useState(null);
-  const [advisorLoading, setAdvisorLoading] = useState(false);
-  const [advisorError, setAdvisorError] = useState("");
-  const ristoranteAttivo = getRistoranteAttivo();
+  const [orders, setOrders] = useState([]);
+  const [period, setPeriod] = useState(30);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const restaurantName = getRestaurantName();
 
   useEffect(() => {
-    let cancelled = false;
-    async function syncStorico() {
-      if (!ristoranteAttivo) {
-        setStorico([]);
-        return;
-      }
+    let active = true;
+    async function load() {
       try {
+        setLoading(true);
+        setError("");
         const data = await apiGet("/orders?history=true");
-        const lista = Array.isArray(data) ? data : data?.orders || [];
-        if (!cancelled) setStorico(lista.map(mapOrderToLegacy));
-      } catch (error) {
-        console.warn("Backend non disponibile, uso storico locale", error);
-        const dati = JSON.parse(localStorage.getItem(storicoKey(ristoranteAttivo)) || "[]");
-        if (!cancelled) setStorico(Array.isArray(dati) ? dati : []);
-      }
-    }
-    syncStorico();
-    const timer = setInterval(syncStorico, 8000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [ristoranteAttivo]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadAdvisor() {
-      if (!ristoranteAttivo) {
-        setAdvisor(null);
-        return;
-      }
-
-      try {
-        setAdvisorLoading(true);
-        setAdvisorError("");
-        const data = await apiGet(`/analytics/advisor?days=${periodo}`);
-        if (!cancelled) setAdvisor(data);
-      } catch (error) {
-        if (!cancelled) {
-          setAdvisor(null);
-          setAdvisorError(error.message || "Consulente non disponibile");
-        }
+        const rows = Array.isArray(data) ? data : data?.orders || [];
+        if (active) setOrders(rows.map(normalizedOrder));
+      } catch (loadError) {
+        if (active) setError(loadError.message || "Statistiche temporaneamente non disponibili");
       } finally {
-        if (!cancelled) setAdvisorLoading(false);
+        if (active) setLoading(false);
       }
     }
+    load();
+    return () => { active = false; };
+  }, []);
 
-    loadAdvisor();
-    return () => {
-      cancelled = true;
+  const filteredOrders = useMemo(() => {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    from.setDate(from.getDate() - (period - 1));
+    return orders
+      .filter((order) => order.closedAt && new Date(order.closedAt) >= from)
+      .sort((a, b) => new Date(b.closedAt) - new Date(a.closedAt));
+  }, [orders, period]);
+
+  const metrics = useMemo(() => {
+    const revenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+    const itemCount = filteredOrders.reduce((sum, order) => sum + order.items.reduce((total, item) => total + item.quantity, 0), 0);
+    return {
+      revenue,
+      orderCount: filteredOrders.length,
+      averageTicket: filteredOrders.length ? revenue / filteredOrders.length : 0,
+      itemCount,
     };
-  }, [ristoranteAttivo, periodo]);
+  }, [filteredOrders]);
 
-  const storicoFiltrato = useMemo(() => {
-    const days = parseNumber(periodo) || 30;
-    const minDate = startOfDay(new Date());
-    minDate.setDate(minDate.getDate() - (days - 1));
-    return [...storico]
-      .filter((ordine) => {
-        const ts = ordine.chiusoIl || ordine.time;
-        return ts && new Date(ts) >= minDate;
-      })
-      .sort((a, b) => new Date(b.chiusoIl || b.time) - new Date(a.chiusoIl || a.time));
-  }, [storico, periodo]);
-
-  const incassoTotale = storicoFiltrato.reduce((acc, ordine) => acc + parseNumber(ordine.totale), 0);
-  const ordiniTotali = storicoFiltrato.length;
-  const ticketMedio = ordiniTotali > 0 ? incassoTotale / ordiniTotali : 0;
-  const articoliVenduti = storicoFiltrato.reduce((acc, ordine) => acc + (ordine.piatti || []).reduce((sum, p) => sum + parseNumber(p.qty || 0), 0), 0);
-
-  const piattiTop = useMemo(() => {
+  const productStats = useMemo(() => {
     const map = new Map();
-    storicoFiltrato.forEach((ordine) => {
-      (ordine.piatti || []).forEach((piatto) => {
-        const nome = String(piatto.nome || "Sconosciuto");
-        map.set(nome, (map.get(nome) || 0) + parseNumber(piatto.qty || 0));
-      });
-    });
-    return [...map.entries()].map(([nome, qty]) => ({ nome, qty })).sort((a, b) => b.qty - a.qty).slice(0, 8);
-  }, [storicoFiltrato]);
+    filteredOrders.forEach((order) => order.items.forEach((item) => map.set(item.name, (map.get(item.name) || 0) + item.quantity)));
+    return [...map.entries()].map(([name, quantity]) => ({ name, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 8);
+  }, [filteredOrders]);
 
-  const pagamentiTop = useMemo(() => {
+  const paymentStats = useMemo(() => {
+    const labels = { cash: "Contanti", card: "Carta", online: "Online", satispay: "Satispay", other: "Altro" };
     const map = new Map();
-    storicoFiltrato.forEach((ordine) => {
-      const metodo = String(ordine.pagamento || "Non indicato");
-      map.set(metodo, (map.get(metodo) || 0) + 1);
+    filteredOrders.forEach((order) => {
+      const method = labels[order.payment] || order.payment;
+      map.set(method, (map.get(method) || 0) + 1);
     });
-    return [...map.entries()].map(([metodo, count]) => ({ metodo, count })).sort((a, b) => b.count - a.count);
-  }, [storicoFiltrato]);
+    return [...map.entries()].map(([method, count]) => ({ method, count })).sort((a, b) => b.count - a.count);
+  }, [filteredOrders]);
 
-  const dailyRevenue = useMemo(() => {
+  const dailyStats = useMemo(() => {
     const map = new Map();
-    storicoFiltrato.forEach((ordine) => {
-      const d = new Date(ordine.chiusoIl || ordine.time).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
-      map.set(d, (map.get(d) || 0) + parseNumber(ordine.totale));
+    filteredOrders.forEach((order) => {
+      const date = new Date(order.closedAt);
+      const key = date.toISOString().slice(0, 10);
+      const current = map.get(key) || { date: key, revenue: 0, orders: 0 };
+      current.revenue += order.total;
+      current.orders += 1;
+      map.set(key, current);
     });
-    return [...map.entries()].map(([day, value]) => ({ day, value })).reverse().slice(-10);
-  }, [storicoFiltrato]);
+    return [...map.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-14);
+  }, [filteredOrders]);
 
-  const maxDish = Math.max(...piattiTop.map((p) => p.qty), 0);
-  const maxRevenue = Math.max(...dailyRevenue.map((d) => d.value), 0);
-  const maxPayment = Math.max(...pagamentiTop.map((p) => p.count), 0);
-  const fallbackInsights = useMemo(
-    () => localAdvisorInsights({ storicoFiltrato, piattiTop, ticketMedio }),
-    [storicoFiltrato, piattiTop, ticketMedio]
-  );
+  const bestDay = useMemo(() => [...dailyStats].sort((a, b) => b.revenue - a.revenue)[0] || null, [dailyStats]);
+  const topProduct = productStats[0] || null;
+  const topPayment = paymentStats[0] || null;
+  const maxRevenue = Math.max(0, ...dailyStats.map((item) => item.revenue));
+  const maxProduct = Math.max(0, ...productStats.map((item) => item.quantity));
+  const maxPayment = Math.max(0, ...paymentStats.map((item) => item.count));
 
   return (
     <div style={glowPageStyle}>
       <Navbar />
       <div style={appShellStyle}>
-        <div className="app-shell management-os">
-          <div className="management-hero-main">
-            <div className="management-kicker">Report</div>
-            <h1 className="management-hero-title">Numeri leggibili, decisioni veloci.</h1>
-            <p className="management-hero-subtitle">
-              Niente grafici inutili: incasso, ticket medio, prodotti top e metodi di pagamento in una schermata chiara.
-            </p>
-          </div>
+        <main className="app-shell management-os">
+          <header className="management-hero-main report-hero-clean">
+            <div>
+              <div className="management-kicker">Statistiche reali</div>
+              <h1 className="management-hero-title">Come sta andando il servizio</h1>
+              <p className="management-hero-subtitle">Incasso, ordini, prodotti e pagamenti calcolati solo sui conti realmente chiusi.</p>
+            </div>
+            <div className="report-period-switch" aria-label="Periodo statistiche">
+              {[7, 30, 90].map((days) => <button type="button" key={days} className={period === days ? "is-active" : ""} onClick={() => setPeriod(days)}>{days} giorni</button>)}
+            </div>
+          </header>
 
-          <div className="management-card">
+          {error ? <div className="advisor-note">{error}</div> : null}
+
+          <section className="management-card">
             <div className="management-section-head">
-              <div>
-                <h2 className="management-title">Performance {ristoranteAttivo || "ristorante"}</h2>
-                <p className="management-subtitle">Periodo selezionato: ultimi {periodo} giorni.</p>
-              </div>
-              <div className="management-row">
-                {["7", "30", "90"].map((days) => (
-                  <button key={days} className={`management-btn ${periodo === days ? "" : "secondary"}`} type="button" onClick={() => setPeriodo(days)}>{days} giorni</button>
-                ))}
-              </div>
+              <div><h2 className="management-title">{restaurantName}</h2><p className="management-subtitle">Ultimi {period} giorni</p></div>
             </div>
             <div className="management-stats">
-              <Stat label="Incasso" value={formatEuro(incassoTotale)} />
-              <Stat label="Ordini" value={ordiniTotali} />
-              <Stat label="Ticket medio" value={formatEuro(ticketMedio)} />
-              <Stat label="Articoli" value={articoliVenduti} />
+              <Stat label="Incasso" value={money(metrics.revenue)} detail="Conti pagati e chiusi" />
+              <Stat label="Ordini" value={metrics.orderCount} detail="Comande concluse" />
+              <Stat label="Ticket medio" value={money(metrics.averageTicket)} detail="Media per ordine" />
+              <Stat label="Articoli venduti" value={metrics.itemCount} detail="Quantità totale" />
             </div>
-          </div>
+          </section>
 
-          <AdvisorCard
-            advisor={advisor}
-            loading={advisorLoading}
-            error={advisorError}
-            fallbackInsights={fallbackInsights}
-          />
+          {loading ? <section className="management-card report-empty-clean"><b>Caricamento statistiche...</b></section> : null}
 
-          {storicoFiltrato.length === 0 ? (
-            <div className="management-card">
-              <h2 className="management-title">Nessun dato disponibile</h2>
-              <p className="management-subtitle">Chiudi qualche conto dalla cassa e qui vedrai i report.</p>
-            </div>
-          ) : (
-            <div className="report-simple-grid">
-              <div className="management-card report-bar">
-                <div className="management-section-head">
-                  <div>
-                    <h2 className="management-title">Incasso per giorno</h2>
-                    <p className="management-subtitle">Ultimi giorni con movimento.</p>
-                  </div>
-                </div>
-                {dailyRevenue.map((day) => <BarRow key={day.day} label={day.day} value={Number(day.value.toFixed(0))} max={maxRevenue} suffix=" EUR" />)}
-              </div>
+          {!loading && !filteredOrders.length ? (
+            <section className="management-card report-empty-clean">
+              <span>Nessun dato nel periodo</span>
+              <h2>Le statistiche partiranno dal primo conto chiuso.</h2>
+              <p>Quando la cassa registra un pagamento, questa pagina aggiorna automaticamente incasso, ticket medio, prodotti più ordinati e metodi di pagamento.</p>
+            </section>
+          ) : null}
 
-              <div className="management-card report-bar">
-                <div className="management-section-head">
-                  <div>
-                    <h2 className="management-title">Prodotti top</h2>
-                    <p className="management-subtitle">Cosa spinge davvero il servizio.</p>
-                  </div>
-                </div>
-                {piattiTop.map((dish) => <BarRow key={dish.nome} label={dish.nome} value={dish.qty} max={maxDish} />)}
-              </div>
+          {!loading && filteredOrders.length ? (
+            <>
+              <section className="report-insight-grid">
+                <Insight label="Giorno migliore" value={bestDay ? new Date(`${bestDay.date}T12:00:00`).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : "-"} text={bestDay ? `${money(bestDay.revenue)} da ${bestDay.orders} ordini` : "Dati non disponibili"} tone="green" />
+                <Insight label="Prodotto più ordinato" value={topProduct?.name || "-"} text={topProduct ? `${topProduct.quantity} unità nel periodo` : "Dati non disponibili"} tone="blue" />
+                <Insight label="Pagamento più usato" value={topPayment?.method || "-"} text={topPayment ? `${topPayment.count} conti su ${metrics.orderCount}` : "Dati non disponibili"} tone="amber" />
+              </section>
 
-              <div className="management-card report-bar">
-                <div className="management-section-head">
-                  <div>
-                    <h2 className="management-title">Pagamenti</h2>
-                    <p className="management-subtitle">Metodo più usato nel periodo.</p>
-                  </div>
-                </div>
-                {pagamentiTop.map((payment) => <BarRow key={payment.metodo} label={payment.metodo} value={payment.count} max={maxPayment} />)}
-              </div>
-            </div>
-          )}
-        </div>
+              <section className="report-simple-grid">
+                <article className="management-card report-bar">
+                  <div className="management-section-head"><div><h2 className="management-title">Incasso per giorno</h2><p className="management-subtitle">Gli ultimi 14 giorni con movimento.</p></div></div>
+                  {dailyStats.map((day) => <BarRow key={day.date} label={new Date(`${day.date}T12:00:00`).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })} value={day.revenue} max={maxRevenue} valueLabel={money(day.revenue)} />)}
+                </article>
+                <article className="management-card report-bar">
+                  <div className="management-section-head"><div><h2 className="management-title">Prodotti più ordinati</h2><p className="management-subtitle">Quantità vendute nel periodo.</p></div></div>
+                  {productStats.map((item) => <BarRow key={item.name} label={item.name} value={item.quantity} max={maxProduct} />)}
+                </article>
+                <article className="management-card report-bar">
+                  <div className="management-section-head"><div><h2 className="management-title">Metodi di pagamento</h2><p className="management-subtitle">Numero di conti per metodo.</p></div></div>
+                  {paymentStats.map((item) => <BarRow key={item.method} label={item.method} value={item.count} max={maxPayment} />)}
+                </article>
+              </section>
+            </>
+          ) : null}
+        </main>
       </div>
     </div>
   );

@@ -49,3 +49,13 @@ export const requireRole = (roles = []) => {
     next();
   };
 };
+
+export const denyImpersonatedPrivateData = (req, res, next) => {
+  if (req.user?.impersonating) {
+    return res.status(403).json({
+      message: "Questi dati privati non sono disponibili durante l'assistenza SuperAdmin",
+    });
+  }
+
+  return next();
+};

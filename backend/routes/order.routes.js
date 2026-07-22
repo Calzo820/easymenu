@@ -11,7 +11,7 @@ import {
   deleteOrder,
   updateOrderStatus,
 } from "../controllers/order.controller.js";
-import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
+import { denyImpersonatedPrivateData, requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import { requireActiveSubscription } from "../middleware/billing.middleware.js";
 import { validateExtraPayload, validateOrderStatusPayload, validatePublicOrderPayload } from "../middleware/validate.js";
 
@@ -22,12 +22,13 @@ router.get("/public/:token", getPublicOrderByTokenOrId);
 router.post("/public/:token/request-bill", requestPublicBill);
 router.post("/public/:token/call-staff", requestPublicStaff);
 
-router.get("/", requireAuth, requireActiveSubscription, getOrders);
-router.get("/kitchen/list", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "kitchen", "bar", "cashier"]), getServiceOrders);
+router.get("/", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, getOrders);
+router.get("/kitchen/list", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "kitchen", "bar", "cashier"]), getServiceOrders);
 
 router.patch(
   "/:id/status",
   requireAuth,
+  denyImpersonatedPrivateData,
   requireActiveSubscription,
   requireRole(["owner", "admin", "kitchen", "bar", "cashier"]),
   validateOrderStatusPayload,
@@ -37,6 +38,7 @@ router.patch(
 router.post(
   "/:id/extra",
   requireAuth,
+  denyImpersonatedPrivateData,
   requireActiveSubscription,
   requireRole(["owner", "admin", "cashier"]),
   validateExtraPayload,
@@ -46,6 +48,7 @@ router.post(
 router.post(
   "/:id/close",
   requireAuth,
+  denyImpersonatedPrivateData,
   requireActiveSubscription,
   requireRole(["owner", "admin", "cashier"]),
   closeOrder
@@ -54,6 +57,7 @@ router.post(
 router.delete(
   "/:id",
   requireAuth,
+  denyImpersonatedPrivateData,
   requireActiveSubscription,
   requireRole(["owner", "admin"]),
   deleteOrder

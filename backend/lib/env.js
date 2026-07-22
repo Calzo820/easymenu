@@ -20,7 +20,7 @@ export function validateEnvironment() {
   }
 
   if (missingBilling.length > 0) {
-    console.warn(`Avviso EasyMenu billing: mancano ${missingBilling.join(", ")}. Stripe resta in modalita test/trial locale finche non sono configurate.`);
+    console.warn(`Avviso EasyMenu billing: mancano ${missingBilling.join(", ")}. Stripe resta in modalità test/trial locale finché non sono configurate.`);
   } else {
     console.log("EasyMenu billing: Stripe base configurato. Verifica tutti i price ID dalla pagina Billing.");
   }

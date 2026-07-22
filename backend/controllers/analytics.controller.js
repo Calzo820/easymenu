@@ -127,6 +127,7 @@ export const getAnalyticsSummary = async (req, res) => {
       failedPayments,
       staffUsersCount,
       restaurantBilling,
+      latestSupportAccess,
     ] = await Promise.all([
       prisma.order.findMany({
         where: {
@@ -218,6 +219,8 @@ export const getAnalyticsSummary = async (req, res) => {
         where: {
           restaurantId,
           resolvedAt: null,
+          level: { not: "audit" },
+          source: { not: "superadmin-support-email" },
         },
         orderBy: {
           createdAt: "desc",
@@ -261,6 +264,16 @@ export const getAnalyticsSummary = async (req, res) => {
       prisma.restaurant.findUnique({
         where: { id: restaurantId },
         include: { subscription: true },
+      }),
+
+      prisma.errorLog.findFirst({
+        where: {
+          restaurantId,
+          source: "superadmin-support-access",
+          level: "audit",
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, createdAt: true, metadata: true },
       }),
     ]);
 
@@ -366,6 +379,13 @@ export const getAnalyticsSummary = async (req, res) => {
       range,
       generatedAt: new Date().toISOString(),
       privacyMode,
+      supportAccess: latestSupportAccess
+        ? {
+            id: latestSupportAccess.id,
+            createdAt: latestSupportAccess.createdAt,
+            reason: latestSupportAccess.metadata?.supportReason || "Assistenza tecnica",
+          }
+        : null,
 
       kpis: {
         revenueToday: hideMoney(revenueToday),

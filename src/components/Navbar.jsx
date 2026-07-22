@@ -100,15 +100,15 @@ export default function Navbar() {
 
     return [
       isAdmin && { to: "/dashboard", label: "Dashboard", icon: "D", match: ["/dashboard"] },
-      canKitchen && { to: "/cucina", label: isAdmin ? "Servizio" : "Cucina", icon: "K", match: ["/cucina"] },
+      canKitchen && !impersonating && { to: "/cucina", label: isAdmin ? "Servizio" : "Cucina", icon: "K", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", icon: "B", match: ["/bar"] },
-      canCashier && { to: "/cassa", label: "Cassa", icon: "C", match: ["/cassa"] },
+      canCashier && !impersonating && { to: "/cassa", label: "Cassa", icon: "C", match: ["/cassa"] },
       isAdmin && { to: "/tavoli", label: "Tavoli", icon: "T", match: ["/tavoli"] },
       isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "M", match: ["/admin"], adminTab: "menu" },
-      isAdmin && { to: "/statistiche", label: "Statistiche", icon: "ST", match: ["/statistiche"] },
-      isAdmin && { to: "/storico", label: "Storico", icon: "SO", match: ["/storico"] },
+      isAdmin && !impersonating && { to: "/statistiche", label: "Statistiche", icon: "ST", match: ["/statistiche"] },
+      isAdmin && !impersonating && { to: "/storico", label: "Storico", icon: "SO", match: ["/storico"] },
     ].filter(Boolean);
-  }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier]);
+  }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier, impersonating]);
 
   const settingsLinks = useMemo(() => {
     if (!logged || !isAdmin || isSuperAdmin) return [];

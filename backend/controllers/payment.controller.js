@@ -122,8 +122,12 @@ export async function createPublicStripeCheckout(req, res) {
       return res.status(400).json({ message: "Ordine già pagato" });
     }
 
-    const amountToPay = Math.min(remaining, Math.ceil((remaining / splitCount) * 100) / 100);
-    const amountCents = Math.max(50, Math.round(amountToPay * 100));
+    const fullTotal = toMoney(order.totalAmount);
+    const amountToPay = Math.min(remaining, Math.ceil((fullTotal / splitCount) * 100) / 100);
+    if (amountToPay < 0.5) {
+      return res.status(400).json({ message: "La quota residua è inferiore al minimo pagabile online. Completa il conto in cassa." });
+    }
+    const amountCents = Math.round(amountToPay * 100);
     const currency = String(order.restaurant?.currency || "EUR").toLowerCase();
     const clientUrl = getClientUrl();
     const successUrl = `${clientUrl}/menu/${encodeURIComponent(order.restaurant.slug)}/${encodeURIComponent(order.table.qrToken)}?payment=success&order=${encodeURIComponent(order.publicToken)}`;
@@ -202,6 +206,8 @@ export async function handleStripeWebhook(req, res) {
 
     if (webhookSecret) {
       event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+    } else if (process.env.NODE_ENV === "production") {
+      return res.status(503).json({ message: "Webhook Stripe non configurato" });
     } else {
       event = JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body || "{}"));
     }

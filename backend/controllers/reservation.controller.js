@@ -61,24 +61,42 @@ function parseStatuses(raw) {
   return values.length ? values : ACTIVE_STATUSES;
 }
 
-function serializeReservation(reservation) {
+function serializeReservation(reservation, privateMode = false) {
   return {
     id: reservation.id,
     restaurantId: reservation.restaurantId,
     tableId: reservation.tableId,
     tableCode: reservation.table?.code || null,
     tableName: reservation.table?.name || null,
-    customerName: reservation.customerName,
-    name: reservation.customerName,
-    phone: reservation.phone || "",
+    customerName: privateMode ? "Prenotazione riservata" : reservation.customerName,
+    name: privateMode ? "Prenotazione riservata" : reservation.customerName,
+    phone: privateMode ? "" : reservation.phone || "",
     date: dateKey(reservation.date),
     time: reservation.time,
     guests: reservation.guests,
-    notes: reservation.notes || "",
+    notes: privateMode ? "" : reservation.notes || "",
     status: reservation.status,
     createdAt: reservation.createdAt,
     updatedAt: reservation.updatedAt,
   };
+}
+
+async function hasTableConflict({ restaurantId, tableId, date, time, excludeId = null }) {
+  if (!tableId || !date || !time) return false;
+
+  const conflict = await prisma.reservation.findFirst({
+    where: {
+      restaurantId,
+      tableId,
+      date,
+      time,
+      status: { in: ACTIVE_STATUSES },
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  return Boolean(conflict);
 }
 
 async function resolveTable(restaurantId, payload = {}, fallbackTableId) {
@@ -129,7 +147,7 @@ export const listReservations = async (req, res) => {
       take: Math.min(200, Math.max(1, Number(req.query.limit) || 80)),
     });
 
-    return res.json({ reservations: reservations.map(serializeReservation) });
+    return res.json({ reservations: reservations.map((reservation) => serializeReservation(reservation, req.user?.impersonating)) });
   } catch (error) {
     console.error("listReservations error:", error);
     return res.status(500).json({ message: "Errore durante recupero prenotazioni" });
@@ -150,6 +168,10 @@ export const createReservation = async (req, res) => {
 
     const table = await resolveTable(restaurantId, payload);
     if (table === "NOT_FOUND") return res.status(404).json({ message: "Tavolo non trovato" });
+
+    if (await hasTableConflict({ restaurantId, tableId: table?.id, date, time })) {
+      return res.status(409).json({ message: "Questo tavolo ha già una prenotazione alla stessa ora" });
+    }
 
     const reservation = await prisma.reservation.create({
       data: {
@@ -208,6 +230,23 @@ export const updateReservation = async (req, res) => {
       const table = await resolveTable(restaurantId, payload, current.tableId);
       if (table === "NOT_FOUND") return res.status(404).json({ message: "Tavolo non trovato" });
       data.tableId = table?.id || null;
+    }
+
+    const nextTableId = data.tableId === undefined ? current.tableId : data.tableId;
+    const nextDate = data.date || current.date;
+    const nextTime = data.time || current.time;
+    const nextStatus = data.status || current.status;
+    if (
+      ACTIVE_STATUSES.includes(nextStatus) &&
+      await hasTableConflict({
+        restaurantId,
+        tableId: nextTableId,
+        date: nextDate,
+        time: nextTime,
+        excludeId: current.id,
+      })
+    ) {
+      return res.status(409).json({ message: "Questo tavolo ha già una prenotazione alla stessa ora" });
     }
 
     const reservation = await prisma.reservation.update({

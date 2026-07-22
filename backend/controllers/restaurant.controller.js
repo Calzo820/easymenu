@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
 import { logError } from "../lib/logger.js";
+import { sendSupportAccessNotification } from "../lib/mailer.js";
 
 const ALLOWED_PLANS = new Set(["starter", "growth", "semiannual", "enterprise"]);
 const ALLOWED_SUBSCRIPTION_STATUSES = new Set(["trialing", "active", "past_due", "canceled", "unpaid", "incomplete"]);
@@ -324,7 +325,16 @@ export const impersonateRestaurantForSuperAdmin = async (req, res) => {
     if (!requireSuperAdmin(req, res)) return;
 
     const restaurantId = String(req.params.restaurantId || "");
-    const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      include: {
+        users: {
+          where: { role: "owner", isActive: true },
+          select: { email: true, name: true },
+          take: 1,
+        },
+      },
+    });
     if (!restaurant) return res.status(404).json({ message: "Ristorante non trovato" });
 
     const supportReason = String(req.body?.supportReason || "").trim();
@@ -332,11 +342,12 @@ export const impersonateRestaurantForSuperAdmin = async (req, res) => {
       return res.status(400).json({ message: "Serve un motivo supporto o consenso esplicito del ristorante" });
     }
 
-    await logError({
+    const accessedAt = new Date();
+    const accessLog = await logError({
       restaurantId: restaurant.id,
       source: "superadmin-support-access",
       level: "audit",
-      message: "Accesso superadmin in modalità supporto",
+      message: "Accesso SuperAdmin in modalità assistenza",
       metadata: {
         supportReason,
         superAdminEmail: req.user?.email,
@@ -344,6 +355,29 @@ export const impersonateRestaurantForSuperAdmin = async (req, res) => {
         restaurantName: restaurant.name,
       },
     });
+
+    const owner = restaurant.users?.[0] || null;
+    const notification = await sendSupportAccessNotification({
+      to: owner?.email,
+      restaurantName: restaurant.name,
+      superAdminEmail: req.user?.email,
+      supportReason,
+      accessedAt,
+    }).catch((error) => ({ sent: false, reason: error.message || "mail_failed" }));
+
+    if (!notification.sent) {
+      await logError({
+        restaurantId: restaurant.id,
+        source: "superadmin-support-email",
+        level: "warning",
+        message: "Avviso email accesso assistenza non inviato",
+        metadata: {
+          reason: notification.reason,
+          ownerEmail: owner?.email || null,
+          accessLogId: accessLog?.id || null,
+        },
+      });
+    }
 
     const token = jwt.sign(
       {
@@ -356,11 +390,14 @@ export const impersonateRestaurantForSuperAdmin = async (req, res) => {
         isSuperAdmin: false,
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+      { expiresIn: "2h" }
     );
 
     return res.json({
-      message: "Gestione ristorante aperta",
+      message: notification.sent
+        ? "Gestione ristorante aperta e avviso email inviato all'owner"
+        : "Gestione ristorante aperta; configura BREVO_API_KEY per inviare l'avviso all'owner",
+      supportNotificationSent: notification.sent,
       token,
       user: {
         id: req.user.userId,
@@ -414,7 +451,7 @@ export const updateMyRestaurant = async (req, res) => {
 
     if (req.body.name !== undefined) {
       const name = String(req.body.name || "").trim();
-      if (!name) return res.status(400).json({ message: "Il nome del ristorante e obbligatorio" });
+      if (!name) return res.status(400).json({ message: "Il nome del ristorante è obbligatorio" });
       data.name = name;
 
       const nextSlug = buildSlug(name);

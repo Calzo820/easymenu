@@ -84,7 +84,7 @@
 .onb-modal-head h2 { margin:5px 0 4px; color:#0f172a; font-size:28px; line-height:1; }
 .onb-modal-head p { margin:0; color:#64748b; font-weight:800; }
 .onb-modal-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-.onb-print-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:14px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; }
+.onb-print-options { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding:14px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; }
 .onb-print-options button { border:1px solid #dbeafe; border-radius:18px; padding:13px; background:white; color:#0f172a; text-align:left; cursor:pointer; box-shadow:0 10px 22px rgba(15,23,42,.05); }
 .onb-print-options button.is-active { border-color:#1d4ed8; background:linear-gradient(135deg,#eff6ff,#ecfeff); box-shadow:0 14px 28px rgba(29,78,216,.12); }
 .onb-print-options strong { display:block; font-size:15px; line-height:1.15; }
@@ -110,8 +110,32 @@
 .onb-preview-document.onb-print-document--tent .onb-qr-grid { grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); }
 .onb-preview-document.onb-print-document--tent .onb-qr-card { min-height:330px; display:flex; flex-direction:column; justify-content:center; background:linear-gradient(180deg,#fff,#f8fbff); border-style:solid; }
 .onb-preview-document.onb-print-document--tent .onb-qr-code { width:210px; height:210px; }
+.onb-flyer-grid { display:grid; gap:18px; }
+.onb-flyer { min-height:560px; padding:26px; border:1px solid #cbd5e1; border-radius:18px; background:#fff; color:#0f172a; display:flex; flex-direction:column; overflow:hidden; }
+.onb-flyer header { display:flex; align-items:center; gap:10px; }
+.onb-flyer header img,
+.onb-flyer header > span { width:46px; height:46px; border-radius:8px; object-fit:contain; background:#e0f2fe; display:grid; place-items:center; color:#0369a1; font-size:22px; font-weight:950; }
+.onb-flyer header b,
+.onb-flyer header small { display:block; }
+.onb-flyer header b { font-size:17px; }
+.onb-flyer header small { margin-top:1px; color:#64748b; font-size:11px; font-weight:850; }
+.onb-flyer-copy { margin:28px 0 18px; text-align:center; }
+.onb-flyer-copy > span { display:inline-block; padding:6px 10px; border-radius:999px; background:#dcfce7; color:#166534; font-size:10px; font-weight:950; text-transform:uppercase; }
+.onb-flyer-copy h2 { margin:10px auto 8px; max-width:620px; font-size:34px; line-height:1.02; }
+.onb-flyer-copy p { max-width:620px; margin:0 auto; color:#475569; line-height:1.5; font-weight:750; }
+.onb-flyer-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px; }
+.onb-flyer-steps div { padding:9px; border-radius:8px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; gap:7px; }
+.onb-flyer-steps b { width:24px; height:24px; border-radius:50%; background:#0f172a; color:#fff; display:grid; place-items:center; font-size:11px; }
+.onb-flyer-steps span { font-size:12px; font-weight:900; }
+.onb-flyer-qr { display:grid; grid-template-columns:240px 1fr; gap:22px; align-items:center; margin:auto 0; padding:18px; border:2px solid #0f172a; border-radius:12px; }
+.onb-flyer-qr svg { width:220px; height:220px; }
+.onb-flyer-qr strong { display:block; font-size:28px; }
+.onb-flyer-qr span,
+.onb-flyer-qr small { display:block; margin-top:7px; color:#334155; font-weight:800; line-height:1.4; }
+.onb-flyer-qr small { color:#64748b; font-size:11px; }
+.onb-flyer footer { margin-top:18px; color:#64748b; font-size:10px; font-weight:850; text-align:center; }
 .onb-qr-empty { grid-column:1/-1; border:1px dashed #cbd5e1; border-radius:18px; padding:18px; text-align:center; color:#64748b; font-weight:900; background:#f8fafc; }
-@media (max-width:900px){ .onb-hero,.onb-grid,.onb-command-strip,.onb-service-grid,.onb-print-options{grid-template-columns:1fr}.onb-form-row,.onb-form-row.two,.onb-logo-card{grid-template-columns:1fr}.onb-hero h1{font-size:34px}.onb-staff-strip,.onb-coach-card,.onb-modal-head,.onb-menu-shortcut{align-items:flex-start;flex-direction:column}.onb-modal-actions{width:100%}.onb-modal-actions button{flex:1} }
+@media (max-width:900px){ .onb-hero,.onb-grid,.onb-command-strip,.onb-service-grid,.onb-print-options,.onb-flyer-qr{grid-template-columns:1fr}.onb-form-row,.onb-form-row.two,.onb-logo-card{grid-template-columns:1fr}.onb-hero h1{font-size:34px}.onb-staff-strip,.onb-coach-card,.onb-modal-head,.onb-menu-shortcut{align-items:flex-start;flex-direction:column}.onb-modal-actions{width:100%}.onb-modal-actions button{flex:1}.onb-flyer-qr svg{width:min(100%,260px);height:auto;margin:0 auto} }
 @page { size:A4 portrait; margin:10mm; }
 @media print {
   html, body { width:auto!important; height:auto!important; min-height:0!important; margin:0!important; padding:0!important; overflow:visible!important; background:#fff!important; }
@@ -147,4 +171,24 @@
   .onb-print-document--tent .onb-qr-card h3 { font-size:24pt!important; margin-bottom:7mm!important; }
   .onb-print-document--tent .onb-qr-code { width:75mm!important; height:75mm!important; }
   .onb-print-document--tent .onb-qr-cta { font-size:15pt!important; margin-top:5mm!important; }
+  .onb-print-document--flyer .onb-flyer-grid { display:grid!important; grid-template-columns:1fr!important; gap:6mm!important; }
+  .onb-print-document--flyer .onb-flyer { min-height:128mm!important; height:128mm!important; padding:7mm!important; border:1pt solid #cbd5e1!important; border-radius:4mm!important; break-inside:avoid!important; page-break-inside:avoid!important; }
+  .onb-print-document--flyer .onb-flyer header img,
+  .onb-print-document--flyer .onb-flyer header > span { width:12mm!important; height:12mm!important; border-radius:2mm!important; }
+  .onb-print-document--flyer .onb-flyer header b { font-size:12pt!important; }
+  .onb-print-document--flyer .onb-flyer header small { font-size:7pt!important; }
+  .onb-print-document--flyer .onb-flyer-copy { margin:5mm 0 3mm!important; }
+  .onb-print-document--flyer .onb-flyer-copy > span { padding:1mm 2.5mm!important; font-size:6.5pt!important; }
+  .onb-print-document--flyer .onb-flyer-copy h2 { margin:2mm 0 1.5mm!important; font-size:22pt!important; }
+  .onb-print-document--flyer .onb-flyer-copy p { font-size:8pt!important; }
+  .onb-print-document--flyer .onb-flyer-steps { margin-bottom:3mm!important; gap:2mm!important; }
+  .onb-print-document--flyer .onb-flyer-steps div { padding:1.5mm!important; }
+  .onb-print-document--flyer .onb-flyer-steps b { width:6mm!important; height:6mm!important; font-size:7pt!important; }
+  .onb-print-document--flyer .onb-flyer-steps span { font-size:7pt!important; }
+  .onb-print-document--flyer .onb-flyer-qr { grid-template-columns:42mm 1fr!important; gap:5mm!important; padding:3mm!important; border:1.5pt solid #0f172a!important; border-radius:3mm!important; }
+  .onb-print-document--flyer .onb-flyer-qr svg { width:40mm!important; height:40mm!important; }
+  .onb-print-document--flyer .onb-flyer-qr strong { font-size:17pt!important; }
+  .onb-print-document--flyer .onb-flyer-qr span { margin-top:1.5mm!important; font-size:8pt!important; }
+  .onb-print-document--flyer .onb-flyer-qr small { margin-top:1.5mm!important; font-size:6.5pt!important; }
+  .onb-print-document--flyer .onb-flyer footer { margin-top:3mm!important; font-size:6pt!important; }
 }

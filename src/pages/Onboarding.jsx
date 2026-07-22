@@ -23,6 +23,11 @@ const PRINT_LAYOUTS = [
     title: "Segnaposto tavolo",
     text: "Formato più elegante da mettere in piedi sul tavolo.",
   },
+  {
+    key: "flyer",
+    title: "Volantino A5",
+    text: "Spiega EasyMenu al cliente con un QR grande.",
+  },
 ];
 
 function SetupActionCard({ done, kicker, title, text, children, className = "" }) {
@@ -46,6 +51,39 @@ function baseUrl() {
 }
 
 function QrPrintDocument({ preview = false, layout, qrLinks, restaurant }) {
+  if (layout === "flyer") {
+    return (
+      <div className={`${preview ? "onb-preview-document" : "onb-print-document"} onb-print-document--flyer`}>
+        <div className="onb-flyer-grid">
+          {qrLinks.map((table) => (
+            <article className="onb-flyer" key={table.id}>
+              <header>
+                {restaurant?.logoUrl ? <img src={restaurant.logoUrl} alt="" /> : <span>{restaurant?.name?.slice(0, 1) || "E"}</span>}
+                <div><b>{restaurant?.name || "Ristorante"}</b><small>Menu digitale EasyMenu</small></div>
+              </header>
+              <div className="onb-flyer-copy">
+                <span>Ordina dal tavolo</span>
+                <h2>Il menu è già sul tuo telefono.</h2>
+                <p>Guarda piatti e allergeni, invia l'ordine e segui la preparazione senza installare applicazioni.</p>
+              </div>
+              <div className="onb-flyer-steps">
+                <div><b>1</b><span>Inquadra</span></div>
+                <div><b>2</b><span>Scegli</span></div>
+                <div><b>3</b><span>Ordina</span></div>
+              </div>
+              <div className="onb-flyer-qr">
+                <QRCodeSVG value={table.link} size={260} includeMargin />
+                <div><strong>{table.name}</strong><span>Apri la fotocamera e inquadra il QR</span><small>Puoi anche chiedere il conto e pagare dal telefono quando il servizio è attivo.</small></div>
+              </div>
+              <footer>easy.menu.service@gmail.com · EasyMenu</footer>
+            </article>
+          ))}
+          {!qrLinks.length ? <div className="onb-qr-empty">Crea prima i tavoli per generare i QR.</div> : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`${preview ? "onb-preview-document" : "onb-print-document"} onb-print-document--${layout}`}>
       <div className="onb-print-title">
@@ -193,6 +231,10 @@ export default function Onboarding() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("qr") === "1") setShowQrPreview(true);
+  }, []);
+
+  useEffect(() => {
     setLogoUrl(restaurant?.logoUrl || "");
   }, [restaurant?.logoUrl]);
 
@@ -321,7 +363,7 @@ export default function Onboarding() {
           ) : null}
 
           <section className="onb-service-grid">
-            <SetupActionCard done={checks.profile} kicker="Passo 1" title="Logo ristorante" text="Carica il logo dal PC: comparira nel menu cliente e nei QR." >
+            <SetupActionCard done={checks.profile} kicker="Passo 1" title="Logo ristorante" text="Carica il logo dal PC: comparirà nel menu cliente e nei QR." >
               <div className="onb-logo-card">
                 <div className="onb-logo-preview">
                   {logoUrl ? <img src={logoUrl} alt="Logo ristorante" /> : <span>{restaurant?.name?.slice(0, 1) || "E"}</span>}

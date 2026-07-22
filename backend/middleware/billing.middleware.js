@@ -3,6 +3,8 @@ import { billingBlockPayload, resolveBillingState } from "../lib/billingPolicy.j
 
 export async function requireActiveSubscription(req, res, next) {
   try {
+    if (req.user?.impersonating) return next();
+
     const restaurantId = req.user?.restaurantId;
     if (!restaurantId) return res.status(401).json({ message: "Utente non autenticato" });
 
