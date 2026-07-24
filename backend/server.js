@@ -159,10 +159,17 @@ app.get("/health", (_req, res) => {
 
 app.get("/ready", async (_req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ ok: true, database: "connected", timestamp: new Date().toISOString() });
-  } catch {
-    res.status(503).json({ ok: false, database: "unavailable" });
+    await Promise.all([
+      prisma.$queryRaw`SELECT 1`,
+      prisma.reservation.findFirst({ select: { id: true } }),
+    ]);
+    res.json({ ok: true, database: "connected", reservations: "ready", timestamp: new Date().toISOString() });
+  } catch (error) {
+    res.status(503).json({
+      ok: false,
+      database: "unavailable",
+      reservations: error?.code === "P2021" ? "migration_required" : "unavailable",
+    });
   }
 });
 

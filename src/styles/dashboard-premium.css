@@ -1,21 +1,18 @@
 :root {
-  --dash-bg: #f5f7fb;
-  --dash-ink: #0f172a;
-  --dash-muted: #64748b;
-  --dash-line: rgba(15, 23, 42, .08);
-  --dash-card: rgba(255,255,255,.92);
-  --dash-blue: #1d4ed8;
-  --dash-green: #16a34a;
-  --dash-red: #dc2626;
-  --dash-amber: #d97706;
+  --dash-bg: #f3f6f5;
+  --dash-ink: #17211f;
+  --dash-muted: #60706c;
+  --dash-line: #dbe3e0;
+  --dash-card: #ffffff;
+  --dash-blue: #0f766e;
+  --dash-green: #18834a;
+  --dash-red: #c2413b;
+  --dash-amber: #b96119;
 }
 
 .dash-os-page {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(37,99,235,.12), transparent 34rem),
-    radial-gradient(circle at top right, rgba(34,197,94,.10), transparent 30rem),
-    var(--dash-bg);
+  background: var(--dash-bg);
   color: var(--dash-ink);
 }
 
@@ -27,7 +24,7 @@
 
 .dash-super-banner {
   margin-bottom: 14px;
-  border-radius: 22px;
+  border-radius: 16px;
   padding: 14px 16px;
   background: #111827;
   color: white;
@@ -81,16 +78,14 @@
 .dash-demo-fix {
   margin: 16px 0;
   border: 1px solid #99f6e4;
-  border-radius: 28px;
+  border-radius: 18px;
   padding: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  background:
-    radial-gradient(circle at top right, rgba(20,184,166,.18), transparent 34%),
-    linear-gradient(135deg, #ecfeff 0%, #ffffff 58%, #f0fdf4 100%);
-  box-shadow: 0 18px 42px rgba(15,23,42,.08);
+  background: #f2fbf8;
+  box-shadow: 0 12px 28px rgba(23,33,31,.07);
 }
 
 .dash-demo-fix span {
@@ -127,7 +122,7 @@
 .dash-demo-fix button {
   flex: 0 0 auto;
   border: 0;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 13px 16px;
   background: #0f172a;
   color: white;
@@ -142,28 +137,21 @@
 }
 
 .dash-hero-pro {
-  border-radius: 34px;
+  border-radius: 20px;
   padding: clamp(22px, 4vw, 38px);
-  background: linear-gradient(135deg, #08111f 0%, #10284d 52%, #0f5132 100%);
+  background: #123f3b;
   color: white;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 22px;
   align-items: end;
-  box-shadow: 0 30px 80px rgba(15,23,42,.22);
+  border: 1px solid #0d3532;
+  box-shadow: 0 22px 56px rgba(23,33,31,.18);
   overflow: hidden;
   position: relative;
 }
 
-.dash-hero-pro::after {
-  content: "";
-  position: absolute;
-  inset: auto -80px -160px auto;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
-  background: rgba(255,255,255,.10);
-}
+.dash-hero-pro::after { display: none; }
 
 .dash-eyebrow {
   display: inline-flex;
@@ -176,7 +164,7 @@
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: 0;
 }
 
 .dash-live-dot {
@@ -194,9 +182,9 @@
 
 .dash-hero-pro h1 {
   margin: 18px 0 0;
-  font-size: clamp(38px, 5vw, 72px);
-  line-height: .92;
-  letter-spacing: -.07em;
+  font-size: clamp(36px, 5vw, 56px);
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .dash-hero-pro p {
@@ -217,7 +205,7 @@
 
 .dash-hero-actions button {
   border: 1px solid rgba(255,255,255,.18);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 13px 15px;
   text-align: center;
   background: rgba(255,255,255,.12);
@@ -252,7 +240,7 @@
   align-content: space-between;
   gap: 8px;
   padding: 16px;
-  border-radius: 22px;
+  border-radius: 14px;
   border: 1px solid #e2e8f0;
   background: #fff;
   color: var(--dash-ink);
@@ -307,7 +295,7 @@
 .dash-ready-service {
   margin: 16px 0;
   padding: 18px;
-  border-radius: 28px;
+  border-radius: 18px;
   background: #fff;
   border: 1px solid #dbeafe;
   box-shadow: 0 18px 42px rgba(15,23,42,.07);
@@ -331,14 +319,14 @@
   font-size: 12px;
   font-weight: 950;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: 0;
 }
 
 .dash-ready-service__head h2 {
   margin: 5px 0 0;
   font-size: clamp(24px, 3vw, 36px);
   line-height: 1;
-  letter-spacing: -.05em;
+  letter-spacing: 0;
 }
 
 .dash-ready-service__head p {
@@ -368,7 +356,7 @@
   display: grid;
   gap: 7px;
   align-content: center;
-  border-radius: 17px;
+  border-radius: 10px;
   padding: 10px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -400,11 +388,10 @@
 .dash-stat,
 .dash-panel,
 .dash-empty-restaurant {
-  border: 1px solid rgba(255,255,255,.76);
+  border: 1px solid var(--dash-line);
   background: var(--dash-card);
-  backdrop-filter: blur(18px);
-  border-radius: 26px;
-  box-shadow: 0 18px 42px rgba(15,23,42,.07);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(23,33,31,.06);
 }
 
 .dash-stat {
@@ -420,13 +407,13 @@
   font-size: 12px;
   font-weight: 950;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: 0;
 }
 
 .dash-stat strong {
   font-size: clamp(26px, 3.4vw, 42px);
   line-height: .95;
-  letter-spacing: -.06em;
+  letter-spacing: 0;
 }
 
 .dash-stat small {
@@ -435,10 +422,10 @@
   line-height: 1.35;
 }
 
-.dash-stat--money { background: linear-gradient(135deg, rgba(236,253,245,.96), rgba(255,255,255,.94)); }
-.dash-stat--live { background: linear-gradient(135deg, rgba(239,246,255,.96), rgba(255,255,255,.94)); }
-.dash-stat--warning { background: linear-gradient(135deg, rgba(255,247,237,.96), rgba(255,255,255,.94)); }
-.dash-stat--danger { background: linear-gradient(135deg, rgba(254,242,242,.96), rgba(255,255,255,.94)); }
+.dash-stat--money { background: #f0faf5; }
+.dash-stat--live { background: #f2f7fb; }
+.dash-stat--warning { background: #fff8ef; }
+.dash-stat--danger { background: #fff4f3; }
 
 .dash-main-grid {
   display: grid;
@@ -505,13 +492,13 @@
   font-size: 12px;
   font-weight: 950;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: 0;
 }
 
 .dash-panel-head h2 {
   margin: 4px 0 0;
   font-size: 22px;
-  letter-spacing: -.04em;
+  letter-spacing: 0;
 }
 
 .dash-panel-head a {
@@ -534,7 +521,7 @@
   gap: 14px;
   align-items: center;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 10px;
   background: #f8fafc;
   border: 1px solid #eef2f7;
   border-left: 7px solid #2563eb;
@@ -594,7 +581,7 @@
   border: 1px solid transparent;
   font-size: 11px !important;
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0;
 }
 
 .dash-order-status--pending {
@@ -754,7 +741,7 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #1d4ed8, #16a34a);
+  background: #0f766e;
 }
 
 .dash-hour-flow {
@@ -775,8 +762,8 @@
 .dash-hour i {
   width: 100%;
   max-width: 34px;
-  border-radius: 999px 999px 8px 8px;
-  background: linear-gradient(180deg, #1d4ed8, #93c5fd);
+  border-radius: 8px 8px 4px 4px;
+  background: #4f9b94;
 }
 
 .dash-hour span {

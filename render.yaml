@@ -20,6 +20,8 @@ services:
         sync: false
       - key: CORS_ORIGIN
         sync: false
+      - key: RESERVATION_SLOT_MINUTES
+        value: "120"
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

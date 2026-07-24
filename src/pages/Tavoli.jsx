@@ -149,8 +149,10 @@ export default function Tavoli() {
   const [reservationForm, setReservationForm] = useState(() => blankReservation(today));
   const [tableCode, setTableCode] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reservationLoading, setReservationLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [reservationError, setReservationError] = useState("");
   const [message, setMessage] = useState("");
 
   const loadCore = useCallback(async () => {
@@ -170,17 +172,29 @@ export default function Tavoli() {
     setReservations(normalizeReservations(data));
   }, []);
 
+  const loadReservationAgenda = useCallback(async (month) => {
+    try {
+      setReservationLoading(true);
+      setReservationError("");
+      await loadReservations(month);
+    } catch (loadError) {
+      setReservationError(loadError.message || "Agenda prenotazioni temporaneamente non disponibile.");
+    } finally {
+      setReservationLoading(false);
+    }
+  }, [loadReservations]);
+
   const loadPage = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      await Promise.all([loadCore(), loadReservations(visibleMonth)]);
+      await Promise.all([loadCore(), loadReservationAgenda(visibleMonth)]);
     } catch (loadError) {
-      setError(loadError.message || "Non riesco a caricare tavoli e prenotazioni. Riprova tra poco.");
+      setError(loadError.message || "Non riesco a caricare la sala. Riprova tra poco.");
     } finally {
       setLoading(false);
     }
-  }, [loadCore, loadReservations, visibleMonth]);
+  }, [loadCore, loadReservationAgenda, visibleMonth]);
 
   useEffect(() => {
     loadPage();
@@ -301,6 +315,7 @@ export default function Tavoli() {
       if (editingReservationId) await apiPatch(`/reservations/${editingReservationId}`, payload);
       else await apiPost("/reservations", payload);
       setMessage(editingReservationId ? "Prenotazione aggiornata." : "Prenotazione aggiunta al tavolo.");
+      setReservationError("");
       const targetMonth = payload.date.slice(0, 7);
       setSelectedDate(payload.date);
       setVisibleMonth(targetMonth);
@@ -308,7 +323,7 @@ export default function Tavoli() {
       setReservationForm(blankReservation(payload.date));
       await loadReservations(targetMonth);
     } catch (saveError) {
-      setError(saveError.message || "Errore durante il salvataggio della prenotazione");
+      setReservationError(saveError.message || "Errore durante il salvataggio della prenotazione");
     } finally {
       setSaving(false);
     }
@@ -325,7 +340,7 @@ export default function Tavoli() {
       setReservationForm(blankReservation(selectedDate));
       await loadReservations(visibleMonth);
     } catch (deleteError) {
-      setError(deleteError.message || "Errore durante la cancellazione");
+      setReservationError(deleteError.message || "Errore durante la cancellazione");
     } finally {
       setSaving(false);
     }
@@ -365,6 +380,13 @@ export default function Tavoli() {
         </section>
 
         {error ? <div className="tables-inline-message is-error"><b>Attenzione</b><span>{error}</span><button type="button" onClick={loadPage}>Riprova</button></div> : null}
+        {reservationError ? (
+          <div className="tables-inline-message is-error">
+            <b>Agenda non disponibile</b>
+            <span>{reservationError}</span>
+            <button type="button" onClick={() => loadReservationAgenda(visibleMonth)}>Riprova</button>
+          </div>
+        ) : null}
         {message ? <div className="tables-inline-message is-success"><span>{message}</span></div> : null}
 
         <section className="table-calendar-card">
@@ -374,11 +396,12 @@ export default function Tavoli() {
               <h2>{formatMonth(visibleMonth)}</h2>
             </div>
             <div>
-              <button type="button" title="Mese precedente" onClick={() => setVisibleMonth((value) => addMonths(value, -1))}>‹</button>
+              <button type="button" title="Mese precedente" aria-label="Mese precedente" onClick={() => setVisibleMonth((value) => addMonths(value, -1))}>‹</button>
               <button type="button" onClick={() => { setVisibleMonth(monthKey(today)); selectDate(today); }}>Oggi</button>
-              <button type="button" title="Mese successivo" onClick={() => setVisibleMonth((value) => addMonths(value, 1))}>›</button>
+              <button type="button" title="Mese successivo" aria-label="Mese successivo" onClick={() => setVisibleMonth((value) => addMonths(value, 1))}>›</button>
             </div>
           </header>
+          {reservationLoading ? <div className="table-calendar-loading">Aggiorno l'agenda...</div> : null}
           <div className="table-calendar-weekdays">
             {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((day) => <span key={day}>{day}</span>)}
           </div>

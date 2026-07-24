@@ -2,6 +2,21 @@ import prisma from "../lib/prisma.js";
 
 const ACTIVE_STATUSES = ["booked", "seated"];
 const VALID_STATUSES = new Set(["booked", "seated", "cancelled", "no_show"]);
+const configuredSlotMinutes = Number.parseInt(process.env.RESERVATION_SLOT_MINUTES || "120", 10);
+const RESERVATION_SLOT_MINUTES = Math.min(
+  360,
+  Math.max(30, Number.isFinite(configuredSlotMinutes) ? configuredSlotMinutes : 120)
+);
+
+function reservationErrorResponse(error, res, fallbackMessage) {
+  if (error?.code === "P2021" || /Reservation.*does not exist/i.test(error?.message || "")) {
+    return res.status(503).json({
+      code: "RESERVATIONS_MIGRATION_REQUIRED",
+      message: "Archivio prenotazioni in aggiornamento. Completa il nuovo deploy del backend e riprova.",
+    });
+  }
+  return res.status(500).json({ message: fallbackMessage });
+}
 
 function emitSocket(req, eventName, payload = {}) {
   const io = req.app.get("io");
@@ -53,6 +68,23 @@ function normalizeStatus(value, fallback = "booked") {
   return VALID_STATUSES.has(status) ? status : fallback;
 }
 
+function normalizeTime(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return "";
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return "";
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function timeToMinutes(value) {
+  const normalized = normalizeTime(value);
+  if (!normalized) return null;
+  const [hours, minutes] = normalized.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
 function parseStatuses(raw) {
   const values = String(raw || "")
     .split(",")
@@ -84,19 +116,23 @@ function serializeReservation(reservation, privateMode = false) {
 async function hasTableConflict({ restaurantId, tableId, date, time, excludeId = null }) {
   if (!tableId || !date || !time) return false;
 
-  const conflict = await prisma.reservation.findFirst({
+  const requestedMinutes = timeToMinutes(time);
+  if (requestedMinutes === null) return false;
+  const reservations = await prisma.reservation.findMany({
     where: {
       restaurantId,
       tableId,
       date,
-      time,
       status: { in: ACTIVE_STATUSES },
       ...(excludeId ? { id: { not: excludeId } } : {}),
     },
-    select: { id: true },
+    select: { id: true, time: true },
   });
 
-  return Boolean(conflict);
+  return reservations.some((reservation) => {
+    const existingMinutes = timeToMinutes(reservation.time);
+    return existingMinutes !== null && Math.abs(existingMinutes - requestedMinutes) < RESERVATION_SLOT_MINUTES;
+  });
 }
 
 async function resolveTable(restaurantId, payload = {}, fallbackTableId) {
@@ -150,7 +186,7 @@ export const listReservations = async (req, res) => {
     return res.json({ reservations: reservations.map((reservation) => serializeReservation(reservation, req.user?.impersonating)) });
   } catch (error) {
     console.error("listReservations error:", error);
-    return res.status(500).json({ message: "Errore durante recupero prenotazioni" });
+    return reservationErrorResponse(error, res, "Errore durante recupero prenotazioni");
   }
 };
 
@@ -160,7 +196,7 @@ export const createReservation = async (req, res) => {
     const payload = req.body || {};
     const customerName = String(payload.customerName || payload.name || "").trim().slice(0, 120);
     const date = parseDateOnly(payload.date);
-    const time = String(payload.time || "").trim().slice(0, 12);
+    const time = normalizeTime(payload.time);
 
     if (!customerName) return res.status(400).json({ message: "Nome cliente obbligatorio" });
     if (!date) return res.status(400).json({ message: "Data prenotazione obbligatoria" });
@@ -170,7 +206,9 @@ export const createReservation = async (req, res) => {
     if (table === "NOT_FOUND") return res.status(404).json({ message: "Tavolo non trovato" });
 
     if (await hasTableConflict({ restaurantId, tableId: table?.id, date, time })) {
-      return res.status(409).json({ message: "Questo tavolo ha già una prenotazione alla stessa ora" });
+      return res.status(409).json({
+        message: `Questo tavolo è già prenotato entro ${RESERVATION_SLOT_MINUTES} minuti dall'orario selezionato`,
+      });
     }
 
     const reservation = await prisma.reservation.create({
@@ -193,7 +231,7 @@ export const createReservation = async (req, res) => {
     return res.status(201).json({ reservation: serialized });
   } catch (error) {
     console.error("createReservation error:", error);
-    return res.status(500).json({ message: "Errore durante creazione prenotazione" });
+    return reservationErrorResponse(error, res, "Errore durante creazione prenotazione");
   }
 };
 
@@ -219,7 +257,7 @@ export const updateReservation = async (req, res) => {
       data.date = date;
     }
     if (payload.time !== undefined) {
-      const time = String(payload.time || "").trim().slice(0, 12);
+      const time = normalizeTime(payload.time);
       if (!time) return res.status(400).json({ message: "Ora prenotazione obbligatoria" });
       data.time = time;
     }
@@ -246,7 +284,9 @@ export const updateReservation = async (req, res) => {
         excludeId: current.id,
       })
     ) {
-      return res.status(409).json({ message: "Questo tavolo ha già una prenotazione alla stessa ora" });
+      return res.status(409).json({
+        message: `Questo tavolo è già prenotato entro ${RESERVATION_SLOT_MINUTES} minuti dall'orario selezionato`,
+      });
     }
 
     const reservation = await prisma.reservation.update({
@@ -260,7 +300,7 @@ export const updateReservation = async (req, res) => {
     return res.json({ reservation: serialized });
   } catch (error) {
     console.error("updateReservation error:", error);
-    return res.status(500).json({ message: "Errore durante aggiornamento prenotazione" });
+    return reservationErrorResponse(error, res, "Errore durante aggiornamento prenotazione");
   }
 };
 
@@ -282,6 +322,6 @@ export const cancelReservation = async (req, res) => {
     return res.json({ reservation: serialized });
   } catch (error) {
     console.error("cancelReservation error:", error);
-    return res.status(500).json({ message: "Errore durante cancellazione prenotazione" });
+    return reservationErrorResponse(error, res, "Errore durante cancellazione prenotazione");
   }
 };

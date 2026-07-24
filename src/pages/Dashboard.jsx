@@ -112,7 +112,9 @@ function Dashboard() {
         apiGet("/analytics/summary"),
         apiGet("/onboarding/status"),
       ]);
-      if (analyticsResult.status === "fulfilled") setData(analyticsResult.value);
+      if (analyticsResult.status === "fulfilled") {
+        setData({ ...analyticsResult.value, _loadedAt: Date.now() });
+      }
       if (setupResult.status === "fulfilled") setSetupStatus(setupResult.value);
       setError("");
     } catch (err) {
@@ -191,7 +193,9 @@ function Dashboard() {
   const charts = data?.charts || {};
   const alerts = data?.alerts || {};
   const supportAccess = data?.supportAccess || null;
-  const supportAccessAge = supportAccess?.createdAt ? Date.now() - new Date(supportAccess.createdAt).getTime() : Infinity;
+  const supportAccessAge = supportAccess?.createdAt && data?._loadedAt
+    ? data._loadedAt - new Date(supportAccess.createdAt).getTime()
+    : Infinity;
   const showSupportAccess = Boolean(
     supportAccess?.id &&
     supportAccessAge >= 0 &&
