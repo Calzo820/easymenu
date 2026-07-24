@@ -41,25 +41,37 @@ function euro(value) {
 
 function ServiceReadinessChecklist({ items, progress }) {
   const ready = items.every((item) => item.done);
+  const pendingItems = items.filter((item) => !item.done);
 
   return (
     <section className={ready ? "dash-ready-service is-ready" : "dash-ready-service"}>
       <div className="dash-ready-service__head">
         <div>
           <span>Pronto per il servizio</span>
-          <h2>{ready ? "EasyMenu pronto per la sala." : `Setup completato al ${progress}%`}</h2>
-          <p>Le poche cose da chiudere prima di stampare QR e partire con il servizio.</p>
+          <h2>{ready ? "Configurazione completa" : `${pendingItems.length} passaggi da completare`}</h2>
+          <p>
+            {ready
+              ? "Menu, tavoli e strumenti operativi sono pronti."
+              : `Setup al ${progress}%. Qui trovi soltanto ciò che manca prima del servizio.`}
+          </p>
         </div>
         <Link to="/onboarding">{ready ? "Rivedi setup" : "Completa configurazione"}</Link>
       </div>
-      <div className="dash-ready-service__grid">
-        {items.map((item) => (
-          <div key={item.label} className={item.done ? "is-done" : ""}>
-            <i>{item.done ? "OK" : "NO"}</i>
-            <span>{item.label}</span>
-          </div>
-        ))}
-      </div>
+      {ready ? (
+        <div className="dash-ready-service__complete">
+          <i>OK</i>
+          <span>Il ristorante può iniziare il servizio.</span>
+        </div>
+      ) : (
+        <div className="dash-ready-service__grid">
+          {pendingItems.map((item) => (
+            <div key={item.label}>
+              <i>Da fare</i>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -204,7 +216,7 @@ function Dashboard() {
     !isSuperAdminMode
   );
 
-  const alertCount = num(kpis.unresolvedErrors) + num(kpis.paymentAlerts) + num(kpis.unavailableItems);
+  const alertCount = num(kpis.unresolvedErrors) + num(kpis.paymentAlerts);
   const moneyHidden = Boolean(data?.privacyMode);
   const setupChecks = setupStatus?.checks || {};
   const readinessItems = useMemo(() => [

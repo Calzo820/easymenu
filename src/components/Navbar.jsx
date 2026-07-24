@@ -273,12 +273,19 @@ export default function Navbar() {
         }
       `}</style>
 
-      <button className="em-menu-toggle" type="button" aria-label="Apri navigazione" onClick={() => setOpen((prev) => !prev)}>
+      <button
+        className="em-menu-toggle"
+        type="button"
+        aria-label={open ? "Chiudi navigazione" : "Apri navigazione"}
+        aria-expanded={open}
+        aria-controls="easymenu-sidebar"
+        onClick={() => setOpen((prev) => !prev)}
+      >
         <span className={open ? "em-menu-glyph is-close" : "em-menu-glyph"} aria-hidden="true" />
       </button>
       <div className={open ? "em-sidebar-backdrop is-open" : "em-sidebar-backdrop"} onClick={() => setOpen(false)} />
 
-      <aside className={open ? "em-sidebar is-open" : "em-sidebar"} aria-label="Navigazione EasyMenu">
+      <aside id="easymenu-sidebar" className={open ? "em-sidebar is-open" : "em-sidebar"} aria-label="Navigazione EasyMenu">
         <div className="em-sidebar__brand">
           <div className="em-sidebar__logo"><img src={logoEasyMenu} alt="EasyMenu" /></div>
           <div style={{ minWidth: 0 }}>
@@ -305,7 +312,7 @@ export default function Navbar() {
               >
                 <span className="em-sidebar__icon">SET</span>
                 <span className="em-sidebar__settings-label">Impostazioni</span>
-                <span className={settingsOpen ? "em-sidebar__chevron is-open" : "em-sidebar__chevron"}>v</span>
+                <span className={settingsOpen ? "em-sidebar__chevron is-open" : "em-sidebar__chevron"} aria-hidden="true">v</span>
               </button>
 
               {settingsOpen ? (
@@ -339,7 +346,7 @@ export default function Navbar() {
           </div>
           <div className="em-sidebar__actions">
             {impersonating ? <button className="em-sidebar__btn em-sidebar__btn--green" onClick={restorePlatformSession}>SuperAdmin</button> : null}
-            <button className="em-sidebar__btn" onClick={logout}>Logout</button>
+            <button className="em-sidebar__btn" onClick={logout}>Esci</button>
           </div>
         </div>
       </aside>

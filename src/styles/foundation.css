@@ -39,6 +39,132 @@ button { border: 0; cursor: pointer; }
 button:hover { transform: none; }
 a { color: inherit; text-decoration: none; }
 
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .34);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.em-page-fallback {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background: #f3f6f5;
+  color: #17211f;
+  font-weight: 900;
+}
+
+.em-page-fallback i {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #dbe3e0;
+  border-top-color: #0f766e;
+  border-radius: 50%;
+  animation: em-spin .8s linear infinite;
+}
+
+.em-not-found-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(140deg, rgba(15, 118, 110, .08), transparent 48%),
+    #f3f6f5;
+}
+
+.em-not-found {
+  width: min(640px, 100%);
+  padding: 34px;
+  border: 1px solid #dbe3e0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 22px 56px rgba(23, 33, 31, .12);
+}
+
+.em-not-found > span {
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.em-not-found h1 {
+  margin: 10px 0 8px;
+  color: #17211f;
+  font-size: clamp(32px, 6vw, 52px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.em-not-found p {
+  margin: 0;
+  color: #5f6f6b;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.em-not-found > div {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.em-not-found a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 1px solid #dbe3e0;
+  border-radius: 10px;
+  background: #f7f9f8;
+  color: #17211f;
+  font-weight: 900;
+}
+
+.em-not-found a.is-primary {
+  border-color: #123f3b;
+  background: #123f3b;
+  color: #fff;
+}
+
+@keyframes em-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 560px) {
+  .em-not-found-page {
+    padding: 14px;
+  }
+
+  .em-not-found {
+    padding: 24px;
+  }
+
+  .em-not-found > div,
+  .em-not-found a {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
 .em-page {
   width: min(var(--em-page-max), calc(100% - 28px));
   margin: 0 auto;

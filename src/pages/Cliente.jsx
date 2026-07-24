@@ -147,13 +147,13 @@ function ProductCard({ item, quantity, note, onAdd, onRemove, onNoteChange }) {
           />
         ) : null}
 
-        <div className="cm-product-actions">
+        <div className={quantity > 0 ? "cm-product-actions" : "cm-product-actions is-simple"}>
           {quantity > 0 ? (
             <div className="cm-qty">
               <button type="button" onClick={() => onRemove(item.id)} aria-label={`Rimuovi ${item.name}`}>-</button>
               <span>{quantity}</span>
             </div>
-          ) : <span className="cm-light-note">Tocca per aggiungere</span>}
+          ) : null}
           <button className="cm-add" type="button" onClick={() => onAdd(item.id)}>
             Aggiungi
           </button>
@@ -325,19 +325,22 @@ export default function Cliente() {
 
   const visibleItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    const categoryItems = activeCategory === FEATURED_CATEGORY
+    if (normalizedQuery) {
+      return items.filter((item) => {
+        const searchable = [item.name, item.description, item.category, item.allergens.join(" ")]
+          .join(" ")
+          .toLowerCase();
+        return searchable.includes(normalizedQuery);
+      });
+    }
+
+    return activeCategory === FEATURED_CATEGORY
       ? items.filter((item) => item.isFeatured)
       : items.filter((item) => item.category === activeCategory);
-
-    if (!normalizedQuery) return categoryItems;
-
-    return categoryItems.filter((item) => {
-      const searchable = [item.name, item.description, item.category, item.allergens.join(" ")]
-        .join(" ")
-        .toLowerCase();
-      return searchable.includes(normalizedQuery);
-    });
   }, [activeCategory, items, query]);
+
+  const visibleSectionTitle = query.trim() ? "Risultati" : activeCategory;
+  const visibleCountLabel = `${visibleItems.length} ${visibleItems.length === 1 ? "prodotto" : "prodotti"}`;
 
   const cartItems = useMemo(() => {
     return Object.entries(cart)
@@ -500,6 +503,9 @@ export default function Cliente() {
         <section className="cm-empty">
           <h1>Menu non disponibile</h1>
           <p>{error}</p>
+          <button className="cm-empty-action" type="button" onClick={() => window.location.reload()}>
+            Riprova
+          </button>
         </section>
       </main>
     );
@@ -645,12 +651,12 @@ export default function Cliente() {
       <section className="cm-section-head">
         <div>
           <span>Scegli e ordina</span>
-          <h2>{activeCategory}</h2>
+          <h2>{visibleSectionTitle}</h2>
         </div>
-        <small>{visibleItems.length} prodotti</small>
+        <small aria-live="polite">{visibleCountLabel}</small>
       </section>
 
-      <section className="cm-products" aria-label={activeCategory}>
+      <section className="cm-products" aria-label={visibleSectionTitle}>
         {visibleItems.length ? visibleItems.map((item) => (
           <ProductCard
             key={item.id}
@@ -662,7 +668,17 @@ export default function Cliente() {
             onNoteChange={updateItemNote}
           />
         )) : (
-          <div className="cm-empty small">Nessun prodotto in questa categoria.</div>
+          <div className="cm-empty small cm-no-results">
+            <b>{query.trim() ? "Nessun risultato" : "Nessun prodotto disponibile"}</b>
+            <span>
+              {query.trim()
+                ? `Non abbiamo trovato “${query.trim()}” nel menu.`
+                : "Il ristorante sta aggiornando questa categoria."}
+            </span>
+            {query.trim() ? (
+              <button type="button" onClick={() => setQuery("")}>Mostra tutto il menu</button>
+            ) : null}
+          </div>
         )}
       </section>
 

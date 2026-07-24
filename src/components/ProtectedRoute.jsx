@@ -41,7 +41,8 @@ function ProtectedRoute({ children, roles = [] }) {
         if (active) setState({ loading: false, allowed, user, serviceError: "" });
       } catch (error) {
         const message = error?.message || "";
-        const temporaryFailure = /server temporaneamente|server non raggiungibile|connessione lenta/i.test(message);
+        const temporaryFailure =
+          /server.*(?:avvio|temporaneamente)|si sta avviando|non raggiungibile|connessione lenta|riprova tra qualche secondo/i.test(message);
         if (temporaryFailure) {
           if (active) setState({ loading: false, allowed: false, user: null, serviceError: message });
           return;

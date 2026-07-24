@@ -7,6 +7,7 @@ import {
   publicApiPost,
   setAuthToken,
 } from "../lib/api";
+import "../styles/auth.css";
 
 function getDashboardPathByRole(role) {
   const normalized = String(role || "").toLowerCase();
@@ -41,9 +42,7 @@ export default function Login() {
   useEffect(() => {
     const token = getAuthToken();
     if (token) {
-      // Non faccio redirect automatico forte qui,
-      // così non ti incasino durante lo sviluppo.
-      // Se vuoi, dopo possiamo validarlo con /auth/me.
+      // La sessione viene verificata dalla pagina protetta di destinazione.
     }
 
     let cancelled = false;
@@ -53,7 +52,7 @@ export default function Login() {
         if (!cancelled) setAvviso("");
       } catch {
         if (!cancelled) {
-          setAvviso("Sto preparando il server. Se Render era fermo, il primo accesso può richiedere 30-60 secondi.");
+          setAvviso("EasyMenu si sta preparando. Il primo accesso può richiedere qualche secondo.");
         }
       }
     }
@@ -68,7 +67,7 @@ export default function Login() {
     const message = error?.message || fallback || "Operazione non riuscita.";
     if (/server.*avviando|server in avvio|temporaneamente non disponibile|render|riprova tra qualche secondo/i.test(message)) {
       setErrore("");
-      setAvviso("Il server si sta avviando. Attendi qualche secondo e riprova: non è un problema delle credenziali.");
+      setAvviso("EasyMenu non è ancora pronto. Attendi qualche secondo e riprova: le credenziali non sono il problema.");
       return;
     }
     setAvviso("");
@@ -97,7 +96,7 @@ export default function Login() {
       });
 
       if (!data?.token) {
-        throw new Error("Token non ricevuto dal server.");
+        throw new Error("Risposta di accesso incompleta. Riprova tra poco.");
       }
 
       setAuthToken(data.token);
@@ -181,12 +180,14 @@ export default function Login() {
 
   return (
     <div
+      className="auth-page"
       style={{
         minHeight: "100vh",
         background: "linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%)",
       }}
     >
       <div
+        className="auth-shell"
         style={{
           maxWidth: 1100,
           margin: "0 auto",
@@ -194,6 +195,7 @@ export default function Login() {
         }}
       >
         <div
+          className="auth-layout"
           style={{
             display: "grid",
             gridTemplateColumns: "1.1fr 0.9fr",
@@ -202,6 +204,7 @@ export default function Login() {
           }}
         >
           <div
+            className="auth-intro"
             style={{
               padding: 30,
               borderRadius: 30,
@@ -227,7 +230,7 @@ export default function Login() {
               Accesso staff
             </div>
 
-            <h1 style={{ margin: 0, fontSize: 42, lineHeight: 1.08 }}>
+            <h1 className="auth-title" style={{ margin: 0, fontSize: 42, lineHeight: 1.08 }}>
               Entra nel tuo ristorante
             </h1>
 
@@ -240,11 +243,12 @@ export default function Login() {
                 fontSize: 16,
               }}
             >
-              Accedi alla dashboard, alla cucina, al bar o alla cassa con il tuo account.
-              Il login salva il token automaticamente e collega il frontend al backend reale.
+              Un unico accesso per arrivare subito agli strumenti del tuo ruolo,
+              dalla sala alla cucina fino alla cassa.
             </p>
 
             <div
+              className="auth-benefits"
               style={{
                 marginTop: 22,
                 display: "grid",
@@ -253,6 +257,7 @@ export default function Login() {
               }}
             >
               <div
+                className="auth-benefit"
                 style={{
                   background: "#f8fbff",
                   border: "1px solid #e5edf8",
@@ -260,11 +265,12 @@ export default function Login() {
                   padding: 16,
                 }}
               >
-                <div style={{ fontWeight: 900, fontSize: 22 }}>QR</div>
-                <div style={{ marginTop: 6, opacity: 0.92 }}>Ordini dal tavolo</div>
+                <div style={{ fontWeight: 900, fontSize: 22 }}>Sala</div>
+                <div style={{ marginTop: 6, opacity: 0.92 }}>Tavoli e prenotazioni</div>
               </div>
 
               <div
+                className="auth-benefit"
                 style={{
                   background: "#f8fbff",
                   border: "1px solid #e5edf8",
@@ -272,11 +278,12 @@ export default function Login() {
                   padding: 16,
                 }}
               >
-                <div style={{ fontWeight: 900, fontSize: 22 }}>Kitchen</div>
-                <div style={{ marginTop: 6, opacity: 0.92 }}>Stati ordine live</div>
+                <div style={{ fontWeight: 900, fontSize: 22 }}>Cucina</div>
+                <div style={{ marginTop: 6, opacity: 0.92 }}>Comande in tempo reale</div>
               </div>
 
               <div
+                className="auth-benefit"
                 style={{
                   background: "#f8fbff",
                   border: "1px solid #e5edf8",
@@ -284,14 +291,14 @@ export default function Login() {
                   padding: 16,
                 }}
               >
-                <div style={{ fontWeight: 900, fontSize: 22 }}>SaaS</div>
-                <div style={{ marginTop: 6, opacity: 0.92 }}>Backend e DB reali</div>
+                <div style={{ fontWeight: 900, fontSize: 22 }}>Cassa</div>
+                <div style={{ marginTop: 6, opacity: 0.92 }}>Conti e pagamenti</div>
               </div>
             </div>
           </div>
 
           <div
-            className="section-card"
+            className="section-card auth-form-card"
             style={{
               background: "rgba(255,255,255,0.96)",
               padding: 24,
@@ -307,13 +314,15 @@ export default function Login() {
                   letterSpacing: 0.5,
                 }}
               >
-                LOGIN
+                ACCESSO RISERVATO
               </div>
               <h2 style={{ margin: "8px 0 0 0", color: "#0b2e59" }}>Bentornato</h2>
             </div>
 
             {errore ? (
               <div
+                className="auth-status"
+                role="alert"
                 style={{
                   marginBottom: 14,
                   background: "#fef2f2",
@@ -330,6 +339,8 @@ export default function Login() {
 
             {avviso ? (
               <div
+                className="auth-status"
+                role="status"
                 style={{
                   marginBottom: 14,
                   background: "#fffbeb",
@@ -347,6 +358,8 @@ export default function Login() {
 
             {successo ? (
               <div
+                className="auth-status"
+                role="status"
                 style={{
                   marginBottom: 14,
                   background: "#ecfdf5",
@@ -404,6 +417,7 @@ export default function Login() {
                 </label>
 
                 <div
+                  className="auth-password-row"
                   style={{
                     display: "flex",
                     gap: 10,
@@ -497,7 +511,7 @@ export default function Login() {
                 lineHeight: 1.45,
               }}
             >
-              Crea o aggiorna automaticamente EasyMenu Demo Bistro con logo, 24 tavoli, menu con foto, ordini live e storico.
+              Una demo pronta con logo, 24 tavoli, menu completo, ordini e storico.
             </div>
 
             <div

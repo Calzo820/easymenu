@@ -5,6 +5,7 @@ import {
   apiPost,
   setAuthToken,
 } from "../lib/api";
+import "../styles/auth.css";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -118,6 +119,7 @@ export default function Register() {
 
   return (
     <div
+      className="auth-page"
       style={{
         minHeight: "100vh",
         background:
@@ -127,6 +129,7 @@ export default function Register() {
       <Navbar />
 
       <div
+        className="auth-shell"
         style={{
           maxWidth: 1150,
           margin: "0 auto",
@@ -134,6 +137,7 @@ export default function Register() {
         }}
       >
         <div
+          className="auth-layout"
           style={{
             display: "grid",
             gridTemplateColumns: "1.05fr 0.95fr",
@@ -142,7 +146,7 @@ export default function Register() {
           }}
         >
           <div
-            className="glass-hero"
+            className="glass-hero auth-intro"
             style={{
               padding: 28,
             }}
@@ -160,11 +164,11 @@ export default function Register() {
                 marginBottom: 18,
               }}
             >
-              Crea il tuo ristorante
+              Inizia con EasyMenu
             </div>
 
-            <h1 style={{ margin: 0, fontSize: 42, lineHeight: 1.08 }}>
-              Parti con il tuo account owner
+            <h1 className="auth-title" style={{ margin: 0, fontSize: 42, lineHeight: 1.08 }}>
+              Crea il profilo del ristorante
             </h1>
 
             <p
@@ -176,11 +180,12 @@ export default function Register() {
                 fontSize: 16,
               }}
             >
-              Registra il ristorante, crea il proprietario e accedi subito alla dashboard.
-              Dopo potrai aggiungere menu, tavoli QR, cucina, bar e cassa.
+              Inserisci i dati essenziali e accedi subito. Il setup guidato ti
+              accompagnerà poi nella creazione di menu, tavoli e QR.
             </p>
 
             <div
+              className="auth-benefits"
               style={{
                 marginTop: 22,
                 display: "grid",
@@ -189,6 +194,7 @@ export default function Register() {
               }}
             >
               <div
+                className="auth-benefit"
                 style={{
                   background: "rgba(255,255,255,0.14)",
                   borderRadius: 18,
@@ -200,6 +206,7 @@ export default function Register() {
               </div>
 
               <div
+                className="auth-benefit"
                 style={{
                   background: "rgba(255,255,255,0.14)",
                   borderRadius: 18,
@@ -211,6 +218,7 @@ export default function Register() {
               </div>
 
               <div
+                className="auth-benefit"
                 style={{
                   background: "rgba(255,255,255,0.14)",
                   borderRadius: 18,
@@ -224,7 +232,7 @@ export default function Register() {
           </div>
 
           <div
-            className="section-card"
+            className="section-card auth-form-card"
             style={{
               background: "rgba(255,255,255,0.96)",
               padding: 24,
@@ -249,6 +257,8 @@ export default function Register() {
 
             {errore ? (
               <div
+                className="auth-status"
+                role="alert"
                 style={{
                   marginBottom: 14,
                   background: "#fef2f2",
@@ -265,6 +275,8 @@ export default function Register() {
 
             {successo ? (
               <div
+                className="auth-status"
+                role="status"
                 style={{
                   marginBottom: 14,
                   background: "#ecfdf5",
@@ -378,6 +390,7 @@ export default function Register() {
                 </label>
 
                 <div
+                  className="auth-password-row"
                   style={{
                     display: "flex",
                     gap: 10,
@@ -432,6 +445,7 @@ export default function Register() {
                 </label>
 
                 <div
+                  className="auth-password-row"
                   style={{
                     display: "flex",
                     gap: 10,

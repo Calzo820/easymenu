@@ -18,6 +18,7 @@ const Integrazioni = lazy(() => import("./pages/Integrazioni.jsx"));
 const Landing = lazy(() => import("./pages/Landing.jsx"));
 const LegalPage = lazy(() => import("./pages/LegalPage.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 const QRCodeTavoli = lazy(() => import("./pages/QRCodeTavoli.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
@@ -28,8 +29,9 @@ const Tavoli = lazy(() => import("./pages/Tavoli.jsx"));
 
 function PageFallback() {
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f5f7fb", color: "#0f172a", fontWeight: 900 }}>
-      Caricamento EasyMenu...
+    <div className="em-page-fallback" role="status" aria-live="polite">
+      <i aria-hidden="true" />
+      <span>Caricamento EasyMenu...</span>
     </div>
   );
 }
@@ -72,6 +74,7 @@ export default function App() {
           <Route path="/statistiche" element={<ProtectedRoute roles={["owner", "admin"]}><Statistiche /></ProtectedRoute>} />
           <Route path="/integrazioni" element={<ProtectedRoute roles={["owner", "admin"]}><Integrazioni /></ProtectedRoute>} />
           <Route path="/errori" element={<ProtectedRoute roles={["owner", "admin"]}><Errori /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

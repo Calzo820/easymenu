@@ -382,6 +382,10 @@
   align-items: center;
 }
 
+.cm-product-actions.is-simple {
+  justify-content: flex-end;
+}
+
 .cm-item-note {
   width: 100%;
   border: 1px solid #e2e8f0;
@@ -628,6 +632,38 @@
   margin: 0;
   padding: 18px;
   box-shadow: none;
+}
+
+.cm-empty-action,
+.cm-no-results button {
+  width: fit-content;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 13px;
+  padding: 11px 14px;
+  background: var(--cm-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.cm-no-results {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  border-style: dashed;
+  color: #475569;
+}
+
+.cm-no-results b {
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.cm-no-results span {
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .cm-confirmation h1,
