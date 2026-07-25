@@ -13,6 +13,125 @@ function getClientUrl() {
   return String(process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
 }
 
+function connectStatus(restaurant, account = null) {
+  const detailsSubmitted = Boolean(account?.details_submitted ?? restaurant?.stripeConnectDetailsSubmitted);
+  const chargesEnabled = Boolean(account?.charges_enabled ?? restaurant?.stripeConnectChargesEnabled);
+  const payoutsEnabled = Boolean(account?.payouts_enabled ?? restaurant?.stripeConnectPayoutsEnabled);
+  const webhookConfigured = Boolean(process.env.STRIPE_CONNECT_WEBHOOK_SECRET);
+
+  return {
+    accountId: restaurant?.stripeConnectAccountId || account?.id || null,
+    connected: Boolean(restaurant?.stripeConnectAccountId),
+    detailsSubmitted,
+    chargesEnabled,
+    payoutsEnabled,
+    webhookConfigured,
+    ready: detailsSubmitted && chargesEnabled && payoutsEnabled && webhookConfigured,
+    requirements: account?.requirements
+      ? {
+          currentlyDue: account.requirements.currently_due || [],
+          eventuallyDue: account.requirements.eventually_due || [],
+          disabledReason: account.requirements.disabled_reason || null,
+        }
+      : null,
+  };
+}
+
+async function persistConnectStatus(restaurantId, account) {
+  return prisma.restaurant.update({
+    where: { id: restaurantId },
+    data: {
+      stripeConnectAccountId: account.id,
+      stripeConnectDetailsSubmitted: Boolean(account.details_submitted),
+      stripeConnectChargesEnabled: Boolean(account.charges_enabled),
+      stripeConnectPayoutsEnabled: Boolean(account.payouts_enabled),
+      stripeConnectOnboardedAt: account.details_submitted ? new Date() : undefined,
+    },
+  });
+}
+
+export async function getStripeConnectStatus(req, res) {
+  try {
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: req.user.restaurantId } });
+    if (!restaurant) return res.status(404).json({ message: "Ristorante non trovato" });
+    if (!restaurant.stripeConnectAccountId) return res.json(connectStatus(restaurant));
+
+    const stripe = getStripe();
+    if (!stripe) return res.json({ ...connectStatus(restaurant), stripeConfigured: false });
+
+    const account = await stripe.accounts.retrieve(restaurant.stripeConnectAccountId);
+    await persistConnectStatus(restaurant.id, account);
+    return res.json({ ...connectStatus(restaurant, account), stripeConfigured: true });
+  } catch (error) {
+    console.error("getStripeConnectStatus error:", error);
+    return res.status(500).json({ message: "Non è stato possibile verificare il conto Stripe del ristorante." });
+  }
+}
+
+export async function createStripeConnectOnboarding(req, res) {
+  try {
+    const stripe = getStripe();
+    if (!stripe) return res.status(501).json({ message: "Stripe non è configurato sul backend." });
+
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: req.user.restaurantId },
+      include: { users: { where: { role: "owner" }, take: 1 } },
+    });
+    if (!restaurant) return res.status(404).json({ message: "Ristorante non trovato" });
+
+    let accountId = restaurant.stripeConnectAccountId;
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: "express",
+        country: String(process.env.STRIPE_CONNECT_DEFAULT_COUNTRY || "IT").toUpperCase(),
+        email: restaurant.users?.[0]?.email || undefined,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_profile: {
+          name: restaurant.name,
+          product_description: `Ordini e pagamenti al tavolo per ${restaurant.name}`,
+        },
+        metadata: { restaurantId: restaurant.id, restaurantSlug: restaurant.slug },
+      });
+      accountId = account.id;
+      await persistConnectStatus(restaurant.id, account);
+    }
+
+    const clientUrl = getClientUrl();
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${clientUrl}/billing?connect=refresh`,
+      return_url: `${clientUrl}/billing?connect=complete`,
+      type: "account_onboarding",
+    });
+
+    return res.json({ onboardingUrl: accountLink.url });
+  } catch (error) {
+    console.error("createStripeConnectOnboarding error:", error);
+    return res.status(500).json({ message: "Non è stato possibile aprire la configurazione degli incassi." });
+  }
+}
+
+export async function createStripeConnectDashboard(req, res) {
+  try {
+    const stripe = getStripe();
+    if (!stripe) return res.status(501).json({ message: "Stripe non è configurato sul backend." });
+
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: req.user.restaurantId } });
+    if (!restaurant?.stripeConnectAccountId) {
+      return res.status(400).json({ message: "Prima collega il conto Stripe del ristorante." });
+    }
+
+    const loginLink = await stripe.accounts.createLoginLink(restaurant.stripeConnectAccountId);
+    return res.json({ dashboardUrl: loginLink.url });
+  } catch (error) {
+    console.error("createStripeConnectDashboard error:", error);
+    return res.status(500).json({ message: "Non è stato possibile aprire il pannello incassi Stripe." });
+  }
+}
+
 function centsToMoney(value) {
   const cents = Number(value || 0);
   return Number.isFinite(cents) ? cents / 100 : 0;
@@ -79,6 +198,11 @@ export async function getPublicPaymentSummary(req, res) {
       paidAmount,
       remainingAmount: Math.max(0, toMoney(order.totalAmount) - paidAmount),
       paymentStatus: order.paymentStatus,
+      onlinePaymentAvailable: Boolean(
+        order.restaurant?.stripeConnectAccountId &&
+        order.restaurant?.stripeConnectChargesEnabled &&
+        process.env.STRIPE_CONNECT_WEBHOOK_SECRET
+      ),
       payments: order.payments.map((payment) => ({
         id: payment.id,
         amount: payment.amount,
@@ -116,6 +240,16 @@ export async function createPublicStripeCheckout(req, res) {
     if (order.status === "cancelled" || order.closedAt) {
       return res.status(400).json({ message: "Ordine non pagabile" });
     }
+    if (!order.restaurant?.stripeConnectAccountId || !order.restaurant?.stripeConnectChargesEnabled) {
+      return res.status(409).json({
+        message: "Il pagamento online non è ancora attivo per questo ristorante. Puoi chiedere il conto al tavolo.",
+      });
+    }
+    if (!process.env.STRIPE_CONNECT_WEBHOOK_SECRET) {
+      return res.status(503).json({
+        message: "Il pagamento online è in configurazione. Per ora puoi chiedere il conto al tavolo.",
+      });
+    }
 
     const remaining = remainingAmount(order);
     if (remaining <= 0.01 || order.paymentStatus === "paid") {
@@ -133,7 +267,7 @@ export async function createPublicStripeCheckout(req, res) {
     const successUrl = `${clientUrl}/menu/${encodeURIComponent(order.restaurant.slug)}/${encodeURIComponent(order.table.qrToken)}?payment=success&order=${encodeURIComponent(order.publicToken)}`;
     const cancelUrl = `${clientUrl}/menu/${encodeURIComponent(order.restaurant.slug)}/${encodeURIComponent(order.table.qrToken)}?payment=cancelled&order=${encodeURIComponent(order.publicToken)}`;
 
-    const session = await stripe.checkout.sessions.create({
+    const checkoutPayload = {
       mode: "payment",
       payment_method_types: ["card"],
       success_url: successUrl,
@@ -159,6 +293,16 @@ export async function createPublicStripeCheckout(req, res) {
         splitCount: String(splitCount),
         payerIndex: String(payerIndex),
       },
+      payment_intent_data: {
+        metadata: {
+          orderId: order.id,
+          restaurantId: order.restaurantId,
+          publicToken: order.publicToken,
+        },
+      },
+    };
+    const session = await stripe.checkout.sessions.create(checkoutPayload, {
+      stripeAccount: order.restaurant.stripeConnectAccountId,
     });
 
     await prisma.paymentTransaction.create({
@@ -167,6 +311,7 @@ export async function createPublicStripeCheckout(req, res) {
         orderId: order.id,
         provider: "stripe",
         providerSessionId: session.id,
+        connectedAccountId: order.restaurant.stripeConnectAccountId,
         amount: amountCents / 100,
         currency: currency.toUpperCase(),
         status: "pending",
@@ -201,11 +346,23 @@ export async function handleStripeWebhook(req, res) {
 
   try {
     const signature = req.headers["stripe-signature"];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecrets = [
+      process.env.STRIPE_WEBHOOK_SECRET,
+      process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+    ].filter(Boolean);
     let event;
 
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+    if (webhookSecrets.length) {
+      let signatureError = null;
+      for (const secret of webhookSecrets) {
+        try {
+          event = stripe.webhooks.constructEvent(req.body, signature, secret);
+          break;
+        } catch (error) {
+          signatureError = error;
+        }
+      }
+      if (!event) throw signatureError || new Error("Firma webhook non valida");
     } else if (process.env.NODE_ENV === "production") {
       return res.status(503).json({ message: "Webhook Stripe non configurato" });
     } else {
@@ -270,6 +427,28 @@ export async function handleStripeWebhook(req, res) {
             restaurantId: updated.restaurantId,
             tableId: updated.tableId,
             reason: "payment-updated",
+          });
+        }
+      }
+    }
+
+    if (event.type === "account.updated") {
+      const account = event.data.object;
+      const restaurant = await prisma.restaurant.findFirst({
+        where: {
+          OR: [
+            { stripeConnectAccountId: account.id },
+            ...(account.metadata?.restaurantId ? [{ id: account.metadata.restaurantId }] : []),
+          ],
+        },
+      });
+      if (restaurant) {
+        await persistConnectStatus(restaurant.id, account);
+        const io = req.app.get("io");
+        if (io) {
+          io.to(`restaurant:${restaurant.id}`).emit("connect-updated", {
+            restaurantId: restaurant.id,
+            ...connectStatus(restaurant, account),
           });
         }
       }
@@ -370,7 +549,7 @@ export async function handleStripeWebhook(req, res) {
     return res.json({ received: true });
   } catch (error) {
     console.error("handleStripeWebhook error:", error);
-    await logPaymentProblem({ message: "Webhook Stripe non valido", error, metadata: { headers: req.headers } });
+    await logPaymentProblem({ message: "Webhook Stripe non valido", error });
     return res.status(400).json({ message: `Webhook Stripe non valido: ${error.message}` });
   }
 }

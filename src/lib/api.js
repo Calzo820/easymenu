@@ -168,3 +168,15 @@ export async function createSubscriptionCheckout(plan) {
 export async function openBillingPortal() {
   return apiPost("/subscriptions/portal", {});
 }
+
+export async function getStripeConnectStatus() {
+  return apiGet("/payments/connect/status");
+}
+
+export async function openStripeConnectOnboarding() {
+  return apiPost("/payments/connect/onboarding", {});
+}
+
+export async function openStripeConnectDashboard() {
+  return apiPost("/payments/connect/dashboard", {});
+}

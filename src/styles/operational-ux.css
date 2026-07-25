@@ -2418,8 +2418,8 @@ input:focus, select:focus, textarea:focus {
 
 .tables-day-summary {
   display: grid;
-  grid-template-columns: auto auto minmax(0,1fr);
-  gap: 18px;
+  grid-template-columns: auto auto minmax(260px,1fr);
+  gap: 14px;
   align-items: center;
   margin-top: 12px;
   padding: 12px 14px;
@@ -2427,8 +2427,33 @@ input:focus, select:focus, textarea:focus {
   border-radius: 10px;
   background: #ffffff;
 }
-.tables-day-summary > strong { color: #b45309; white-space: nowrap; }
-.tables-day-reservations { display: flex; gap: 7px; overflow-x: auto; padding: 2px 0; }
+.tables-day-metrics { display: flex; gap: 6px; flex-wrap: wrap; }
+.tables-day-metrics span {
+  padding: 7px 9px;
+  border: 1px solid #dbe3e0;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #52647a;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tables-day-metrics b { color: #0f172a; font-size: 14px; }
+.tables-day-tools { display: flex; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; }
+.tables-day-tools > div { display: flex; gap: 5px; }
+.tables-day-tools button,
+.tables-day-tools input {
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-weight: 850;
+}
+.tables-day-tools button { padding: 0 10px; cursor: pointer; }
+.tables-day-tools button.is-active { border-color: #123f3b; background: #123f3b; color: #fff; }
+.tables-day-tools input { width: min(280px, 100%); padding: 0 11px; }
+.tables-day-reservations { grid-column: 1 / -1; display: flex; gap: 7px; overflow-x: auto; padding: 2px 0; }
 .tables-day-reservations button {
   min-width: 145px;
   padding: 8px 10px;
@@ -2532,6 +2557,8 @@ input:focus, select:focus, textarea:focus {
   .tables-calendar-legend { justify-content: flex-start; }
   .tables-calendar-layout { grid-template-columns: 1fr; }
   .table-booking-panel { position: static; max-height: none; }
+  .tables-day-summary { grid-template-columns: 1fr auto; }
+  .tables-day-tools { grid-column: 1 / -1; justify-content: flex-start; }
 }
 
 @media (max-width: 720px) {
@@ -2542,7 +2569,11 @@ input:focus, select:focus, textarea:focus {
   .tables-calendar-toolbar input { width: 100%; }
   .table-calendar-card { padding: 10px; }
   .table-calendar-grid button { min-height: 38px; }
-  .tables-day-summary { grid-template-columns: 1fr auto; }
+  .tables-day-summary { grid-template-columns: 1fr; }
+  .tables-day-metrics,
+  .tables-day-tools { grid-column: 1; }
+  .tables-day-tools { display: grid; }
+  .tables-day-tools input { width: 100%; }
   .tables-day-reservations { grid-column: 1 / -1; }
   .tables-compact-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .table-compact { min-height: 74px; padding: 7px 5px; }

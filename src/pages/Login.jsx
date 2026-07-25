@@ -457,6 +457,11 @@ export default function Login() {
                     {showPassword ? "Nascondi" : "Mostra"}
                   </button>
                 </div>
+                <div style={{ marginTop: 8, textAlign: "right" }}>
+                  <Link to="/password-dimenticata" style={{ color: "#2563eb", fontWeight: 800, textDecoration: "none", fontSize: 13 }}>
+                    Password dimenticata?
+                  </Link>
+                </div>
               </div>
 
 

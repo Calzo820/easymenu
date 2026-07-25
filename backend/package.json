@@ -16,7 +16,10 @@
     "env:fix": "node scripts/fix-env-duplicates.js",
     "test:final": "node scripts/final-smoke-test.js",
     "start:prod": "prisma migrate deploy --schema=./prisma/schema.prisma && prisma generate --schema=./prisma/schema.prisma && node server.js",
-    "check:migrations": "prisma migrate status --schema=./prisma/schema.prisma"
+    "check:migrations": "prisma migrate status --schema=./prisma/schema.prisma",
+    "backup:run": "node scripts/backup-database.js",
+    "backup:verify": "node scripts/verify-backup.js",
+    "test:service": "node scripts/e2e-service-flow.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

@@ -263,6 +263,29 @@ p {
   .metric-value {
     font-size: 26px;
   }
+
+  .billing-connect-card {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .billing-connect-actions {
+    justify-content: flex-start !important;
+  }
+}
+
+.billing-connect-status {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.billing-connect-status > div {
+  display: grid;
+  gap: 3px;
+}
+
+.billing-connect-status small {
+  color: #64748b;
+  line-height: 1.35;
 }
 /* Landing ROI / competitive positioning */
 .landing-page { min-height: 100vh; background: #f6f9fc; color: #08213f; }

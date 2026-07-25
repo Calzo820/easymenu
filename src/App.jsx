@@ -14,6 +14,7 @@ const Cucina = lazy(() => import("./pages/Cucina.jsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Demo = lazy(() => import("./pages/Demo.jsx"));
 const Errori = lazy(() => import("./pages/Errori.jsx"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const Integrazioni = lazy(() => import("./pages/Integrazioni.jsx"));
 const Landing = lazy(() => import("./pages/Landing.jsx"));
 const LegalPage = lazy(() => import("./pages/LegalPage.jsx"));
@@ -22,10 +23,12 @@ const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.jsx"));
 const QRCodeTavoli = lazy(() => import("./pages/QRCodeTavoli.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const Statistiche = lazy(() => import("./pages/Statistiche.jsx"));
 const Storico = lazy(() => import("./pages/Storico.jsx"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin.jsx"));
 const Tavoli = lazy(() => import("./pages/Tavoli.jsx"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 
 function PageFallback() {
   return (
@@ -44,6 +47,9 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/password-dimenticata" element={<ForgotPassword />} />
+          <Route path="/reimposta-password" element={<ResetPassword />} />
+          <Route path="/verifica-email" element={<VerifyEmail />} />
           <Route path="/demo" element={<Demo />} />
           <Route path="/demo-ristorante" element={<Demo />} />
           <Route path="/demo-commerciale" element={<Demo />} />

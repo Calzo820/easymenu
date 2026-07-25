@@ -552,7 +552,7 @@ export default function Cliente() {
           {payment.error ? <div className="cm-error">{payment.error}</div> : null}
           {serviceMessage ? <div className="cm-service-message">{serviceMessage}</div> : null}
 
-          {payment.open && order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
+          {payment.open && payment.summary?.onlinePaymentAvailable && order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
             <section className="cm-payment-panel">
               <div className="cm-payment-summary">
                 <div><span>Totale</span><b>{money(payment.summary?.totalAmount ?? order.totalAmount)}</b></div>
@@ -584,7 +584,7 @@ export default function Cliente() {
             <button type="button" className="secondary" onClick={() => requestService("bill")}>
               Chiedi conto
             </button>
-            {(order.publicToken || (!isDemo && order.id)) && order.paymentStatus !== "paid" ? (
+            {(order.publicToken || (!isDemo && order.id)) && payment.summary?.onlinePaymentAvailable && order.paymentStatus !== "paid" ? (
               <button type="button" onClick={() => setPayment((prev) => ({ ...prev, open: !prev.open, error: "" }))} disabled={payment.loading}>
                 {payment.open ? "Chiudi pagamento" : "Paga dal tavolo"}
               </button>

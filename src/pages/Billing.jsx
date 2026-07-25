@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
-import { createSubscriptionCheckout, getBillingStatus, openBillingPortal } from "../lib/api";
+import {
+  createSubscriptionCheckout,
+  getBillingStatus,
+  getStripeConnectStatus,
+  openBillingPortal,
+  openStripeConnectDashboard,
+  openStripeConnectOnboarding,
+} from "../lib/api";
 
 const WHATSAPP_NUMBER = "3240467723";
 const CHAIN_MESSAGE = "Ciao, ho più ristoranti e vorrei informazioni su EasyMenu per catene o multi-sede.";
@@ -145,6 +152,9 @@ export default function Billing() {
   const [error, setError] = useState("");
   const [loadingPlan, setLoadingPlan] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
+  const [connect, setConnect] = useState(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectError, setConnectError] = useState("");
 
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const queryStatus = searchParams.get("billing");
@@ -153,8 +163,15 @@ export default function Billing() {
   async function load() {
     try {
       setLoading(true);
-      const res = await getBillingStatus();
+      const [res, connectResult] = await Promise.all([
+        getBillingStatus(),
+        getStripeConnectStatus().catch((requestError) => {
+          setConnectError(requestError.message || "Stato incassi non disponibile.");
+          return null;
+        }),
+      ]);
       setData(res);
+      setConnect(connectResult);
       setError("");
     } catch (err) {
       setError(err.message || "Errore caricamento billing");
@@ -198,12 +215,45 @@ export default function Billing() {
     }
   }
 
+  async function handleConnectOnboarding() {
+    try {
+      setConnectLoading(true);
+      setConnectError("");
+      const result = await openStripeConnectOnboarding();
+      if (result?.onboardingUrl) window.location.href = result.onboardingUrl;
+    } catch (requestError) {
+      setConnectError(requestError.message || "Non è stato possibile aprire la configurazione incassi.");
+    } finally {
+      setConnectLoading(false);
+    }
+  }
+
+  async function handleConnectDashboard() {
+    try {
+      setConnectLoading(true);
+      setConnectError("");
+      const result = await openStripeConnectDashboard();
+      if (result?.dashboardUrl) window.location.href = result.dashboardUrl;
+    } catch (requestError) {
+      setConnectError(requestError.message || "Non è stato possibile aprire il pannello incassi.");
+    } finally {
+      setConnectLoading(false);
+    }
+  }
+
   const currentPlan = data?.subscription?.plan || data?.restaurant?.plan || "";
   const status = data?.subscription?.status || "trialing";
   const configuredPlans = data?.configuredPlans || {};
   const missingPlans = planOrder.filter((id) => data && !configuredPlans[id]);
   const billingWarning = data && (!data.billingConfigured || missingPlans.length > 0);
   const paymentProblem = ["past_due", "unpaid", "incomplete"].includes(status);
+  const connectNeedsWebhook = Boolean(
+    connect?.connected &&
+    connect?.detailsSubmitted &&
+    connect?.chargesEnabled &&
+    connect?.payoutsEnabled &&
+    !connect?.webhookConfigured
+  );
 
   return (
     <div style={glowPageStyle}>
@@ -258,6 +308,47 @@ export default function Billing() {
             </div>
           </section>
 
+          <section className="billing-connect-card" style={connectCardStyle}>
+            <div style={connectCopyStyle}>
+              <div style={connectEyebrowStyle}>Incassi del ristorante</div>
+              <h2 style={{ margin: "7px 0 8px", color: "#0f172a", fontSize: 26 }}>Pagamenti dal tavolo</h2>
+              <p style={{ margin: 0, color: "#52647a", lineHeight: 1.55, fontWeight: 750 }}>
+                Collega il conto Stripe del locale. Gli incassi dei clienti vengono separati dall'abbonamento EasyMenu e accreditati al ristorante.
+              </p>
+              {connectError ? <div style={{ ...errorBox, margin: "14px 0 0" }}>{connectError}</div> : null}
+            </div>
+            <div className="billing-connect-status" style={connectStatusStyle}>
+              <span style={{ ...connectDotStyle, background: connect?.ready ? "#22c55e" : connect?.connected ? "#f59e0b" : "#94a3b8" }} />
+              <div>
+                <b>{connect?.ready ? "Incassi attivi" : connectNeedsWebhook ? "Attivazione tecnica in corso" : connect?.connected ? "Configurazione da completare" : "Conto non collegato"}</b>
+                <small>
+                  {connect?.ready
+                    ? "Carte abilitate e accrediti pronti."
+                    : connectNeedsWebhook
+                      ? "Il conto è pronto; EasyMenu deve completare il collegamento webhook."
+                    : connect?.connected
+                      ? "Stripe richiede ancora alcune informazioni."
+                      : "Serve il conto del titolare del ristorante."}
+                </small>
+              </div>
+            </div>
+            <div className="billing-connect-actions" style={connectActionsStyle}>
+              <button
+                type="button"
+                onClick={connectNeedsWebhook ? () => { window.location.href = "/contattaci"; } : handleConnectOnboarding}
+                disabled={connectLoading}
+                style={primaryBtn}
+              >
+                {connectLoading ? "Apro..." : connectNeedsWebhook ? "Contatta assistenza" : connect?.connected ? "Completa configurazione" : "Collega Stripe"}
+              </button>
+              {connect?.ready ? (
+                <button type="button" onClick={handleConnectDashboard} disabled={connectLoading} style={secondaryBtn}>
+                  Gestisci incassi
+                </button>
+              ) : null}
+            </div>
+          </section>
+
           <section style={plansGridStyle}>
             {planOrder.map((id) => (
               <PlanCard key={id} id={id} currentPlan={currentPlan} loadingPlan={loadingPlan} configured={!data || Boolean(configuredPlans[id])} onCheckout={handleCheckout} />
@@ -307,6 +398,23 @@ const statusStripStyle = {
 };
 
 const statusActionsStyle = { display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" };
+const connectCardStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto auto",
+  gap: 20,
+  alignItems: "center",
+  marginBottom: 18,
+  padding: 22,
+  borderRadius: 24,
+  border: "1px solid #bfdbfe",
+  background: "linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)",
+  boxShadow: "0 18px 45px rgba(15,23,42,0.07)",
+};
+const connectCopyStyle = { minWidth: 0 };
+const connectEyebrowStyle = { color: "#1d4ed8", fontSize: 12, fontWeight: 950, textTransform: "uppercase" };
+const connectStatusStyle = { display: "flex", alignItems: "center", gap: 10, minWidth: 200 };
+const connectDotStyle = { width: 12, height: 12, borderRadius: "50%", flex: "0 0 auto" };
+const connectActionsStyle = { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" };
 
 const plansGridStyle = {
   display: "grid",

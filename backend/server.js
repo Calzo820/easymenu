@@ -21,10 +21,13 @@ import paymentRoutes from "./routes/payment.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import logRoutes from "./routes/log.routes.js";
 import demoRoutes from "./routes/demo.routes.js";
+import systemRoutes from "./routes/system.routes.js";
 import { handleStripeWebhook } from "./controllers/payment.controller.js";
 import prisma from "./lib/prisma.js";
 import { validateEnvironment } from "./lib/env.js";
 import { logError } from "./lib/logger.js";
+import { startBackupScheduler, stopBackupScheduler } from "./services/backup.service.js";
+import { startHealthMonitor, stopHealthMonitor } from "./services/healthMonitor.service.js";
 
 dotenv.config();
 
@@ -141,6 +144,9 @@ app.use((req, _res, next) => {
 
 app.use("/auth/login", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 20 }));
 app.use("/auth/register", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 }));
+app.use("/auth/forgot-password", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 }));
+app.use("/auth/reset-password", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 }));
+app.use("/auth/resend-verification", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 }));
 app.use("/demo/ensure", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 }));
 app.use("/orders/public", createRateLimiter({ windowMs: 5 * 60 * 1000, maxRequests: 40 }));
 
@@ -186,6 +192,7 @@ app.use("/onboarding", onboardingRoutes);
 app.use("/users", userRoutes);
 app.use("/logs", logRoutes);
 app.use("/demo", demoRoutes);
+app.use("/system", systemRoutes);
 
 if (process.env.NODE_ENV === "production") {
   const staticDir = path.resolve(__dirname, "../dist");
@@ -223,7 +230,19 @@ const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== "test") {
   server.listen(PORT, () => {
     console.log(`Server attivo su http://localhost:${PORT}`);
+    startHealthMonitor();
+    startBackupScheduler();
   });
+
+  const shutdown = () => {
+    stopHealthMonitor();
+    stopBackupScheduler();
+    server.close(() => prisma.$disconnect().finally(() => process.exit(0)));
+    setTimeout(() => process.exit(1), 10000).unref();
+  };
+
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
 }
 
 export { app, server, io };

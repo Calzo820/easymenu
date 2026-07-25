@@ -62,8 +62,8 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
-      setErrore("La password deve avere almeno 6 caratteri.");
+    if (password.length < 8) {
+      setErrore("La password deve avere almeno 8 caratteri.");
       return;
     }
 
@@ -99,7 +99,7 @@ export default function Register() {
         localStorage.setItem("restaurant_id", data.restaurant.id || "");
       }
 
-      setSuccesso("Registrazione completata con successo.");
+      setSuccesso(data.message || "Account creato.");
 
       setTimeout(() => {
         const next = queryParams.get("next");
@@ -401,7 +401,7 @@ export default function Register() {
                     type={showPassword ? "text" : "password"}
                     value={form.password}
                     onChange={(e) => updateField("password", e.target.value)}
-                    placeholder="Almeno 6 caratteri"
+                    placeholder="Almeno 8 caratteri"
                     autoComplete="new-password"
                     style={{
                       width: "100%",

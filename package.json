@@ -11,7 +11,8 @@
     "check:build": "npm run build",
     "demo:seed": "cd backend && npm run demo:seed",
     "demo:check": "cd backend && npm run demo:check",
-    "sell:check": "npm run build && cd backend && npm run check:env"
+    "sell:check": "npm run build && cd backend && npm run check:env",
+    "test:service": "cd backend && npm run test:service"
   },
   "dependencies": {
     "qrcode.react": "^4.2.0",

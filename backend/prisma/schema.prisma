@@ -8,19 +8,24 @@ datasource db {
 }
 
 model Restaurant {
-  id               String            @id @default(cuid())
-  name             String
-  slug             String            @unique
-  primaryColor     String?           @default("#1d4ed8")
-  logoUrl          String?
-  currency         String            @default("EUR")
-  isActive         Boolean           @default(true)
-  plan             RestaurantPlan    @default(starter)
-  settingsJson     Json?
-  stripeCustomerId String?           @unique
-  subscription     SaaSSubscription?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id                            String            @id @default(cuid())
+  name                          String
+  slug                          String            @unique
+  primaryColor                  String?           @default("#1d4ed8")
+  logoUrl                       String?
+  currency                      String            @default("EUR")
+  isActive                      Boolean           @default(true)
+  plan                          RestaurantPlan    @default(starter)
+  settingsJson                  Json?
+  stripeCustomerId              String?           @unique
+  stripeConnectAccountId        String?           @unique
+  stripeConnectDetailsSubmitted Boolean           @default(false)
+  stripeConnectChargesEnabled   Boolean           @default(false)
+  stripeConnectPayoutsEnabled   Boolean           @default(false)
+  stripeConnectOnboardedAt      DateTime?
+  subscription                  SaaSSubscription?
+  createdAt                     DateTime          @default(now())
+  updatedAt                     DateTime          @updatedAt
 
   users         User[]
   menuItems     MenuItem[]
@@ -34,15 +39,20 @@ model Restaurant {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  restaurantId String
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         UserRole @default(owner)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                         String    @id @default(cuid())
+  restaurantId               String
+  name                       String
+  email                      String    @unique
+  passwordHash               String
+  emailVerifiedAt            DateTime?
+  emailVerificationTokenHash String?   @unique
+  emailVerificationExpiresAt DateTime?
+  passwordResetTokenHash     String?   @unique
+  passwordResetExpiresAt     DateTime?
+  role                       UserRole  @default(owner)
+  isActive                   Boolean   @default(true)
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
   restaurant Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   sessions   UserSession[]
@@ -100,7 +110,7 @@ model Table {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  restaurant Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   orders       Order[]
   sessions     TableSession[]
   reservations Reservation[]
@@ -209,6 +219,7 @@ model PaymentTransaction {
   provider                String        @default("stripe")
   providerSessionId       String?       @unique
   providerPaymentIntentId String?
+  connectedAccountId      String?
   amount                  Decimal       @db.Decimal(10, 2)
   currency                String        @default("EUR")
   status                  PaymentStatus @default(pending)

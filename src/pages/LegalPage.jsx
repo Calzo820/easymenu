@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
+import RestaurantDataControls from "../components/RestaurantDataControls.jsx";
 import "../styles/legal.css";
 
 const contact = "easy.menu.service@gmail.com";
@@ -108,7 +109,7 @@ export default function LegalPage() {
         <span>{page.eyebrow}</span>
         <h1>{page.title}</h1>
         <p>{page.intro}</p>
-        <small>Ultimo aggiornamento: 22 luglio 2026</small>
+        <small>Ultimo aggiornamento: 25 luglio 2026</small>
       </section>
 
       <aside className="legal-notice"><b>Prima della vendita</b><p>{page.notice}</p></aside>
@@ -122,6 +123,8 @@ export default function LegalPage() {
           </article>
         ))}
       </section>
+
+      {location.pathname === "/privacy" ? <RestaurantDataControls /> : null}
 
       <footer className="legal-footer">
         <span>EasyMenu</span><a href={`mailto:${contact}`}>{contact}</a><a href={`tel:${phone.replaceAll(" ", "")}`}>{phone}</a>

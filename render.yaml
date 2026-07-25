@@ -26,9 +26,33 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: STRIPE_CONNECT_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_CONNECT_DEFAULT_COUNTRY
+        value: IT
       - key: STRIPE_PRICE_STARTER
         sync: false
       - key: STRIPE_PRICE_GROWTH
         sync: false
+      - key: STRIPE_PRICE_SEMIANNUAL
+        sync: false
       - key: STRIPE_PRICE_ENTERPRISE
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_EMAIL
+        value: easy.menu.service@gmail.com
+      - key: MAIL_FROM_NAME
+        value: EasyMenu
+      - key: MONITOR_WEBHOOK_URL
+        sync: false
+      - key: MONITOR_WEBHOOK_TOKEN
+        sync: false
+      - key: BACKUP_ENABLED
+        value: "false"
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false
+      - key: BACKUP_UPLOAD_URL
+        sync: false
+      - key: BACKUP_UPLOAD_TOKEN
         sync: false

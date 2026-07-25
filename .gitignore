@@ -6,6 +6,8 @@ backend/node_modules/
 dist/
 dist-ssr/
 backend/dist/
+backups/
+backend/backups/
 
 # env/secrets
 .env

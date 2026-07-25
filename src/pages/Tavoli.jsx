@@ -35,6 +35,12 @@ function addMonths(value, amount) {
   return localDateKey(date);
 }
 
+function addDays(value, amount) {
+  const date = parseDateKey(value);
+  date.setDate(date.getDate() + amount);
+  return localDateKey(date);
+}
+
 function monthRange(value) {
   const start = parseDateKey(monthKey(value));
   const end = new Date(start);
@@ -154,6 +160,7 @@ export default function Tavoli() {
   const [error, setError] = useState("");
   const [reservationError, setReservationError] = useState("");
   const [message, setMessage] = useState("");
+  const [reservationQuery, setReservationQuery] = useState("");
 
   const loadCore = useCallback(async () => {
     const [tablesData, restaurantData, statusesData] = await Promise.all([
@@ -225,6 +232,29 @@ export default function Tavoli() {
     return map;
   }, [reservations]);
 
+  const normalizedQuery = reservationQuery.trim().toLocaleLowerCase("it");
+  const filteredDayReservations = useMemo(() => {
+    if (!normalizedQuery) return dayReservations;
+    return dayReservations.filter((reservation) =>
+      [
+        reservation.name,
+        reservation.phone,
+        reservation.tableName,
+        reservation.tableCode,
+        reservation.time,
+      ].some((value) => String(value || "").toLocaleLowerCase("it").includes(normalizedQuery))
+    );
+  }, [dayReservations, normalizedQuery]);
+
+  const dailyGuests = useMemo(
+    () => dayReservations.reduce((total, reservation) => total + Number(reservation.guests || 0), 0),
+    [dayReservations]
+  );
+  const arrivedReservations = useMemo(
+    () => dayReservations.filter((reservation) => reservation.status === "seated").length,
+    [dayReservations]
+  );
+
   const tableCards = useMemo(() => tables
     .map((table) => {
       const tableReservations = dayReservations.filter((reservation) => reservationMatchesTable(reservation, table));
@@ -232,6 +262,21 @@ export default function Tavoli() {
       return { ...table, dayReservations: tableReservations, visual: liveTableState(table, status, tableReservations, selectedDate) };
     })
     .sort((a, b) => String(a.code).localeCompare(String(b.code), "it", { numeric: true })), [dayReservations, selectedDate, statusMap, tables]);
+
+  const visibleTableCards = useMemo(() => {
+    if (!normalizedQuery) return tableCards;
+    return tableCards.filter((table) => {
+      const tableMatch = [table.code, table.name].some((value) =>
+        String(value || "").toLocaleLowerCase("it").includes(normalizedQuery)
+      );
+      const reservationMatch = table.dayReservations.some((reservation) =>
+        [reservation.name, reservation.phone, reservation.time].some((value) =>
+          String(value || "").toLocaleLowerCase("it").includes(normalizedQuery)
+        )
+      );
+      return tableMatch || reservationMatch;
+    });
+  }, [normalizedQuery, tableCards]);
 
   const selectedTable = tableCards.find((table) => table.id === selectedTableId) || null;
   const editingReservation = reservations.find((reservation) => reservation.id === editingReservationId) || null;
@@ -429,15 +474,32 @@ export default function Tavoli() {
             <span>Giorno selezionato</span>
             <h2>{formatSelectedDate(selectedDate)}</h2>
           </div>
-          <strong>{dayReservations.length} {dayReservations.length === 1 ? "prenotazione" : "prenotazioni"}</strong>
+          <div className="tables-day-metrics">
+            <span><b>{dayReservations.length}</b> prenotazioni</span>
+            <span><b>{dailyGuests}</b> coperti</span>
+            <span><b>{arrivedReservations}</b> arrivati</span>
+          </div>
+          <div className="tables-day-tools">
+            <div>
+              <button type="button" className={selectedDate === today ? "is-active" : ""} onClick={() => selectDate(today)}>Oggi</button>
+              <button type="button" className={selectedDate === addDays(today, 1) ? "is-active" : ""} onClick={() => selectDate(addDays(today, 1))}>Domani</button>
+            </div>
+            <input
+              type="search"
+              value={reservationQuery}
+              onChange={(event) => setReservationQuery(event.target.value)}
+              placeholder="Cerca nome, telefono o tavolo"
+              aria-label="Cerca nelle prenotazioni"
+            />
+          </div>
           <div className="tables-day-reservations">
-            {dayReservations.length ? dayReservations.map((reservation) => (
+            {filteredDayReservations.length ? filteredDayReservations.map((reservation) => (
               <button type="button" key={reservation.id} onClick={() => editReservation(reservation)}>
                 <b>{reservation.time}</b>
                 <span>{reservation.tableName || `Tavolo ${reservation.tableCode || "?"}`}</span>
                 <small>{reservation.name}</small>
               </button>
-            )) : <p>Nessuna prenotazione: tutti i tavoli sono disponibili.</p>}
+            )) : <p>{dayReservations.length ? "Nessun risultato per questa ricerca." : "Nessuna prenotazione: tutti i tavoli sono disponibili."}</p>}
           </div>
         </section>
 
@@ -459,7 +521,7 @@ export default function Tavoli() {
             ) : null}
 
             <div className="tables-compact-grid">
-              {tableCards.map((table) => (
+              {visibleTableCards.map((table) => (
                 <button
                   type="button"
                   key={table.id}

@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import Stripe from "stripe";
 import prisma from "../lib/prisma.js";
 import { logError } from "../lib/logger.js";
 import { sendSupportAccessNotification } from "../lib/mailer.js";
@@ -7,6 +8,11 @@ import { sendSupportAccessNotification } from "../lib/mailer.js";
 const ALLOWED_PLANS = new Set(["starter", "growth", "semiannual", "enterprise"]);
 const ALLOWED_SUBSCRIPTION_STATUSES = new Set(["trialing", "active", "past_due", "canceled", "unpaid", "incomplete"]);
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  return key ? new Stripe(key, { apiVersion: "2025-03-31.basil" }) : null;
+}
 
 function addDays(days) {
   const date = new Date();
@@ -478,5 +484,142 @@ export const updateMyRestaurant = async (req, res) => {
   } catch (error) {
     console.error("updateMyRestaurant error:", error);
     return res.status(500).json({ message: "Errore server" });
+  }
+};
+
+export const exportMyRestaurantData = async (req, res) => {
+  try {
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: req.user.restaurantId },
+      include: {
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            isActive: true,
+            emailVerifiedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        menuItems: { orderBy: [{ category: "asc" }, { sortOrder: "asc" }] },
+        tables: { orderBy: { sortOrder: "asc" } },
+        reservations: {
+          include: { table: { select: { id: true, name: true, code: true } } },
+          orderBy: [{ date: "asc" }, { time: "asc" }],
+        },
+        orders: {
+          include: {
+            table: { select: { id: true, name: true, code: true } },
+            items: true,
+            payments: true,
+            statusHistory: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        subscription: true,
+      },
+    });
+
+    if (!restaurant) return res.status(404).json({ message: "Ristorante non trovato" });
+
+    const exportPayload = {
+      exportVersion: 1,
+      generatedAt: new Date().toISOString(),
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name,
+        slug: restaurant.slug,
+        primaryColor: restaurant.primaryColor,
+        logoUrl: restaurant.logoUrl,
+        currency: restaurant.currency,
+        isActive: restaurant.isActive,
+        plan: restaurant.plan,
+        settings: restaurant.settingsJson,
+        createdAt: restaurant.createdAt,
+        updatedAt: restaurant.updatedAt,
+      },
+      users: restaurant.users,
+      menu: restaurant.menuItems,
+      tables: restaurant.tables,
+      reservations: restaurant.reservations,
+      orders: restaurant.orders,
+      subscription: restaurant.subscription
+        ? {
+            plan: restaurant.subscription.plan,
+            status: restaurant.subscription.status,
+            currentPeriodEnd: restaurant.subscription.currentPeriodEnd,
+            cancelAtPeriodEnd: restaurant.subscription.cancelAtPeriodEnd,
+            trialEndsAt: restaurant.subscription.trialEndsAt,
+          }
+        : null,
+    };
+
+    const safeSlug = String(restaurant.slug || "ristorante").replace(/[^a-z0-9-]/gi, "-");
+    res.setHeader("Content-Disposition", `attachment; filename="easymenu-${safeSlug}-${localDateForFilename()}.json"`);
+    return res.json(exportPayload);
+  } catch (error) {
+    console.error("exportMyRestaurantData error:", error);
+    return res.status(500).json({ message: "Non è stato possibile preparare l'esportazione." });
+  }
+};
+
+function localDateForFilename() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export const deleteMyRestaurantAccount = async (req, res) => {
+  try {
+    const password = String(req.body?.password || "");
+    const confirmation = String(req.body?.confirmation || "").trim();
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: req.user.restaurantId },
+      include: { subscription: true },
+    });
+    if (!restaurant) return res.status(404).json({ message: "Ristorante non trovato" });
+    if (confirmation !== restaurant.name) {
+      return res.status(400).json({ message: "Scrivi esattamente il nome del ristorante per confermare." });
+    }
+
+    const owner = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!owner || owner.role !== "owner" || !(await bcrypt.compare(password, owner.passwordHash))) {
+      return res.status(401).json({ message: "Password non corretta." });
+    }
+
+    if (restaurant.subscription?.stripeSubscriptionId) {
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(503).json({
+          message: "Prima di eliminare l'account dobbiamo annullare l'abbonamento. Contatta l'assistenza.",
+        });
+      }
+      try {
+        await stripe.subscriptions.cancel(restaurant.subscription.stripeSubscriptionId);
+      } catch (error) {
+        if (error?.code !== "resource_missing") throw error;
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.reservation.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.tableSession.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.table.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.menuItem.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.paymentTransaction.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.errorLog.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.saaSSubscription.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.orderCounter.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.user.deleteMany({ where: { restaurantId: restaurant.id } });
+      await tx.restaurant.delete({ where: { id: restaurant.id } });
+    });
+
+    res.clearCookie("refresh_token");
+    return res.json({ message: "Account e dati del ristorante eliminati." });
+  } catch (error) {
+    console.error("deleteMyRestaurantAccount error:", error);
+    return res.status(500).json({ message: "Eliminazione non riuscita. Nessun dato è stato rimosso." });
   }
 };

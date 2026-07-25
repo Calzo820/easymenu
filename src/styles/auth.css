@@ -29,6 +29,120 @@
   min-width: 0;
 }
 
+.auth-action-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 14px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+}
+
+.auth-action-card {
+  width: min(520px, 100%);
+  padding: 30px;
+  border: 1px solid #dce8f5;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .12);
+}
+
+.auth-action-brand {
+  display: block;
+  margin-bottom: 28px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.auth-action-eyebrow {
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.auth-action-card h1 {
+  margin: 8px 0 10px;
+  color: #0f172a;
+  font-size: 32px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.auth-action-card > p {
+  margin: 0 0 20px;
+  color: #52647a;
+  line-height: 1.6;
+}
+
+.auth-action-form,
+.auth-action-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-action-form {
+  gap: 14px;
+}
+
+.auth-action-form label {
+  color: #123b6b;
+  font-weight: 850;
+}
+
+.auth-action-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid #d6e4f5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.auth-action-form button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #1d4ed8;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.auth-action-form button:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.auth-action-status {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.auth-action-status.success {
+  border: 1px solid #bbf7d0;
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.auth-action-status.error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.auth-action-back {
+  display: inline-block;
+  margin-top: 20px;
+  color: #2563eb;
+  font-weight: 850;
+  text-decoration: none;
+}
+
 @media (max-width: 860px) {
   .auth-layout {
     grid-template-columns: minmax(0, 1fr) !important;

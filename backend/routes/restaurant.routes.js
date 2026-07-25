@@ -1,13 +1,15 @@
 import express from "express";
 import {
   createRestaurantForSuperAdmin,
+  deleteMyRestaurantAccount,
+  exportMyRestaurantData,
   getMyRestaurant,
   impersonateRestaurantForSuperAdmin,
   listRestaurantsForSuperAdmin,
   updateMyRestaurant,
   updateRestaurantForSuperAdmin,
 } from "../controllers/restaurant.controller.js";
-import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
+import { denyImpersonatedPrivateData, requireAuth, requireRole } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -18,5 +20,7 @@ router.post("/super-admin/:restaurantId/impersonate", requireAuth, impersonateRe
 
 router.get("/me", requireAuth, getMyRestaurant);
 router.patch("/me", requireAuth, requireRole(["owner", "admin"]), updateMyRestaurant);
+router.get("/me/export", requireAuth, denyImpersonatedPrivateData, requireRole(["owner"]), exportMyRestaurantData);
+router.delete("/me", requireAuth, denyImpersonatedPrivateData, requireRole(["owner"]), deleteMyRestaurantAccount);
 
 export default router;

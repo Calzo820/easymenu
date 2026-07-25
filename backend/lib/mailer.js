@@ -7,6 +7,89 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+export async function sendTransactionalEmail({ to, subject, textContent, htmlContent }) {
+  const apiKey = String(process.env.BREVO_API_KEY || "").trim();
+  const senderEmail = String(process.env.MAIL_FROM_EMAIL || "easy.menu.service@gmail.com").trim();
+  const senderName = String(process.env.MAIL_FROM_NAME || "EasyMenu").trim();
+
+  if (!to) return { sent: false, reason: "missing_recipient" };
+  if (!apiKey) return { sent: false, reason: "mail_not_configured" };
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "api-key": apiKey,
+    },
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: to }],
+      subject,
+      textContent,
+      htmlContent,
+    }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.message || `Invio email non riuscito (${response.status})`);
+  return { sent: true, messageId: result.messageId || null };
+}
+
+function accountEmailTemplate({ eyebrow, title, message, actionLabel, actionUrl, footer }) {
+  const safeUrl = escapeHtml(actionUrl);
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#0f172a;line-height:1.6">
+      <div style="background:#0f172a;color:#fff;padding:22px 24px;border-radius:14px 14px 0 0">
+        <strong style="font-size:20px">EasyMenu</strong>
+        <div style="opacity:.8">${escapeHtml(eyebrow)}</div>
+      </div>
+      <div style="border:1px solid #e2e8f0;border-top:0;padding:24px;border-radius:0 0 14px 14px">
+        <h1 style="font-size:24px;margin:0 0 12px">${escapeHtml(title)}</h1>
+        <p>${escapeHtml(message)}</p>
+        <p style="margin:24px 0">
+          <a href="${safeUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:800;padding:12px 18px;border-radius:10px">${escapeHtml(actionLabel)}</a>
+        </p>
+        <p style="font-size:12px;color:#64748b;word-break:break-all">Se il pulsante non funziona: ${safeUrl}</p>
+        <p style="font-size:13px;color:#64748b">${escapeHtml(footer)}</p>
+      </div>
+    </div>`;
+}
+
+export async function sendEmailVerification({ to, name, verificationUrl }) {
+  const greeting = name ? `Ciao ${name},` : "Ciao,";
+  return sendTransactionalEmail({
+    to,
+    subject: "Verifica il tuo indirizzo email - EasyMenu",
+    textContent: `${greeting}\n\nConferma il tuo indirizzo email aprendo questo link entro 24 ore:\n${verificationUrl}\n\nSe non hai creato questo account, ignora il messaggio.`,
+    htmlContent: accountEmailTemplate({
+      eyebrow: "Sicurezza account",
+      title: "Conferma la tua email",
+      message: `${greeting} verifica il tuo indirizzo per completare la protezione dell'account EasyMenu.`,
+      actionLabel: "Verifica email",
+      actionUrl: verificationUrl,
+      footer: "Il link scade dopo 24 ore. Se non hai creato questo account, puoi ignorare il messaggio.",
+    }),
+  });
+}
+
+export async function sendPasswordReset({ to, name, resetUrl }) {
+  const greeting = name ? `Ciao ${name},` : "Ciao,";
+  return sendTransactionalEmail({
+    to,
+    subject: "Reimposta la password - EasyMenu",
+    textContent: `${greeting}\n\nPuoi scegliere una nuova password aprendo questo link entro 60 minuti:\n${resetUrl}\n\nSe non hai richiesto il recupero, ignora il messaggio.`,
+    htmlContent: accountEmailTemplate({
+      eyebrow: "Recupero account",
+      title: "Scegli una nuova password",
+      message: `${greeting} abbiamo ricevuto una richiesta di recupero per il tuo account EasyMenu.`,
+      actionLabel: "Reimposta password",
+      actionUrl: resetUrl,
+      footer: "Il link scade dopo 60 minuti e può essere usato una sola volta.",
+    }),
+  });
+}
+
 export async function sendSupportAccessNotification({
   to,
   restaurantName,

@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
+import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
+import { sendEmailVerification, sendPasswordReset } from "../lib/mailer.js";
 import {
   createRefreshToken,
   getRefreshCookieOptions,
@@ -10,6 +12,20 @@ import {
 } from "../lib/session.js";
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
+function createOneTimeToken() {
+  const token = crypto.randomBytes(32).toString("hex");
+  return {
+    token,
+    hash: crypto.createHash("sha256").update(token).digest("hex"),
+  };
+}
+
+function getClientUrl() {
+  return String(process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+}
 
 function getSuperAdminEmails() {
   return String(process.env.SUPER_ADMIN_EMAILS || "")
@@ -60,6 +76,7 @@ function sanitizeUser(user) {
     role: isSuperAdmin ? "superadmin" : user.role,
     isActive: user.isActive,
     isSuperAdmin,
+    emailVerified: Boolean(user.emailVerifiedAt),
   };
 }
 
@@ -137,6 +154,7 @@ export const registerOwner = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const verification = createOneTimeToken();
 
     const result = await prisma.$transaction(async (tx) => {
       const restaurant = await tx.restaurant.create({
@@ -156,6 +174,8 @@ export const registerOwner = async (req, res) => {
           name,
           email,
           passwordHash,
+          emailVerificationTokenHash: verification.hash,
+          emailVerificationExpiresAt: new Date(Date.now() + VERIFICATION_TTL_MS),
           role: "owner",
           isActive: true,
         },
@@ -166,9 +186,19 @@ export const registerOwner = async (req, res) => {
 
     const token = signToken(result.user);
     await issueSession(res, req, result.user);
+    const verificationMail = await sendEmailVerification({
+      to: result.user.email,
+      name: result.user.name,
+      verificationUrl: `${getClientUrl()}/verifica-email?token=${encodeURIComponent(verification.token)}`,
+    }).catch((error) => {
+      console.error("registration verification email error:", error.message);
+      return { sent: false };
+    });
 
     return res.status(201).json({
-      message: "Registrazione completata",
+      message: verificationMail.sent
+        ? "Registrazione completata. Controlla la posta per verificare l'email."
+        : "Registrazione completata.",
       token,
       user: sanitizeUser(result.user),
       restaurant: sanitizeRestaurant(result.restaurant),
@@ -335,5 +365,138 @@ export const logout = async (req, res) => {
   } catch (error) {
     console.error("logout error:", error);
     return res.status(500).json({ message: "Errore server durante il logout" });
+  }
+};
+
+export const requestPasswordReset = async (req, res) => {
+  const genericMessage = "Se l'indirizzo è registrato, riceverai un link entro pochi minuti.";
+
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!EMAIL_REGEX.test(email)) return res.json({ message: genericMessage });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user?.isActive) return res.json({ message: genericMessage });
+
+    const reset = createOneTimeToken();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetTokenHash: reset.hash,
+        passwordResetExpiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+      },
+    });
+
+    await sendPasswordReset({
+      to: user.email,
+      name: user.name,
+      resetUrl: `${getClientUrl()}/reimposta-password?token=${encodeURIComponent(reset.token)}`,
+    });
+
+    return res.json({ message: genericMessage });
+  } catch (error) {
+    console.error("requestPasswordReset error:", error);
+    return res.json({ message: genericMessage });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "");
+    if (!token || password.length < 8) {
+      return res.status(400).json({ message: "Il link non è valido oppure la password ha meno di 8 caratteri." });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpiresAt: { gt: new Date() },
+        isActive: true,
+      },
+    });
+    if (!user) return res.status(400).json({ message: "Il link è scaduto o è già stato utilizzato." });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          passwordResetTokenHash: null,
+          passwordResetExpiresAt: null,
+        },
+      }),
+      prisma.userSession.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    return res.json({ message: "Password aggiornata. Ora puoi accedere con la nuova password." });
+  } catch (error) {
+    console.error("resetPassword error:", error);
+    return res.status(500).json({ message: "Non è stato possibile aggiornare la password." });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    if (!token) return res.status(400).json({ message: "Link di verifica non valido." });
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await prisma.user.findFirst({
+      where: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationExpiresAt: { gt: new Date() },
+        isActive: true,
+      },
+    });
+    if (!user) return res.status(400).json({ message: "Il link è scaduto o l'email è già stata verificata." });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerifiedAt: new Date(),
+        emailVerificationTokenHash: null,
+        emailVerificationExpiresAt: null,
+      },
+    });
+
+    return res.json({ message: "Email verificata correttamente." });
+  } catch (error) {
+    console.error("verifyEmail error:", error);
+    return res.status(500).json({ message: "Non è stato possibile verificare l'email." });
+  }
+};
+
+export const resendEmailVerification = async (req, res) => {
+  const genericMessage = "Se l'account richiede la verifica, riceverai una nuova email.";
+
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!EMAIL_REGEX.test(email)) return res.json({ message: genericMessage });
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user?.isActive || user.emailVerifiedAt) return res.json({ message: genericMessage });
+
+    const verification = createOneTimeToken();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: verification.hash,
+        emailVerificationExpiresAt: new Date(Date.now() + VERIFICATION_TTL_MS),
+      },
+    });
+    await sendEmailVerification({
+      to: user.email,
+      name: user.name,
+      verificationUrl: `${getClientUrl()}/verifica-email?token=${encodeURIComponent(verification.token)}`,
+    });
+    return res.json({ message: genericMessage });
+  } catch (error) {
+    console.error("resendEmailVerification error:", error);
+    return res.json({ message: genericMessage });
   }
 };
