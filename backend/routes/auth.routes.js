@@ -1,6 +1,7 @@
 import express from "express";
 import {
   login,
+  loginWithPin,
   logout,
   me,
   refreshToken,
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.post("/register", registerOwner);
 router.post("/login", login);
+router.post("/pin-login", loginWithPin);
 router.post("/refresh", refreshToken);
 router.post("/logout", logout);
 router.post("/forgot-password", requestPasswordReset);

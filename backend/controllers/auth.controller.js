@@ -72,11 +72,12 @@ function sanitizeUser(user) {
   return {
     id: user.id,
     name: user.name,
-    email: user.email,
+    email: user.isPinOnly ? null : user.email,
     role: isSuperAdmin ? "superadmin" : user.role,
     isActive: user.isActive,
     isSuperAdmin,
     emailVerified: Boolean(user.emailVerifiedAt),
+    pinAccess: Boolean(user.pinEnabled),
   };
 }
 
@@ -249,6 +250,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Credenziali non valide" });
     }
 
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     const token = signToken(user);
     await issueSession(res, req, user);
 
@@ -264,6 +266,67 @@ export const login = async (req, res) => {
       message: "Errore server durante il login",
       details: process.env.NODE_ENV === "production" ? undefined : error.message,
     });
+  }
+};
+
+export const loginWithPin = async (req, res) => {
+  try {
+    const restaurantCode = buildSlug(req.body?.restaurantCode || req.body?.restaurantSlug);
+    const pin = String(req.body?.pin || "").trim();
+    if (!restaurantCode || !/^\d{4,6}$/.test(pin)) {
+      return res.status(400).json({ message: "Inserisci il codice ristorante e un PIN da 4 a 6 numeri" });
+    }
+
+    const restaurant = await prisma.restaurant.findUnique({ where: { slug: restaurantCode } });
+    if (!restaurant || !restaurant.isActive) {
+      return res.status(401).json({ message: "Codice ristorante o PIN non validi" });
+    }
+
+    const staff = await prisma.user.findMany({
+      where: {
+        restaurantId: restaurant.id,
+        isActive: true,
+        pinEnabled: true,
+        pinHash: { not: null },
+        role: { in: ["admin", "kitchen", "bar", "cashier"] },
+      },
+    });
+
+    let user = null;
+    for (const candidate of staff) {
+      if (candidate.pinHash && await bcrypt.compare(pin, candidate.pinHash)) {
+        user = candidate;
+        break;
+      }
+    }
+    if (!user) return res.status(401).json({ message: "Codice ristorante o PIN non validi" });
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }),
+      prisma.auditLog.create({
+        data: {
+          restaurantId: restaurant.id,
+          userId: user.id,
+          action: "staff.pin_login",
+          entityType: "user",
+          entityId: user.id,
+          metadata: { role: user.role },
+          ipAddress: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim().slice(0, 80) || null,
+        },
+      }),
+    ]);
+
+    const token = signToken(user);
+    await issueSession(res, req, user);
+    return res.json({
+      message: "Accesso staff effettuato",
+      token,
+      user: sanitizeUser(user),
+      restaurant: sanitizeRestaurant(restaurant),
+    });
+  } catch (error) {
+    console.error("loginWithPin error:", error);
+    return res.status(500).json({ message: "Errore server durante l'accesso con PIN" });
   }
 };
 

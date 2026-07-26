@@ -24,7 +24,10 @@ function mapOrderStatusToCashierStatus(order, session) {
 
 function activeOrderTotal(order) {
   if (!order) return 0;
-  const itemsTotal = (order.items || []).reduce((sum, item) => sum + Number(item.priceSnapshot || 0) * Number(item.quantity || 0), 0);
+  const itemsTotal = (order.items || []).reduce((sum, item) => {
+    if (item.status === "voided" || item.isComplimentary) return sum;
+    return sum + Number(item.priceSnapshot || 0) * Number(item.quantity || 0);
+  }, 0);
   return Math.max(0, itemsTotal + Number(order.extraAmount || 0) - Number(order.discountAmount || 0));
 }
 
@@ -52,7 +55,16 @@ export const getPublicTableMenu = async (req, res) => {
     return res.json({
       restaurant: { id: table.restaurant.id, name: table.restaurant.name, slug: table.restaurant.slug, primaryColor: table.restaurant.primaryColor, logoUrl: table.restaurant.logoUrl || null, currency: table.restaurant.currency },
       table: { id: table.id, name: table.name, code: table.code, qrToken: table.qrToken },
-      items,
+      items: items.map((item) => {
+        const {
+          costPrice: _costPrice,
+          trackStock: _trackStock,
+          stockQuantity: _stockQuantity,
+          lowStockThreshold: _lowStockThreshold,
+          ...safeItem
+        } = item;
+        return safeItem;
+      }),
     });
   } catch (error) {
     console.error("getPublicTableMenu error:", error);
@@ -77,7 +89,14 @@ export const getTablesStatus = async (req, res) => {
       where: { restaurantId },
       include: {
         sessions: { where: { status: { in: ["open", "closing"] } }, orderBy: { openedAt: "desc" }, take: 1 },
-        orders: { where: { closedAt: null, status: { notIn: ["cancelled"] } }, orderBy: { createdAt: "desc" }, include: { items: { include: { menuItem: true } } } },
+        orders: {
+          where: { closedAt: null, status: { notIn: ["cancelled"] } },
+          orderBy: { createdAt: "desc" },
+          include: {
+            items: { include: { menuItem: true } },
+            payments: { where: { status: "paid" }, orderBy: { createdAt: "asc" } },
+          },
+        },
       },
       orderBy: [{ sortOrder: "asc" }, { code: "asc" }, { name: "asc" }],
     });
@@ -117,8 +136,22 @@ export const getTablesStatus = async (req, res) => {
           discountAmount: activeOrder.discountAmount,
           extraAmount: activeOrder.extraAmount,
           totalAmount,
+          payments: activeOrder.payments,
           table: { id: table.id, name: table.name, code: table.code, number: table.code },
-          items: activeOrder.items.map((item) => ({ id: item.id, menuItemId: item.menuItemId, quantity: item.quantity, notes: item.notes, nameSnapshot: item.nameSnapshot, priceSnapshot: item.priceSnapshot, categorySnapshot: item.categorySnapshot, preparationArea: item.preparationArea || item.menuItem?.preparationArea || null })),
+          items: activeOrder.items.map((item) => ({
+            id: item.id,
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            notes: item.notes,
+            nameSnapshot: item.nameSnapshot,
+            priceSnapshot: item.priceSnapshot,
+            categorySnapshot: item.categorySnapshot,
+            preparationArea: item.preparationArea || item.menuItem?.preparationArea || null,
+            status: item.status,
+            voidReason: item.voidReason,
+            isComplimentary: item.isComplimentary,
+            complimentaryReason: item.complimentaryReason,
+          })),
         } : null,
       };
     });

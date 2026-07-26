@@ -1,6 +1,7 @@
 import express from "express";
 import {
   addOrderExtra,
+  addOrderPayment,
   closeOrder,
   createPublicOrder,
   getOrders,
@@ -9,6 +10,9 @@ import {
   requestPublicBill,
   requestPublicStaff,
   deleteOrder,
+  getOrderAudit,
+  reopenOrder,
+  updateOrderItem,
   updateOrderStatus,
 } from "../controllers/order.controller.js";
 import { denyImpersonatedPrivateData, requireAuth, requireRole } from "../middleware/auth.middleware.js";
@@ -46,12 +50,48 @@ router.post(
 );
 
 router.post(
+  "/:id/payments",
+  requireAuth,
+  denyImpersonatedPrivateData,
+  requireActiveSubscription,
+  requireRole(["owner", "admin", "cashier"]),
+  addOrderPayment
+);
+
+router.patch(
+  "/:id/items/:itemId",
+  requireAuth,
+  denyImpersonatedPrivateData,
+  requireActiveSubscription,
+  requireRole(["owner", "admin", "cashier"]),
+  updateOrderItem
+);
+
+router.post(
   "/:id/close",
   requireAuth,
   denyImpersonatedPrivateData,
   requireActiveSubscription,
   requireRole(["owner", "admin", "cashier"]),
   closeOrder
+);
+
+router.post(
+  "/:id/reopen",
+  requireAuth,
+  denyImpersonatedPrivateData,
+  requireActiveSubscription,
+  requireRole(["owner"]),
+  reopenOrder
+);
+
+router.get(
+  "/:id/audit",
+  requireAuth,
+  denyImpersonatedPrivateData,
+  requireActiveSubscription,
+  requireRole(["owner", "admin", "cashier"]),
+  getOrderAudit
 );
 
 router.delete(

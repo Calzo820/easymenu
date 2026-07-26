@@ -36,6 +36,9 @@ model Restaurant {
   reservations  Reservation[]
   errorLogs     ErrorLog[]
   orderCounter  OrderCounter?
+  cashClosures  CashClosure[]
+  auditLogs     AuditLog[]
+  stockMovements StockMovement[]
 }
 
 model User {
@@ -51,11 +54,21 @@ model User {
   passwordResetExpiresAt     DateTime?
   role                       UserRole  @default(owner)
   isActive                   Boolean   @default(true)
+  pinHash                    String?
+  pinEnabled                 Boolean   @default(false)
+  isPinOnly                  Boolean   @default(false)
+  lastLoginAt                DateTime?
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
-  restaurant Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  sessions   UserSession[]
+  restaurant      Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sessions        UserSession[]
+  closedCashDays  CashClosure[]         @relation("CashClosureUser")
+  auditLogs       AuditLog[]
+  stockMovements  StockMovement[]
+  createdPayments PaymentTransaction[]  @relation("PaymentCreatedBy")
+  voidedItems     OrderItem[]            @relation("OrderItemVoidedBy")
+  reopenedOrders  Order[]                @relation("OrderReopenedBy")
 }
 
 model UserSession {
@@ -80,6 +93,7 @@ model MenuItem {
   description      String?
   shortDescription String?
   price            Decimal         @db.Decimal(10, 2)
+  costPrice        Decimal         @default(0) @db.Decimal(10, 2)
   category         String?
   imageUrl         String?
   allergens        String[]        @default([])
@@ -90,11 +104,15 @@ model MenuItem {
   preparationArea  PreparationArea
   isAvailable      Boolean         @default(true)
   isDeleted        Boolean         @default(false)
+  trackStock       Boolean         @default(false)
+  stockQuantity    Decimal         @default(0) @db.Decimal(10, 3)
+  lowStockThreshold Decimal        @default(0) @db.Decimal(10, 3)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
   restaurant Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
+  stockMovements StockMovement[]
 }
 
 model Table {
@@ -193,6 +211,10 @@ model Order {
   stripeCheckoutSessionId String?
   stripePaymentIntentId   String?
   paidAt                  DateTime?
+  reopenedAt              DateTime?
+  reopenedByUserId        String?
+
+  reopenedBy User? @relation("OrderReopenedBy", fields: [reopenedByUserId], references: [id], onDelete: SetNull)
 }
 
 model OrderItem {
@@ -202,14 +224,22 @@ model OrderItem {
   quantity         Int
   nameSnapshot     String
   priceSnapshot    Decimal          @db.Decimal(10, 2)
+  costSnapshot     Decimal          @default(0) @db.Decimal(10, 2)
   categorySnapshot String?
   notes            String?
   preparationArea  PreparationArea?
+  status           OrderItemStatus  @default(active)
+  voidReason       String?
+  voidedAt         DateTime?
+  voidedByUserId   String?
+  isComplimentary  Boolean          @default(false)
+  complimentaryReason String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
   order    Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  voidedBy User?     @relation("OrderItemVoidedBy", fields: [voidedByUserId], references: [id], onDelete: SetNull)
 }
 
 model PaymentTransaction {
@@ -223,13 +253,84 @@ model PaymentTransaction {
   amount                  Decimal       @db.Decimal(10, 2)
   currency                String        @default("EUR")
   status                  PaymentStatus @default(pending)
+  method                  PaymentMethod?
   splitLabel              String?
+  createdByUserId         String?
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
   paidAt                  DateTime?
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy  User?      @relation("PaymentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+}
+
+model CashClosure {
+  id             String            @id @default(cuid())
+  restaurantId   String
+  businessDate   DateTime
+  grossTotal     Decimal           @default(0) @db.Decimal(10, 2)
+  expectedCash   Decimal           @default(0) @db.Decimal(10, 2)
+  declaredCash   Decimal           @default(0) @db.Decimal(10, 2)
+  difference     Decimal           @default(0) @db.Decimal(10, 2)
+  cardTotal      Decimal           @default(0) @db.Decimal(10, 2)
+  onlineTotal    Decimal           @default(0) @db.Decimal(10, 2)
+  otherTotal     Decimal           @default(0) @db.Decimal(10, 2)
+  orderCount     Int               @default(0)
+  paymentCount   Int               @default(0)
+  notes          String?
+  status         CashClosureStatus @default(closed)
+  closedByUserId String?
+  closedAt       DateTime          @default(now())
+  reopenedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  closedBy   User?      @relation("CashClosureUser", fields: [closedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([restaurantId, businessDate])
+  @@index([restaurantId, businessDate])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  restaurantId String
+  userId       String?
+  action       String
+  entityType   String
+  entityId     String?
+  reason       String?
+  metadata     Json?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([restaurantId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model StockMovement {
+  id             String            @id @default(cuid())
+  restaurantId   String
+  menuItemId     String
+  userId         String?
+  orderItemId    String?
+  type           StockMovementType
+  quantityBefore Decimal           @db.Decimal(10, 3)
+  quantityChange Decimal           @db.Decimal(10, 3)
+  quantityAfter  Decimal           @db.Decimal(10, 3)
+  reason         String?
+  createdAt      DateTime          @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([restaurantId, createdAt])
+  @@index([menuItemId, createdAt])
 }
 
 model OrderStatusHistory {
@@ -340,6 +441,24 @@ enum PaymentMethod {
   online
   satispay
   other
+}
+
+enum OrderItemStatus {
+  active
+  voided
+}
+
+enum CashClosureStatus {
+  closed
+  reopened
+}
+
+enum StockMovementType {
+  adjustment
+  sale
+  restock
+  waste
+  restore
 }
 
 model ErrorLog {

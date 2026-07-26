@@ -1,16 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import { apiGet } from "../lib/api";
-import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
+import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import "../styles/management-os.css";
-
-function getRestaurantName() {
-  try {
-    return JSON.parse(localStorage.getItem("auth_restaurant") || "null")?.name || localStorage.getItem("ristorante_attivo") || "Ristorante";
-  } catch {
-    return localStorage.getItem("ristorante_attivo") || "Ristorante";
-  }
-}
 
 function number(value) {
   const parsed = Number(value);
@@ -21,29 +13,41 @@ function money(value) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(number(value));
 }
 
-function normalizedOrder(order) {
+function trend(value) {
+  const amount = number(value);
+  const sign = amount > 0 ? "+" : "";
+  return `${sign}${amount.toFixed(0)}%`;
+}
+
+function paymentLabel(method) {
   return {
-    ...order,
-    closedAt: order.closedAt || order.servedAt || order.updatedAt || order.createdAt,
-    total: number(order.totalAmount ?? order.totale),
-    payment: order.paymentMethod || order.pagamento || "Non indicato",
-    items: (order.items || order.piatti || []).map((item) => ({
-      name: item.nameSnapshot || item.nome || item.menuItem?.name || "Articolo",
-      quantity: number(item.quantity ?? item.qty ?? 1),
-    })),
-  };
+    cash: "Contanti",
+    card: "Carta",
+    online: "Online",
+    satispay: "Satispay",
+    other: "Altro",
+    non_indicato: "Non indicato",
+  }[method] || method;
 }
 
-function Stat({ label, value, detail }) {
-  return <article className="management-stat"><span>{label}</span><strong>{value}</strong>{detail ? <small>{detail}</small> : null}</article>;
+function Stat({ label, value, detail, change }) {
+  return (
+    <article className="management-stat report-kpi">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+      {change !== undefined ? <i className={number(change) >= 0 ? "is-up" : "is-down"}>{trend(change)} sul periodo precedente</i> : null}
+    </article>
+  );
 }
 
-function BarRow({ label, value, max, valueLabel }) {
-  const width = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
+function BarRow({ label, value, max, valueLabel, detail }) {
+  const width = max > 0 ? Math.max(4, Math.round((number(value) / max) * 100)) : 0;
   return (
     <div className="report-bar-row">
       <div>
         <div className="management-row-title" style={{ fontSize: 14 }}>{label}</div>
+        {detail ? <small className="report-row-detail">{detail}</small> : null}
         <div className="report-track"><div className="report-fill" style={{ width: `${width}%` }} /></div>
       </div>
       <strong>{valueLabel ?? value}</strong>
@@ -51,22 +55,12 @@ function BarRow({ label, value, max, valueLabel }) {
   );
 }
 
-function Insight({ label, value, text, tone = "neutral" }) {
-  return (
-    <article className={`report-insight report-insight--${tone}`}>
-      <span>{label}</span>
-      <b>{value}</b>
-      <p>{text}</p>
-    </article>
-  );
-}
-
 export default function Statistiche() {
-  const [orders, setOrders] = useState([]);
   const [period, setPeriod] = useState(30);
+  const [summary, setSummary] = useState(null);
+  const [advisor, setAdvisor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const restaurantName = getRestaurantName();
 
   useEffect(() => {
     let active = true;
@@ -74,9 +68,17 @@ export default function Statistiche() {
       try {
         setLoading(true);
         setError("");
-        const data = await apiGet("/orders?history=true");
-        const rows = Array.isArray(data) ? data : data?.orders || [];
-        if (active) setOrders(rows.map(normalizedOrder));
+        const to = new Date();
+        const from = new Date();
+        from.setDate(from.getDate() - period);
+        const [summaryData, advisorData] = await Promise.all([
+          apiGet(`/analytics/summary?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`),
+          apiGet(`/analytics/advisor?days=${period}`),
+        ]);
+        if (active) {
+          setSummary(summaryData);
+          setAdvisor(advisorData);
+        }
       } catch (loadError) {
         if (active) setError(loadError.message || "Statistiche temporaneamente non disponibili");
       } finally {
@@ -85,63 +87,21 @@ export default function Statistiche() {
     }
     load();
     return () => { active = false; };
-  }, []);
+  }, [period]);
 
-  const filteredOrders = useMemo(() => {
-    const from = new Date();
-    from.setHours(0, 0, 0, 0);
-    from.setDate(from.getDate() - (period - 1));
-    return orders
-      .filter((order) => order.closedAt && new Date(order.closedAt) >= from)
-      .sort((a, b) => new Date(b.closedAt) - new Date(a.closedAt));
-  }, [orders, period]);
-
-  const metrics = useMemo(() => {
-    const revenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
-    const itemCount = filteredOrders.reduce((sum, order) => sum + order.items.reduce((total, item) => total + item.quantity, 0), 0);
-    return {
-      revenue,
-      orderCount: filteredOrders.length,
-      averageTicket: filteredOrders.length ? revenue / filteredOrders.length : 0,
-      itemCount,
-    };
-  }, [filteredOrders]);
-
-  const productStats = useMemo(() => {
-    const map = new Map();
-    filteredOrders.forEach((order) => order.items.forEach((item) => map.set(item.name, (map.get(item.name) || 0) + item.quantity)));
-    return [...map.entries()].map(([name, quantity]) => ({ name, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 8);
-  }, [filteredOrders]);
-
-  const paymentStats = useMemo(() => {
-    const labels = { cash: "Contanti", card: "Carta", online: "Online", satispay: "Satispay", other: "Altro" };
-    const map = new Map();
-    filteredOrders.forEach((order) => {
-      const method = labels[order.payment] || order.payment;
-      map.set(method, (map.get(method) || 0) + 1);
-    });
-    return [...map.entries()].map(([method, count]) => ({ method, count })).sort((a, b) => b.count - a.count);
-  }, [filteredOrders]);
-
-  const dailyStats = useMemo(() => {
-    const map = new Map();
-    filteredOrders.forEach((order) => {
-      const date = new Date(order.closedAt);
-      const key = date.toISOString().slice(0, 10);
-      const current = map.get(key) || { date: key, revenue: 0, orders: 0 };
-      current.revenue += order.total;
-      current.orders += 1;
-      map.set(key, current);
-    });
-    return [...map.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-14);
-  }, [filteredOrders]);
-
-  const bestDay = useMemo(() => [...dailyStats].sort((a, b) => b.revenue - a.revenue)[0] || null, [dailyStats]);
-  const topProduct = productStats[0] || null;
-  const topPayment = paymentStats[0] || null;
-  const maxRevenue = Math.max(0, ...dailyStats.map((item) => item.revenue));
-  const maxProduct = Math.max(0, ...productStats.map((item) => item.quantity));
-  const maxPayment = Math.max(0, ...paymentStats.map((item) => item.count));
+  const kpis = summary?.kpis || {};
+  const charts = summary?.charts || {};
+  const topProducts = charts.topProducts || [];
+  const byDay = (charts.byDay || []).slice(-14);
+  const byPayment = charts.byPayment || [];
+  const maxRevenue = Math.max(0, ...byDay.map((row) => number(row.revenue)));
+  const maxMargin = Math.max(0, ...topProducts.map((row) => number(row.margin)));
+  const maxPayment = Math.max(0, ...byPayment.map((row) => number(row.revenue)));
+  const hasData = number(kpis.ordersRange) > 0;
+  const topProfitProduct = useMemo(
+    () => [...topProducts].sort((a, b) => number(b.margin) - number(a.margin))[0] || null,
+    [topProducts]
+  );
 
   return (
     <div style={glowPageStyle}>
@@ -150,61 +110,101 @@ export default function Statistiche() {
         <main className="app-shell management-os">
           <header className="management-hero-main report-hero-clean">
             <div>
-              <div className="management-kicker">Statistiche reali</div>
-              <h1 className="management-hero-title">Come sta andando il servizio</h1>
-              <p className="management-hero-subtitle">Incasso, ordini, prodotti e pagamenti calcolati solo sui conti realmente chiusi.</p>
+              <div className="management-kicker">Dati reali del locale</div>
+              <h1 className="management-hero-title">Numeri utili, senza report inutili</h1>
+              <p className="management-hero-subtitle">Incasso, margine, tempi e prodotti calcolati sui conti registrati in EasyMenu.</p>
             </div>
             <div className="report-period-switch" aria-label="Periodo statistiche">
-              {[7, 30, 90].map((days) => <button type="button" key={days} className={period === days ? "is-active" : ""} onClick={() => setPeriod(days)}>{days} giorni</button>)}
+              {[7, 30, 90].map((days) => (
+                <button type="button" key={days} className={period === days ? "is-active" : ""} onClick={() => setPeriod(days)}>
+                  {days} giorni
+                </button>
+              ))}
             </div>
           </header>
 
           {error ? <div className="advisor-note">{error}</div> : null}
+          {loading ? <section className="management-card report-empty-clean"><b>Sto preparando i dati del periodo...</b></section> : null}
 
-          <section className="management-card">
-            <div className="management-section-head">
-              <div><h2 className="management-title">{restaurantName}</h2><p className="management-subtitle">Ultimi {period} giorni</p></div>
-            </div>
-            <div className="management-stats">
-              <Stat label="Incasso" value={money(metrics.revenue)} detail="Conti pagati e chiusi" />
-              <Stat label="Ordini" value={metrics.orderCount} detail="Comande concluse" />
-              <Stat label="Ticket medio" value={money(metrics.averageTicket)} detail="Media per ordine" />
-              <Stat label="Articoli venduti" value={metrics.itemCount} detail="Quantità totale" />
-            </div>
-          </section>
-
-          {loading ? <section className="management-card report-empty-clean"><b>Caricamento statistiche...</b></section> : null}
-
-          {!loading && !filteredOrders.length ? (
-            <section className="management-card report-empty-clean">
-              <span>Nessun dato nel periodo</span>
-              <h2>Le statistiche partiranno dal primo conto chiuso.</h2>
-              <p>Quando la cassa registra un pagamento, questa pagina aggiorna automaticamente incasso, ticket medio, prodotti più ordinati e metodi di pagamento.</p>
-            </section>
-          ) : null}
-
-          {!loading && filteredOrders.length ? (
+          {!loading && summary ? (
             <>
-              <section className="report-insight-grid">
-                <Insight label="Giorno migliore" value={bestDay ? new Date(`${bestDay.date}T12:00:00`).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : "-"} text={bestDay ? `${money(bestDay.revenue)} da ${bestDay.orders} ordini` : "Dati non disponibili"} tone="green" />
-                <Insight label="Prodotto più ordinato" value={topProduct?.name || "-"} text={topProduct ? `${topProduct.quantity} unità nel periodo` : "Dati non disponibili"} tone="blue" />
-                <Insight label="Pagamento più usato" value={topPayment?.method || "-"} text={topPayment ? `${topPayment.count} conti su ${metrics.orderCount}` : "Dati non disponibili"} tone="amber" />
+              <section className="management-card">
+                <div className="management-section-head">
+                  <div><h2 className="management-title">Andamento economico</h2><p className="management-subtitle">Confronto con i {period} giorni precedenti.</p></div>
+                </div>
+                <div className="management-stats">
+                  <Stat label="Incasso" value={money(kpis.revenueRange)} detail={`${kpis.completedOrdersRange || 0} conti conclusi`} change={kpis.comparison?.revenue} />
+                  <Stat label="Ticket medio" value={money(kpis.averageTicketRange)} detail="Media per conto" change={kpis.comparison?.averageTicket} />
+                  <Stat label="Margine lordo" value={money(kpis.grossMarginRange)} detail={`Food cost ${money(kpis.foodCostRange)}`} change={kpis.comparison?.margin} />
+                  <Stat label="Margine %" value={`${number(kpis.marginRateRange).toFixed(1)}%`} detail="Stima da costi inseriti nel menu" />
+                </div>
               </section>
 
-              <section className="report-simple-grid">
-                <article className="management-card report-bar">
-                  <div className="management-section-head"><div><h2 className="management-title">Incasso per giorno</h2><p className="management-subtitle">Gli ultimi 14 giorni con movimento.</p></div></div>
-                  {dailyStats.map((day) => <BarRow key={day.date} label={new Date(`${day.date}T12:00:00`).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })} value={day.revenue} max={maxRevenue} valueLabel={money(day.revenue)} />)}
-                </article>
-                <article className="management-card report-bar">
-                  <div className="management-section-head"><div><h2 className="management-title">Prodotti più ordinati</h2><p className="management-subtitle">Quantità vendute nel periodo.</p></div></div>
-                  {productStats.map((item) => <BarRow key={item.name} label={item.name} value={item.quantity} max={maxProduct} />)}
-                </article>
-                <article className="management-card report-bar">
-                  <div className="management-section-head"><div><h2 className="management-title">Metodi di pagamento</h2><p className="management-subtitle">Numero di conti per metodo.</p></div></div>
-                  {paymentStats.map((item) => <BarRow key={item.method} label={item.method} value={item.count} max={maxPayment} />)}
-                </article>
+              {!hasData ? (
+                <section className="management-card report-empty-clean">
+                  <span>Nessun conto nel periodo</span>
+                  <h2>I numeri appariranno dopo il primo pagamento.</h2>
+                  <p>EasyMenu non inserisce dati finti. Costi e scorte del menu restano comunque disponibili per preparare il servizio.</p>
+                </section>
+              ) : (
+                <>
+                  <section className="report-insight-grid report-insight-grid--four">
+                    <article className="report-insight report-insight--green">
+                      <span>Preparazione media</span><b>{number(kpis.averagePreparationMinutes).toFixed(0)} min</b><p>Dall'accettazione al piatto pronto.</p>
+                    </article>
+                    <article className="report-insight report-insight--blue">
+                      <span>Servizio completo</span><b>{number(kpis.averageServiceMinutes).toFixed(0)} min</b><p>Dall'ordine al tavolo servito.</p>
+                    </article>
+                    <article className="report-insight report-insight--amber">
+                      <span>Annulli e omaggi</span><b>{number(kpis.voidedItems) + number(kpis.complimentaryItems)}</b><p>{kpis.voidedItems || 0} annulli, {kpis.complimentaryItems || 0} omaggi.</p>
+                    </article>
+                    <article className="report-insight report-insight--violet">
+                      <span>Prodotto più redditizio</span><b>{topProfitProduct?.name || "-"}</b><p>{topProfitProduct ? `${money(topProfitProduct.margin)} di margine stimato` : "Inserisci i costi nel menu"}</p>
+                    </article>
+                  </section>
+
+                  <section className="report-simple-grid">
+                    <article className="management-card report-bar">
+                      <div className="management-section-head"><div><h2 className="management-title">Incasso giornaliero</h2><p className="management-subtitle">Ultimi 14 giorni con movimento.</p></div></div>
+                      {byDay.map((day) => <BarRow key={day.date} label={new Date(`${day.date}T12:00:00`).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })} value={day.revenue} max={maxRevenue} valueLabel={money(day.revenue)} />)}
+                    </article>
+                    <article className="management-card report-bar">
+                      <div className="management-section-head"><div><h2 className="management-title">Prodotti e margine</h2><p className="management-subtitle">Vendite reali e costo materia prima.</p></div></div>
+                      {topProducts.slice(0, 8).map((item) => <BarRow key={item.id} label={item.name} value={item.margin} max={maxMargin} valueLabel={money(item.margin)} detail={`${item.quantity} venduti · incasso ${money(item.revenue)}`} />)}
+                    </article>
+                    <article className="management-card report-bar">
+                      <div className="management-section-head"><div><h2 className="management-title">Pagamenti</h2><p className="management-subtitle">Importi registrati per metodo.</p></div></div>
+                      {byPayment.map((item) => <BarRow key={item.method} label={paymentLabel(item.method)} value={item.revenue} max={maxPayment} valueLabel={money(item.revenue)} detail={`${item.orders} registrazioni`} />)}
+                    </article>
+                  </section>
+                </>
+              )}
+
+              <section className="management-card advisor-card">
+                <div className="management-section-head">
+                  <div><h2 className="management-title">Cosa controllare adesso</h2><p className="management-subtitle">Suggerimenti generati esclusivamente dai dati del ristorante.</p></div>
+                  <span className={`advisor-source ${advisor?.source === "openai" ? "is-ai" : ""}`}>{advisor?.source === "openai" ? "Assistente AI" : "Controllo operativo"}</span>
+                </div>
+                <div className="advisor-grid">
+                  {(advisor?.insights || []).slice(0, 4).map((insight, index) => (
+                    <article className={`advisor-insight ${insight.priority || "medium"}`} key={`${insight.title}-${index}`}>
+                      <span>{insight.priority === "high" ? "Priorità alta" : insight.priority === "medium" ? "Da controllare" : "Suggerimento"}</span>
+                      <h3>{insight.title}</h3>
+                      <p>{insight.message}</p>
+                      {insight.actionHref ? <button type="button" onClick={() => { window.location.href = insight.actionHref; }}>{insight.actionLabel || "Apri"}</button> : null}
+                    </article>
+                  ))}
+                </div>
               </section>
+
+              {summary.alerts?.lowStockItems?.length ? (
+                <section className="management-card stock-alert-list">
+                  <div className="management-section-head"><div><h2 className="management-title">Scorte sotto soglia</h2><p className="management-subtitle">Prodotti da rifornire prima del prossimo servizio.</p></div></div>
+                  <div>
+                    {summary.alerts.lowStockItems.map((item) => <p key={item.id}><b>{item.name}</b><span>{number(item.stockQuantity)} disponibili · soglia {number(item.lowStockThreshold)}</span></p>)}
+                  </div>
+                </section>
+              ) : null}
             </>
           ) : null}
         </main>

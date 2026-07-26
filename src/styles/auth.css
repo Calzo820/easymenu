@@ -203,3 +203,45 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
+/* Accesso rapido per dispositivi condivisi */
+.auth-access-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid #d6e4f5;
+  border-radius: 8px;
+  background: #eef6ff;
+}
+.auth-access-switch button {
+  border: 0;
+  border-radius: 6px;
+  padding: 10px;
+  background: transparent;
+  color: #5b7189;
+  font-weight: 900;
+  cursor: pointer;
+}
+.auth-access-switch button.is-active {
+  background: #fff;
+  color: #123b6b;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.09);
+}
+.auth-field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #123b6b;
+  font-weight: 800;
+}
+.auth-field-input {
+  width: 100%;
+  border: 1px solid #d6e4f5;
+  border-radius: 8px;
+  padding: 13px 14px;
+  background: #fff;
+  outline: none;
+}
+.auth-field-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.auth-pin-input { letter-spacing: 0.35em; font-size: 18px; font-weight: 900; }
+.auth-pin-help { display: block; margin-top: 7px; color: #64748b; font-size: 11px; font-weight: 750; line-height: 1.45; }

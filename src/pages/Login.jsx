@@ -27,6 +27,8 @@ export default function Login() {
     email: "",
     password: "",
   });
+  const [accessMode, setAccessMode] = useState("email");
+  const [pinForm, setPinForm] = useState({ restaurantCode: "", pin: "" });
 
   const [showPassword, setShowPassword] = useState(false);
   const [errore, setErrore] = useState("");
@@ -85,6 +87,28 @@ export default function Login() {
     if (avviso) setAvviso("");
   }
 
+  function completeLogin(data) {
+    if (!data?.token) throw new Error("Risposta di accesso incompleta. Riprova tra poco.");
+    setAuthToken(data.token);
+    if (data.user) localStorage.setItem("auth_user", JSON.stringify(data.user));
+    if (data.restaurant) {
+      localStorage.setItem("auth_restaurant", JSON.stringify(data.restaurant));
+      localStorage.setItem("ristorante_attivo", data.restaurant.name || "");
+      localStorage.setItem("restaurant_slug", data.restaurant.slug || "");
+      localStorage.setItem("restaurant_id", data.restaurant.id || "");
+    } else {
+      localStorage.removeItem("auth_restaurant");
+      localStorage.removeItem("ristorante_attivo");
+      localStorage.removeItem("restaurant_slug");
+      localStorage.removeItem("restaurant_id");
+    }
+    setSuccesso("Login effettuato con successo.");
+    const redirectPath = data?.user?.isSuperAdmin
+      ? "/super-admin"
+      : getDashboardPathByRole(data?.user?.role || "owner");
+    setTimeout(() => navigate(redirectPath), 350);
+  }
+
   async function loginWithCredentials(email, password) {
     try {
       setLoading(true);
@@ -94,38 +118,7 @@ export default function Login() {
         email,
         password,
       });
-
-      if (!data?.token) {
-        throw new Error("Risposta di accesso incompleta. Riprova tra poco.");
-      }
-
-      setAuthToken(data.token);
-
-      if (data.user) {
-        localStorage.setItem("auth_user", JSON.stringify(data.user));
-      }
-
-      if (data.restaurant) {
-        localStorage.setItem("auth_restaurant", JSON.stringify(data.restaurant));
-        localStorage.setItem("ristorante_attivo", data.restaurant.name || "");
-        localStorage.setItem("restaurant_slug", data.restaurant.slug || "");
-        localStorage.setItem("restaurant_id", data.restaurant.id || "");
-      } else {
-        localStorage.removeItem("auth_restaurant");
-        localStorage.removeItem("ristorante_attivo");
-        localStorage.removeItem("restaurant_slug");
-        localStorage.removeItem("restaurant_id");
-      }
-
-      setSuccesso("Login effettuato con successo.");
-
-      const redirectPath = data?.user?.isSuperAdmin
-        ? "/super-admin"
-        : getDashboardPathByRole(data?.user?.role || "owner");
-
-      setTimeout(() => {
-        navigate(redirectPath);
-      }, 500);
+      completeLogin(data);
     } catch (error) {
       showError(error, "Errore durante il login.");
     } finally {
@@ -139,6 +132,25 @@ export default function Login() {
     setErrore("");
     setSuccesso("");
     setAvviso("");
+
+    if (accessMode === "pin") {
+      const restaurantCode = pinForm.restaurantCode.trim().toLowerCase();
+      const pin = pinForm.pin.trim();
+      if (!restaurantCode || !/^\d{4,6}$/.test(pin)) {
+        setErrore("Inserisci il codice ristorante e un PIN da 4 a 6 numeri.");
+        return;
+      }
+      try {
+        setLoading(true);
+        const data = await apiPost("/auth/pin-login", { restaurantCode, pin });
+        completeLogin(data);
+      } catch (error) {
+        showError(error, "Accesso PIN non riuscito.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     const email = form.email.trim().toLowerCase();
     const password = form.password;
@@ -374,7 +386,14 @@ export default function Login() {
               </div>
             ) : null}
 
+            <div className="auth-access-switch" aria-label="Tipo di accesso">
+              <button type="button" className={accessMode === "email" ? "is-active" : ""} onClick={() => setAccessMode("email")}>Email</button>
+              <button type="button" className={accessMode === "pin" ? "is-active" : ""} onClick={() => setAccessMode("pin")}>PIN staff</button>
+            </div>
+
             <form onSubmit={handleSubmit}>
+              {accessMode === "email" ? (
+                <>
               <div style={{ marginBottom: 14 }}>
                 <label
                   style={{
@@ -463,6 +482,36 @@ export default function Login() {
                   </Link>
                 </div>
               </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ marginBottom: 14 }}>
+                    <label className="auth-field-label">Codice ristorante</label>
+                    <input
+                      className="auth-field-input"
+                      value={pinForm.restaurantCode}
+                      onChange={(event) => setPinForm((prev) => ({ ...prev, restaurantCode: event.target.value }))}
+                      placeholder="es. trattoria-rossi"
+                      autoComplete="organization"
+                    />
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label className="auth-field-label">PIN personale</label>
+                    <input
+                      className="auth-field-input auth-pin-input"
+                      type="password"
+                      inputMode="numeric"
+                      minLength="4"
+                      maxLength="6"
+                      value={pinForm.pin}
+                      onChange={(event) => setPinForm((prev) => ({ ...prev, pin: event.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                      placeholder="••••"
+                      autoComplete="current-password"
+                    />
+                    <small className="auth-pin-help">Usa il codice del locale e il PIN creato dal titolare nella sezione Staff.</small>
+                  </div>
+                </>
+              )}
 
 
               <button
@@ -482,7 +531,7 @@ export default function Login() {
                   boxShadow: "0 16px 26px rgba(37,99,235,0.20)",
                 }}
               >
-                {loading ? "Accesso in corso..." : "Accedi"}
+                {loading ? "Accesso in corso..." : accessMode === "pin" ? "Entra con PIN" : "Accedi"}
               </button>
             </form>
 

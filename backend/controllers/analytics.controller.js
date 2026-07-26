@@ -71,6 +71,7 @@ function buildProductStats(orders) {
 
   for (const order of orders) {
     for (const item of order.items || []) {
+      if (item.status === "voided") continue;
       const key = item.menuItemId || item.nameSnapshot || "prodotto";
 
       const current = map.get(key) || {
@@ -80,10 +81,16 @@ function buildProductStats(orders) {
         preparationArea: item.preparationArea || "kitchen",
         quantity: 0,
         revenue: 0,
+        cost: 0,
+        margin: 0,
       };
 
       current.quantity += toNumber(item.quantity);
-      current.revenue += toNumber(item.quantity) * toNumber(item.priceSnapshot);
+      if (!item.isComplimentary) {
+        current.revenue += toNumber(item.quantity) * toNumber(item.priceSnapshot);
+      }
+      current.cost += toNumber(item.quantity) * toNumber(item.costSnapshot);
+      current.margin = current.revenue - current.cost;
 
       map.set(key, current);
     }
@@ -92,6 +99,21 @@ function buildProductStats(orders) {
   return [...map.values()].sort(
     (a, b) => b.quantity - a.quantity || b.revenue - a.revenue
   );
+}
+
+function percentageChange(current, previous) {
+  if (!previous) return current ? 100 : 0;
+  return ((current - previous) / previous) * 100;
+}
+
+function averageMinutes(orders, startField, endField) {
+  const values = orders
+    .map((order) => {
+      if (!order[startField] || !order[endField]) return null;
+      return (new Date(order[endField]) - new Date(order[startField])) / 60000;
+    })
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
 export const getAnalyticsSummary = async (req, res) => {
@@ -115,9 +137,15 @@ export const getAnalyticsSummary = async (req, res) => {
 
     const todayStart = startOfDay();
     const todayEnd = endOfDay();
+    const rangeDuration = Math.max(1, range.to.getTime() - range.from.getTime());
+    const previousRange = {
+      from: new Date(range.from.getTime() - rangeDuration),
+      to: new Date(range.from.getTime() - 1),
+    };
 
     const [
       ordersInRange,
+      previousOrders,
       ordersToday,
       activeOrders,
       tables,
@@ -148,6 +176,16 @@ export const getAnalyticsSummary = async (req, res) => {
         orderBy: {
           createdAt: "asc",
         },
+      }),
+
+      prisma.order.findMany({
+        where: {
+          restaurantId,
+          createdAt: { gte: previousRange.from, lte: previousRange.to },
+          status: { not: "cancelled" },
+        },
+        include: { items: true, payments: true },
+        orderBy: { createdAt: "asc" },
       }),
 
       prisma.order.findMany({
@@ -287,6 +325,9 @@ export const getAnalyticsSummary = async (req, res) => {
     const paidRange = ordersInRange.filter(
       (order) => order.paymentStatus === "paid" || order.status === "served"
     );
+    const previousPaid = previousOrders.filter(
+      (order) => order.paymentStatus === "paid" || order.status === "served"
+    );
 
     const revenueToday = paidToday.reduce(
       (sum, order) => sum + toNumber(order.totalAmount),
@@ -295,6 +336,26 @@ export const getAnalyticsSummary = async (req, res) => {
 
     const revenueRange = paidRange.reduce(
       (sum, order) => sum + toNumber(order.totalAmount),
+      0
+    );
+    const previousRevenue = previousPaid.reduce(
+      (sum, order) => sum + toNumber(order.totalAmount),
+      0
+    );
+    const productTotals = buildProductStats(paidRange);
+    const totalCostRange = productTotals.reduce((sum, product) => sum + product.cost, 0);
+    const grossMarginRange = revenueRange - totalCostRange;
+    const previousProductTotals = buildProductStats(previousPaid);
+    const previousCost = previousProductTotals.reduce((sum, product) => sum + product.cost, 0);
+    const previousMargin = previousRevenue - previousCost;
+    const averagePreparationMinutes = averageMinutes(completedRange, "acceptedAt", "readyAt");
+    const averageServiceMinutes = averageMinutes(completedRange, "createdAt", "servedAt");
+    const voidedItemsRange = ordersInRange.reduce(
+      (sum, order) => sum + (order.items || []).filter((item) => item.status === "voided").length,
+      0
+    );
+    const complimentaryItemsRange = ordersInRange.reduce(
+      (sum, order) => sum + (order.items || []).filter((item) => item.isComplimentary).length,
       0
     );
 
@@ -344,24 +405,27 @@ export const getAnalyticsSummary = async (req, res) => {
 
       byDayMap.set(day, dayData);
 
-      const paymentKey = order.paymentMethod || "non_indicato";
-
-      const paymentData = byPaymentMap.get(paymentKey) || {
-        method: paymentKey,
-        orders: 0,
-        revenue: 0,
-      };
-
-      paymentData.orders += 1;
-
-      if (order.paymentStatus === "paid" || order.status === "served") {
-        paymentData.revenue += toNumber(order.totalAmount);
+      const paidTransactions = (order.payments || []).filter((payment) => payment.status === "paid");
+      if (paidTransactions.length) {
+        for (const payment of paidTransactions) {
+          const paymentKey = payment.method || (payment.provider === "stripe" ? "online" : "other");
+          const paymentData = byPaymentMap.get(paymentKey) || { method: paymentKey, orders: 0, revenue: 0 };
+          paymentData.orders += 1;
+          paymentData.revenue += toNumber(payment.amount);
+          byPaymentMap.set(paymentKey, paymentData);
+        }
+      } else {
+        const paymentKey = order.paymentMethod || "non_indicato";
+        const paymentData = byPaymentMap.get(paymentKey) || { method: paymentKey, orders: 0, revenue: 0 };
+        paymentData.orders += 1;
+        if (order.paymentStatus === "paid" || order.status === "served") {
+          paymentData.revenue += toNumber(order.totalAmount);
+        }
+        byPaymentMap.set(paymentKey, paymentData);
       }
-
-      byPaymentMap.set(paymentKey, paymentData);
     }
 
-    const topProductsRange = buildProductStats(paidRange).slice(0, 10);
+    const topProductsRange = productTotals.slice(0, 10);
     const topProductsToday = buildProductStats(paidToday).slice(0, 10);
     const subscription = restaurantBilling?.subscription || null;
     const subscriptionAlert = subscription && ["past_due", "unpaid", "incomplete"].includes(subscription.status);
@@ -373,7 +437,16 @@ export const getAnalyticsSummary = async (req, res) => {
       revenue: hideMoney(row.revenue),
       averageTicket: hideMoney(row.averageTicket),
     }));
-    const hideProductMoney = (rows = []) => rows.map((row) => ({ ...row, revenue: hideMoney(row.revenue) }));
+    const hideProductMoney = (rows = []) => rows.map((row) => ({
+      ...row,
+      revenue: hideMoney(row.revenue),
+      cost: hideMoney(row.cost),
+      margin: hideMoney(row.margin),
+    }));
+    const lowStockItems = menuItems
+      .filter((item) => item.trackStock && toNumber(item.stockQuantity) <= toNumber(item.lowStockThreshold))
+      .sort((a, b) => toNumber(a.stockQuantity) - toNumber(b.stockQuantity))
+      .slice(0, 10);
 
     return res.json({
       range,
@@ -399,6 +472,22 @@ export const getAnalyticsSummary = async (req, res) => {
 
         averageTicketToday: hideMoney(paidToday.length ? revenueToday / paidToday.length : 0),
         averageTicketRange: hideMoney(paidRange.length ? revenueRange / paidRange.length : 0),
+        grossMarginRange: hideMoney(grossMarginRange),
+        foodCostRange: hideMoney(totalCostRange),
+        marginRateRange: revenueRange ? (grossMarginRange / revenueRange) * 100 : 0,
+        averagePreparationMinutes,
+        averageServiceMinutes,
+        voidedItems: voidedItemsRange,
+        complimentaryItems: complimentaryItemsRange,
+        comparison: {
+          revenue: percentageChange(revenueRange, previousRevenue),
+          orders: percentageChange(paidRange.length, previousPaid.length),
+          averageTicket: percentageChange(
+            paidRange.length ? revenueRange / paidRange.length : 0,
+            previousPaid.length ? previousRevenue / previousPaid.length : 0
+          ),
+          margin: percentageChange(grossMarginRange, previousMargin),
+        },
 
         openOrders: activeOrders.length,
 
@@ -411,6 +500,7 @@ export const getAnalyticsSummary = async (req, res) => {
 
         unresolvedErrors: recentErrors.length,
         paymentAlerts: paymentAlertsCount,
+        lowStockItems: lowStockItems.length,
       },
 
       live: {
@@ -439,6 +529,14 @@ export const getAnalyticsSummary = async (req, res) => {
           name: item.name,
           category: item.category,
           updatedAt: item.updatedAt,
+        })),
+        lowStockItems: lowStockItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          stockQuantity: item.stockQuantity,
+          lowStockThreshold: item.lowStockThreshold,
+          isAvailable: item.isAvailable,
         })),
 
         recentErrors: recentErrors.map((log) => ({

@@ -34,6 +34,14 @@ function parseNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function localDateKey(date = new Date()) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 function formatDateTime(timestamp) {
   if (!timestamp) return "-";
   return new Date(timestamp).toLocaleString("it-IT");
@@ -122,6 +130,7 @@ function getTableTileKind({ ordine, contoRichiesto, cameriereRichiesto }) {
 
 function mapBackendItemStatus(status) {
   const normalized = String(status || "").toLowerCase().trim();
+  if (normalized === "voided") return "annullato";
   if (normalized === "ready") return "pronto";
   if (normalized === "in_progress") return "preparazione";
   if (normalized === "served") return "pronto";
@@ -174,6 +183,10 @@ function mapBackendOrderToLegacyShape(order) {
       "Altro",
     preparationArea: item.preparationArea || item.menuItem?.preparationArea || "",
     nota: item.notes || "",
+    backendStatus: item.status || "active",
+    isComplimentary: Boolean(item.isComplimentary),
+    voidReason: item.voidReason || "",
+    complimentaryReason: item.complimentaryReason || "",
   }));
 
   return {
@@ -199,6 +212,7 @@ function mapBackendOrderToLegacyShape(order) {
     discountAmount: parseNumber(order.discountAmount),
     extraAmount: parseNumber(order.extraAmount),
     closedAt: order.closedAt || null,
+    payments: Array.isArray(order.payments) ? order.payments : [],
     raw: order,
   };
 }
@@ -264,11 +278,25 @@ function Cassa() {
   const [tavoliInEvidenza, setTavoliInEvidenza] = useState({});
   const [richiesteConto, setRichiesteConto] = useState({});
   const [richiesteCameriere, setRichiesteCameriere] = useState({});
+  const [itemAction, setItemAction] = useState(null);
+  const [cashPanelOpen, setCashPanelOpen] = useState(false);
+  const [cashSummary, setCashSummary] = useState(null);
+  const [cashLoading, setCashLoading] = useState(false);
+  const [declaredCash, setDeclaredCash] = useState("");
+  const [closureNotes, setClosureNotes] = useState("");
+  const [orderAudit, setOrderAudit] = useState([]);
 
   const socketRef = useRef(null);
   const bellRef = useRef(null);
 
   const ristoranteAttivo = getRistoranteAttivo();
+  const [currentUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("auth_user") || "null") || {};
+    } catch {
+      return {};
+    }
+  });
   const gridConfig = useMemo(() => getGridConfig(totaleTavoli), [totaleTavoli]);
 
   async function syncOrdini() {
@@ -543,6 +571,7 @@ function Cassa() {
 
   function subtotaleOrdine(ordine) {
     return (ordine?.piatti || []).reduce((acc, p) => {
+      if (p.backendStatus === "voided" || p.isComplimentary) return acc;
       return acc + parseNumber(p.prezzo) * parseNumber(p.qty || 0);
     }, 0);
   }
@@ -572,8 +601,186 @@ function Cassa() {
 
   function restanteDaIncassare(ordine) {
     if (!ordine) return 0;
+    const paid = (ordine.payments || [])
+      .filter((payment) => payment.status === "paid")
+      .reduce((sum, payment) => sum + parseNumber(payment.amount), 0);
+    return Math.max(0, Math.round((totaleFinale(ordine) - paid) * 100) / 100);
+  }
+
+  function updateMixedPayment(tavolo, method, value) {
+    setImpostazioniConto((prev) => ({
+      ...prev,
+      [tavolo]: {
+        ...(prev[tavolo] || {}),
+        pagamentiMisti: {
+          ...(prev[tavolo]?.pagamentiMisti || {}),
+          [method]: value,
+        },
+      },
+    }));
+  }
+
+  function paymentRowsForTable(tavolo) {
+    const cfg = impostazioniConto[tavolo] || {};
+    if (!cfg.pagamentoMisto) return [];
+    return Object.entries(cfg.pagamentiMisti || {})
+      .map(([method, amount]) => ({ method, amount: parseNumber(amount), label: method }))
+      .filter((row) => row.amount > 0);
+  }
+
+  async function registraAcconto(ordine) {
     const cfg = impostazioniConto[ordine.tavolo] || {};
-    return Math.max(0, Math.round((totaleFinale(ordine) - parseNumber(cfg.acconto)) * 100) / 100);
+    const amount = parseNumber(cfg.acconto);
+    if (!cfg.pagamento || amount <= 0) {
+      setErrore("Scegli il metodo e inserisci l'importo dell'acconto.");
+      return;
+    }
+    try {
+      setClosing(true);
+      setErrore("");
+      const response = await fetch(`${API_URL}/orders/${ordine.backendId}/payments`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ method: cfg.pagamento, amount, label: "Acconto" }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || "Acconto non registrato");
+      aggiornaConto(ordine.tavolo, "acconto", "");
+      await syncOrdini();
+    } catch (err) {
+      setErrore(err.message || "Impossibile registrare l'acconto");
+    } finally {
+      setClosing(false);
+    }
+  }
+
+  async function applicaAzioneArticolo() {
+    if (!itemAction?.orderId || !itemAction?.itemId) return;
+    if (itemAction.action !== "restore" && !String(itemAction.reason || "").trim()) {
+      setErrore("Indica il motivo dell'operazione.");
+      return;
+    }
+    try {
+      setClosing(true);
+      setErrore("");
+      const response = await fetch(`${API_URL}/orders/${itemAction.orderId}/items/${itemAction.itemId}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ action: itemAction.action, reason: itemAction.reason }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || "Articolo non aggiornato");
+      setItemAction(null);
+      await syncOrdini();
+    } catch (err) {
+      setErrore(err.message || "Impossibile aggiornare l'articolo");
+    } finally {
+      setClosing(false);
+    }
+  }
+
+  async function loadCashSummary() {
+    try {
+      setCashLoading(true);
+      setErrore("");
+      const now = new Date();
+      const date = localDateKey(now);
+      const from = new Date(now);
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(now);
+      to.setHours(23, 59, 59, 999);
+      const response = await fetch(
+        `${API_URL}/cash/summary?date=${date}&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`,
+        { headers: getAuthHeaders() }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || "Riepilogo cassa non disponibile");
+      setCashSummary(data);
+      setDeclaredCash(data?.closure?.declaredCash ?? data?.expectedCash ?? "");
+    } catch (err) {
+      setErrore(err.message || "Riepilogo cassa non disponibile");
+    } finally {
+      setCashLoading(false);
+    }
+  }
+
+  async function openCashPanel() {
+    setCashPanelOpen(true);
+    await loadCashSummary();
+  }
+
+  async function chiudiGiornata() {
+    try {
+      setCashLoading(true);
+      setErrore("");
+      const now = new Date();
+      const date = localDateKey(now);
+      const from = new Date(now);
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(now);
+      to.setHours(23, 59, 59, 999);
+      const response = await fetch(`${API_URL}/cash/closures`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          date,
+          from: from.toISOString(),
+          to: to.toISOString(),
+          declaredCash: parseNumber(declaredCash),
+          notes: closureNotes,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || "Chiusura non completata");
+      setCashSummary({ ...data.summary, closure: data.closure });
+    } catch (err) {
+      setErrore(err.message || "Chiusura giornaliera non completata");
+    } finally {
+      setCashLoading(false);
+    }
+  }
+
+  async function riapriConto(orderId) {
+    const reason = window.prompt("Motivo della riapertura del conto:");
+    if (!reason) return;
+    try {
+      setCashLoading(true);
+      const response = await fetch(`${API_URL}/orders/${orderId}/reopen`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || "Conto non riaperto");
+      await Promise.all([syncOrdini(), loadCashSummary()]);
+    } catch (err) {
+      setErrore(err.message || "Conto non riaperto");
+    } finally {
+      setCashLoading(false);
+    }
+  }
+
+  function esportaChiusuraCsv() {
+    if (!cashSummary) return;
+    const rows = [
+      ["Data", cashSummary.date],
+      ["Incasso totale", cashSummary.grossTotal],
+      ["Contanti attesi", cashSummary.expectedCash],
+      ["Contanti dichiarati", declaredCash],
+      ["Differenza", parseNumber(declaredCash) - parseNumber(cashSummary.expectedCash)],
+      ["Carta", cashSummary.totals?.card || 0],
+      ["Online", cashSummary.totals?.online || 0],
+      ["Satispay", cashSummary.totals?.satispay || 0],
+      ["Altri metodi", cashSummary.totals?.other || 0],
+      ["Conti chiusi", cashSummary.orderCount || 0],
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `chiusura-cassa-${cashSummary.date}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   async function chiudiConto(tavolo) {
@@ -591,19 +798,31 @@ function Cassa() {
       setErrore("");
 
       if (ordine.backendId) {
+        const mixedPayments = paymentRowsForTable(tavolo);
+        if (cfg.pagamentoMisto && !mixedPayments.length) {
+          throw new Error("Inserisci almeno una quota per il pagamento misto.");
+        }
+        if (!cfg.pagamentoMisto && !cfg.pagamento) {
+          throw new Error("Scegli il metodo di pagamento.");
+        }
         const response = await fetch(`${API_URL}/orders/${ordine.backendId}/close`, {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            discount: parseNumber(cfg.sconto),
+            discount: (
+              (subtotaleOrdine(ordine) + parseNumber(cfg.coperti) * parseNumber(cfg.costoCoperto)) *
+              parseNumber(cfg.sconto)
+            ) / 100,
             extra: parseNumber(cfg.coperti) * parseNumber(cfg.costoCoperto),
-            paymentMethod: cfg.pagamento || null,
+            paymentMethod: cfg.pagamentoMisto ? null : cfg.pagamento || null,
+            payments: cfg.pagamentoMisto ? mixedPayments : undefined,
           }),
         });
 
         const data = await response.json().catch(() => null);
 
         if (!response.ok) {
+          if (data?.order) await syncOrdini();
           throw new Error(data?.message || "Errore chiusura conto sul backend");
         }
       }
@@ -664,6 +883,27 @@ function Cassa() {
     return ordiniOrdinati.find((o) => String(o.tavolo) === String(tavoloSelezionato)) || null;
   }, [ordiniOrdinati, tavoloSelezionato]);
 
+  useEffect(() => {
+    let active = true;
+    async function loadAudit() {
+      if (!ordineSelezionato?.backendId) {
+        setOrderAudit([]);
+        return;
+      }
+      try {
+        const response = await fetch(`${API_URL}/orders/${ordineSelezionato.backendId}/audit`, {
+          headers: getAuthHeaders(),
+        });
+        const data = await response.json().catch(() => []);
+        if (active) setOrderAudit(response.ok && Array.isArray(data) ? data : []);
+      } catch {
+        if (active) setOrderAudit([]);
+      }
+    }
+    loadAudit();
+    return () => { active = false; };
+  }, [ordineSelezionato?.backendId]);
+
   const incassoPotenziale = ordiniOrdinati.reduce((acc, o) => acc + totaleFinale(o), 0);
   const tavoliAperti = ordiniOrdinati.length;
   const contiRichiesti = ordiniOrdinati.filter((o) => o.billRequested || o.paymentStatus === "pending" || richiesteConto[o.tavolo]).length;
@@ -717,7 +957,10 @@ function Cassa() {
             <span className={contiRichiesti ? "is-alert" : ""}><b>{contiRichiesti}</b><small>conti richiesti</small></span>
             <span><b>{formatEuro(incassoPotenziale)}</b><small>da incassare</small></span>
           </div>
-          <button type="button" onClick={syncOrdini}>Aggiorna</button>
+          <div className="pos-topbar__actions">
+            <button type="button" onClick={syncOrdini}>Aggiorna</button>
+            <button type="button" className="is-secondary" onClick={openCashPanel}>Chiusura giornata</button>
+          </div>
         </section>
 
         {ultimoEvento ? (
@@ -727,6 +970,69 @@ function Cassa() {
         ) : null}
 
         {errore ? <div className="pos-error">{errore}</div> : null}
+
+        {cashPanelOpen ? (
+          <section className="cash-close-panel">
+            <div className="cash-close-panel__head">
+              <div>
+                <span>Chiusura giornaliera</span>
+                <strong>{cashSummary?.date ? new Date(`${cashSummary.date}T12:00:00`).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) : "Oggi"}</strong>
+              </div>
+              <button type="button" aria-label="Chiudi pannello" onClick={() => setCashPanelOpen(false)}>×</button>
+            </div>
+            {cashLoading && !cashSummary ? <div className="pos-empty">Calcolo dei pagamenti registrati...</div> : null}
+            {cashSummary ? (
+              <>
+                <div className="cash-close-kpis">
+                  <div><span>Incasso</span><b>{formatEuro(cashSummary.grossTotal)}</b><small>{cashSummary.orderCount} conti</small></div>
+                  <div><span>Contanti attesi</span><b>{formatEuro(cashSummary.expectedCash)}</b><small>Da pagamenti registrati</small></div>
+                  <div><span>Carta e online</span><b>{formatEuro(parseNumber(cashSummary.totals?.card) + parseNumber(cashSummary.totals?.online))}</b><small>Riconciliati</small></div>
+                  <div><span>Controlli</span><b>{parseNumber(cashSummary.voidedItems) + parseNumber(cashSummary.complimentaryItems)}</b><small>Annulli e omaggi</small></div>
+                </div>
+                {cashSummary.openOrders?.length ? (
+                  <div className="cash-close-warning">{cashSummary.openOrders.length} conti sono ancora aperti: chiudili prima della giornata.</div>
+                ) : null}
+                <div className="cash-close-form">
+                  <label>
+                    Contanti nel cassetto
+                    <input type="number" step="0.01" min="0" value={declaredCash} onChange={(event) => setDeclaredCash(event.target.value)} />
+                  </label>
+                  <div className={`cash-difference ${parseNumber(declaredCash) - parseNumber(cashSummary.expectedCash) === 0 ? "is-ok" : "is-alert"}`}>
+                    <span>Differenza</span>
+                    <b>{formatEuro(parseNumber(declaredCash) - parseNumber(cashSummary.expectedCash))}</b>
+                  </div>
+                  <label className="is-wide">
+                    Note turno
+                    <input value={closureNotes} onChange={(event) => setClosureNotes(event.target.value)} placeholder="Facoltative" />
+                  </label>
+                </div>
+                <div className="cash-close-actions">
+                  <button type="button" onClick={esportaChiusuraCsv}>Esporta CSV</button>
+                  <button type="button" className="is-primary" disabled={cashLoading || cashSummary.openOrders?.length > 0} onClick={chiudiGiornata}>
+                    {cashSummary.closure?.status === "closed" ? "Aggiorna chiusura" : "Chiudi giornata"}
+                  </button>
+                </div>
+                {cashSummary.closure?.status === "closed" ? (
+                  <div className="cash-closed-note">Giornata chiusa da {cashSummary.closure.closedBy?.name || "operatore"}.</div>
+                ) : null}
+                {cashSummary.recentOrders?.length ? (
+                  <details className="cash-recent-orders">
+                    <summary>Ultimi conti chiusi ({cashSummary.recentOrders.length})</summary>
+                    <div>
+                      {cashSummary.recentOrders.slice(0, 12).map((order) => (
+                        <p key={order.id}>
+                          <span><b>{order.table}</b><small>{formatDateTime(order.closedAt)}</small></span>
+                          <strong>{formatEuro(order.totalAmount)}</strong>
+                          {currentUser.role === "owner" ? <button type="button" onClick={() => riapriConto(order.id)}>Riapri</button> : null}
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+              </>
+            ) : null}
+          </section>
+        ) : null}
 
         <section className="pos-layout">
           <div className="pos-table-map">
@@ -820,25 +1126,78 @@ function Cassa() {
 
                 <div className="pos-items-list">
                   {(ordineSelezionato.piatti || []).map((p, index) => (
-                    <div className={`is-${String(p.stato || "nuovo").toLowerCase()}`} key={`${p.id || p.nome}-${index}`}>
-                      <b>{parseNumber(p.qty || 1)}x {p.nome}</b>
-                      <span>{formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</span>
+                    <div className={`is-${String(p.stato || "nuovo").toLowerCase()} ${p.isComplimentary ? "is-complimentary" : ""}`} key={`${p.id || p.nome}-${index}`}>
+                      <b>
+                        {parseNumber(p.qty || 1)}x {p.nome}
+                        {p.backendStatus === "voided" ? <small>Annullato: {p.voidReason}</small> : null}
+                        {p.isComplimentary ? <small>Omaggio: {p.complimentaryReason}</small> : null}
+                      </b>
+                      <span>{p.backendStatus === "voided" || p.isComplimentary ? formatEuro(0) : formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</span>
+                      {p.id ? (
+                        <button
+                          type="button"
+                          className="pos-item-menu"
+                          aria-label={`Azioni per ${p.nome}`}
+                          onClick={() => setItemAction({
+                            orderId: ordineSelezionato.backendId,
+                            itemId: p.id,
+                            itemName: p.nome,
+                            action: p.backendStatus === "voided" || p.isComplimentary ? "restore" : "void",
+                            reason: "",
+                          })}
+                        >•••</button>
+                      ) : null}
                     </div>
                   ))}
                 </div>
 
-                <div className="pos-payment-grid">
-                  {["Carta", "Contanti", "Satispay", "Altro"].map((method) => (
-                    <button
-                      key={method}
-                      type="button"
-                      className={cfgSelezionato.pagamento === method ? "is-active" : ""}
-                      onClick={() => aggiornaConto(tavoloSelezionato, "pagamento", method)}
-                    >
-                      {method}
-                    </button>
-                  ))}
-                </div>
+                {itemAction?.orderId === ordineSelezionato.backendId ? (
+                  <div className="pos-item-action-panel">
+                    <div><span>Modifica articolo</span><b>{itemAction.itemName}</b></div>
+                    {itemAction.action !== "restore" ? (
+                      <input placeholder="Motivo obbligatorio" value={itemAction.reason} onChange={(event) => setItemAction((prev) => ({ ...prev, reason: event.target.value }))} />
+                    ) : null}
+                    <div className="pos-item-action-choice">
+                      <button type="button" className={itemAction.action === "void" ? "is-active" : ""} onClick={() => setItemAction((prev) => ({ ...prev, action: "void" }))}>Annulla</button>
+                      <button type="button" className={itemAction.action === "complimentary" ? "is-active" : ""} onClick={() => setItemAction((prev) => ({ ...prev, action: "complimentary" }))}>Omaggio</button>
+                      {(ordineSelezionato.piatti || []).find((item) => item.id === itemAction.itemId)?.backendStatus === "voided" || (ordineSelezionato.piatti || []).find((item) => item.id === itemAction.itemId)?.isComplimentary ? (
+                        <button type="button" className={itemAction.action === "restore" ? "is-active" : ""} onClick={() => setItemAction((prev) => ({ ...prev, action: "restore" }))}>Ripristina</button>
+                      ) : null}
+                    </div>
+                    <div className="pos-item-action-buttons">
+                      <button type="button" onClick={() => setItemAction(null)}>Chiudi</button>
+                      <button type="button" className="is-primary" disabled={closing} onClick={applicaAzioneArticolo}>Conferma</button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <label className="pos-mixed-toggle">
+                  <input type="checkbox" checked={Boolean(cfgSelezionato.pagamentoMisto)} onChange={(event) => aggiornaConto(tavoloSelezionato, "pagamentoMisto", event.target.checked)} />
+                  <span><b>Pagamento misto</b><small>Dividi l'importo tra più metodi.</small></span>
+                </label>
+                {!cfgSelezionato.pagamentoMisto ? (
+                  <div className="pos-payment-grid">
+                    {["Carta", "Contanti", "Satispay", "Altro"].map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        className={cfgSelezionato.pagamento === method ? "is-active" : ""}
+                        onClick={() => aggiornaConto(tavoloSelezionato, "pagamento", method)}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="pos-mixed-grid">
+                    {["Carta", "Contanti", "Satispay", "Altro"].map((method) => (
+                      <label key={method}>{method}<input type="number" min="0" step="0.01" placeholder="0,00" value={cfgSelezionato.pagamentiMisti?.[method] || ""} onChange={(event) => updateMixedPayment(tavoloSelezionato, method, event.target.value)} /></label>
+                    ))}
+                  </div>
+                )}
+                {(ordineSelezionato.payments || []).some((payment) => payment.status === "paid") ? (
+                  <div className="pos-paid-progress"><span>Già pagato</span><b>{formatEuro(totaleFinale(ordineSelezionato) - restanteDaIncassare(ordineSelezionato))}</b><small>Restano {formatEuro(restanteDaIncassare(ordineSelezionato))}</small></div>
+                ) : null}
 
                 <details className="pos-advanced">
                   <summary>Extra, sconto e divisione conto</summary>
@@ -847,7 +1206,10 @@ function Cassa() {
                     <input style={inputStyle} placeholder="Costo coperto" inputMode="decimal" value={cfgSelezionato.costoCoperto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "costoCoperto", event.target.value)} />
                     <input style={inputStyle} placeholder="Sconto %" inputMode="decimal" value={cfgSelezionato.sconto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "sconto", event.target.value)} />
                     <input style={inputStyle} placeholder="Dividi per" inputMode="numeric" value={cfgSelezionato.dividiConto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "dividiConto", event.target.value)} />
-                    <input style={inputStyle} placeholder="Acconto" inputMode="decimal" value={cfgSelezionato.acconto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "acconto", event.target.value)} />
+                    <div className="pos-deposit-field">
+                      <input style={inputStyle} placeholder="Acconto" inputMode="decimal" value={cfgSelezionato.acconto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "acconto", event.target.value)} />
+                      <button type="button" disabled={closing} onClick={() => registraAcconto(ordineSelezionato)}>Registra</button>
+                    </div>
                   </div>
                   {quotaPerPersona(ordineSelezionato) ? <div className="pos-split">Quota: {formatEuro(quotaPerPersona(ordineSelezionato))} a persona</div> : null}
                   <div className="pos-extra-row">
@@ -855,6 +1217,28 @@ function Cassa() {
                     <input style={inputStyle} placeholder="Prezzo" inputMode="decimal" value={extraInputs[tavoloSelezionato]?.prezzo || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "prezzo", event.target.value)} />
                     <button type="button" onClick={() => aggiungiPiatto(tavoloSelezionato)}>Aggiungi</button>
                   </div>
+                  {orderAudit.length ? (
+                    <details className="pos-audit">
+                      <summary>Registro attività ({orderAudit.length})</summary>
+                      <div>
+                        {orderAudit.slice(0, 12).map((entry) => (
+                          <p key={entry.id}>
+                            <b>{entry.user?.name || "Sistema"}</b>
+                            <span>
+                              {entry.action === "order_item.void" ? "Articolo annullato" :
+                                entry.action === "order_item.complimentary" ? "Articolo offerto" :
+                                  entry.action === "order_item.restore" ? "Articolo ripristinato" :
+                                    entry.action === "order.payment_added" ? "Pagamento registrato" :
+                                      entry.action === "order.partial_payment" ? "Pagamento parziale" :
+                                        entry.action === "order.closed" ? "Conto chiuso" : "Conto aggiornato"}
+                              {entry.reason ? ` · ${entry.reason}` : ""}
+                            </span>
+                            <small>{formatDateTime(entry.createdAt)}</small>
+                          </p>
+                        ))}
+                      </div>
+                    </details>
+                  ) : null}
                 </details>
 
                 <div className="pos-main-actions">

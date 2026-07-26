@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { writeAudit } from "../lib/audit.js";
 
 function parseNumber(value, fallback = 0) {
   const n = Number(value);
@@ -13,6 +14,23 @@ function normalizePaymentMethod(value) {
   if (["online", "stripe", "paypal"].includes(raw)) return "online";
   if (["satispay"].includes(raw)) return "satispay";
   return "other";
+}
+
+function normalizedPaymentRows(rows = []) {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row, index) => ({
+      method: normalizePaymentMethod(row?.method),
+      amount: Math.round(parseNumber(row?.amount) * 100) / 100,
+      splitLabel: String(row?.label || `Quota ${index + 1}`).trim().slice(0, 80),
+    }))
+    .filter((row) => row.method && row.amount > 0);
+}
+
+function paidPaymentsTotal(payments = []) {
+  return payments
+    .filter((payment) => payment.status === "paid")
+    .reduce((sum, payment) => sum + parseNumber(payment.amount), 0);
 }
 
 function emitSocket(req, eventName, payload = {}) {
@@ -41,7 +59,10 @@ function publicOrderNumber(orderNumber) {
 }
 
 function orderItemsTotal(items = []) {
-  return items.reduce((sum, item) => sum + parseNumber(item.priceSnapshot) * parseNumber(item.quantity, 1), 0);
+  return items.reduce((sum, item) => {
+    if (item.status === "voided" || item.isComplimentary) return sum;
+    return sum + parseNumber(item.priceSnapshot) * parseNumber(item.quantity, 1);
+  }, 0);
 }
 
 function buildIdempotencyKey({ restaurantId, tableId, tableSessionId, clientRequestId }) {
@@ -62,7 +83,12 @@ async function nextOrderNumber(tx, restaurantId) {
 async function ensureRestaurantAccess(req, orderId) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { table: true, items: { include: { menuItem: true } } },
+    include: {
+      table: true,
+      items: { include: { menuItem: true } },
+      payments: { orderBy: { createdAt: "asc" } },
+      statusHistory: { orderBy: { createdAt: "asc" } },
+    },
   });
   if (!order) return null;
   if (req.user?.restaurantId && order.restaurantId !== req.user.restaurantId) return "FORBIDDEN";
@@ -164,6 +190,7 @@ export const createPublicOrder = async (req, res) => {
         notes: String(item.notes || "").slice(0, 300) || null,
         nameSnapshot: menuItem.name,
         priceSnapshot: menuItem.price,
+        costSnapshot: menuItem.costPrice,
         categorySnapshot: menuItem.category || "Altro",
         preparationArea: menuItem.preparationArea,
       };
@@ -184,6 +211,24 @@ export const createPublicOrder = async (req, res) => {
         if (existingInTx) return existingInTx;
       }
       const orderNumber = await nextOrderNumber(tx, table.restaurantId);
+      for (const item of orderItemsData) {
+        const source = menuById.get(item.menuItemId);
+        if (!source?.trackStock) continue;
+        const changed = await tx.menuItem.updateMany({
+          where: {
+            id: source.id,
+            restaurantId: table.restaurantId,
+            trackStock: true,
+            stockQuantity: { gte: item.quantity },
+          },
+          data: { stockQuantity: { decrement: item.quantity } },
+        });
+        if (changed.count !== 1) {
+          const stockError = new Error(`${source.name} non ha scorte sufficienti`);
+          stockError.code = "INSUFFICIENT_STOCK";
+          throw stockError;
+        }
+      }
       const created = await tx.order.create({
         data: {
           restaurantId: table.restaurantId,
@@ -202,6 +247,26 @@ export const createPublicOrder = async (req, res) => {
         },
         include: { restaurant: true, table: true, items: { include: { menuItem: true } } },
       });
+      for (const createdItem of created.items) {
+        const source = menuById.get(createdItem.menuItemId);
+        if (!source?.trackStock) continue;
+        const updatedStock = await tx.menuItem.findUnique({ where: { id: source.id } });
+        await tx.stockMovement.create({
+          data: {
+            restaurantId: table.restaurantId,
+            menuItemId: source.id,
+            orderItemId: createdItem.id,
+            type: "sale",
+            quantityBefore: parseNumber(updatedStock.stockQuantity) + createdItem.quantity,
+            quantityChange: -createdItem.quantity,
+            quantityAfter: updatedStock.stockQuantity,
+            reason: `Ordine ${publicOrderNumber(orderNumber)}`,
+          },
+        });
+        if (parseNumber(updatedStock.stockQuantity) <= 0) {
+          await tx.menuItem.update({ where: { id: source.id }, data: { isAvailable: false } });
+        }
+      }
       await recalcSessionTotal(tx, session.id);
       return created;
     });
@@ -212,6 +277,9 @@ export const createPublicOrder = async (req, res) => {
     return res.status(201).json({ message: "Ordine creato correttamente", order: { id: order.id, publicToken: order.publicToken, status: order.status, notes: order.notes, orderNumber: publicOrderNumber(order.orderNumber), restaurantName: order.restaurant.name, tableName: order.table.name, table: { id: order.table.id, name: order.table.name, code: order.table.code }, items: order.items, totalAmount: order.totalAmount, createdAt: order.createdAt } });
   } catch (error) {
     console.error("createPublicOrder error:", error);
+    if (error?.code === "INSUFFICIENT_STOCK") {
+      return res.status(409).json({ message: error.message });
+    }
     return res.status(500).json({ message: "Errore durante la creazione dell'ordine" });
   }
 };
@@ -282,7 +350,12 @@ export const getOrders = async (req, res) => {
 
     const orders = await prisma.order.findMany({
       where,
-      include: { table: true, items: { include: { menuItem: true } } },
+      include: {
+        table: true,
+        items: { include: { menuItem: true } },
+        payments: { orderBy: { createdAt: "asc" } },
+        statusHistory: { orderBy: { createdAt: "asc" } },
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -301,7 +374,11 @@ export const getServiceOrders = async (req, res) => {
         closedAt: null,
         status: { in: ["pending", "in_progress", "ready"] },
       },
-      include: { table: true, items: { include: { menuItem: true } } },
+      include: {
+        table: true,
+        items: { include: { menuItem: true } },
+        payments: { orderBy: { createdAt: "asc" } },
+      },
       orderBy: [{ createdAt: "asc" }],
     });
 
@@ -338,8 +415,36 @@ export const updateOrderStatus = async (req, res) => {
     if (status === "served") data.servedAt = new Date();
 
     const updated = await prisma.$transaction(async (tx) => {
+      if (status === "cancelled") {
+        for (const item of order.items) {
+          if (!item.menuItem?.trackStock || item.status === "voided") continue;
+          const current = await tx.menuItem.findUnique({ where: { id: item.menuItemId } });
+          const before = parseNumber(current?.stockQuantity);
+          const after = before + item.quantity;
+          await tx.menuItem.update({ where: { id: item.menuItemId }, data: { stockQuantity: after } });
+          await tx.stockMovement.create({
+            data: {
+              restaurantId: order.restaurantId,
+              menuItemId: item.menuItemId,
+              userId: req.user?.userId || null,
+              orderItemId: item.id,
+              type: "restore",
+              quantityBefore: before,
+              quantityChange: item.quantity,
+              quantityAfter: after,
+              reason: "Ordine annullato",
+            },
+          });
+        }
+      }
       const result = await tx.order.update({ where: { id }, data, include: { table: true, items: true } });
       await tx.orderStatusHistory.create({ data: { orderId: id, fromStatus: order.status, toStatus: status, changedByUserId: req.user?.userId || null, changedByRole: req.user?.role || null } });
+      await writeAudit(tx, req, {
+        action: "order.status_updated",
+        entityType: "order",
+        entityId: id,
+        metadata: { from: order.status, to: status },
+      });
       return result;
     });
 
@@ -381,28 +486,424 @@ export const addOrderExtra = async (req, res) => {
 export const closeOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { discount, extra, paymentMethod } = req.body || {};
+    const { discount, extra, paymentMethod, payments } = req.body || {};
     const order = await ensureRestaurantAccess(req, id);
     if (!order) return res.status(404).json({ message: "Ordine non trovato" });
     if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
 
-    const updated = await prisma.$transaction(async (tx) => {
-      await tx.order.update({ where: { id }, data: { status: order.status === "cancelled" ? "cancelled" : "served", servedAt: order.servedAt || new Date(), closedAt: new Date(), paymentStatus: "paid", paymentMethod: normalizePaymentMethod(paymentMethod), discountAmount: parseNumber(discount), extraAmount: parseNumber(extra) } });
-      const result = await recalcOrderTotal(tx, id);
+    const outcome = await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id },
+        data: {
+          discountAmount: Math.max(0, parseNumber(discount)),
+          extraAmount: Math.max(0, parseNumber(extra)),
+        },
+      });
+      let result = await recalcOrderTotal(tx, id);
+      const existingPayments = await tx.paymentTransaction.findMany({
+        where: { orderId: id, status: "paid" },
+      });
+      const rows = normalizedPaymentRows(payments);
+      const alreadyPaid = paidPaymentsTotal(existingPayments);
+      const remainingBeforeNew = Math.max(0, parseNumber(result.totalAmount) - alreadyPaid);
+
+      if (!rows.length && paymentMethod && remainingBeforeNew > 0.009) {
+        rows.push({
+          method: normalizePaymentMethod(paymentMethod),
+          amount: remainingBeforeNew,
+          splitLabel: "Saldo conto",
+        });
+      }
+      const newPaymentsTotal = rows.reduce((sum, row) => sum + row.amount, 0);
+      if (newPaymentsTotal > remainingBeforeNew + 0.009) {
+        const overpaymentError = new Error("L'importo inserito supera il saldo del conto");
+        overpaymentError.code = "OVERPAYMENT";
+        throw overpaymentError;
+      }
+
+      for (const row of rows) {
+        await tx.paymentTransaction.create({
+          data: {
+            restaurantId: order.restaurantId,
+            orderId: id,
+            provider: "manual",
+            amount: row.amount,
+            currency: "EUR",
+            status: "paid",
+            method: row.method,
+            splitLabel: row.splitLabel,
+            paidAt: new Date(),
+            createdByUserId: req.user?.userId || null,
+          },
+        });
+      }
+
+      const allPayments = await tx.paymentTransaction.findMany({
+        where: { orderId: id, status: "paid" },
+        orderBy: { createdAt: "asc" },
+      });
+      const paidTotal = paidPaymentsTotal(allPayments);
+      const total = parseNumber(result.totalAmount);
+      const methods = [...new Set(allPayments.map((payment) => payment.method).filter(Boolean))];
+
+      if (paidTotal + 0.009 < total) {
+        result = await tx.order.update({
+          where: { id },
+          data: {
+            paymentStatus: paidTotal > 0 ? "pending" : "unpaid",
+            paymentMethod: methods.length === 1 ? methods[0] : methods.length > 1 ? "other" : null,
+          },
+          include: { table: true, items: true, payments: { orderBy: { createdAt: "asc" } } },
+        });
+        await writeAudit(tx, req, {
+          action: "order.partial_payment",
+          entityType: "order",
+          entityId: id,
+          metadata: { paidTotal, remaining: total - paidTotal },
+        });
+        return { order: result, incomplete: true, paidTotal, remaining: total - paidTotal };
+      }
+
+      result = await tx.order.update({
+        where: { id },
+        data: {
+          status: order.status === "cancelled" ? "cancelled" : "served",
+          servedAt: order.servedAt || new Date(),
+          closedAt: new Date(),
+          paymentStatus: "paid",
+          paymentMethod: methods.length === 1 ? methods[0] : "other",
+          reopenedAt: null,
+          reopenedByUserId: null,
+        },
+        include: { table: true, items: true, payments: { orderBy: { createdAt: "asc" } } },
+      });
+      if (order.status !== result.status) {
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId: id,
+            fromStatus: order.status,
+            toStatus: result.status,
+            changedByUserId: req.user?.userId || null,
+            changedByRole: req.user?.role || null,
+            note: "Conto chiuso",
+          },
+        });
+      }
       if (result.tableSessionId) {
         await recalcSessionTotal(tx, result.tableSessionId);
-        const openOrdersCount = await tx.order.count({ where: { tableSessionId: result.tableSessionId, closedAt: null, status: { notIn: ["cancelled"] } } });
-        if (openOrdersCount === 0) await tx.tableSession.update({ where: { id: result.tableSessionId }, data: { status: "closed", closedAt: new Date() } });
+        const openOrdersCount = await tx.order.count({
+          where: { tableSessionId: result.tableSessionId, closedAt: null, status: { notIn: ["cancelled"] } },
+        });
+        if (openOrdersCount === 0) {
+          await tx.tableSession.update({
+            where: { id: result.tableSessionId },
+            data: { status: "closed", closedAt: new Date() },
+          });
+        }
       }
+      await writeAudit(tx, req, {
+        action: "order.closed",
+        entityType: "order",
+        entityId: id,
+        metadata: { total, paidTotal, methods },
+      });
+      return { order: result, incomplete: false, paidTotal, remaining: 0 };
+    });
+
+    if (outcome.incomplete) {
+      emitSocket(req, "order-updated", {
+        orderId: outcome.order.id,
+        tableId: outcome.order.table?.id,
+        restaurantId: outcome.order.restaurantId,
+        reason: "partial-payment",
+      });
+      return res.status(409).json({
+        message: `Pagamento registrato. Mancano ${outcome.remaining.toFixed(2)} EUR per chiudere il conto.`,
+        ...outcome,
+      });
+    }
+
+    const updated = outcome.order;
+    emitSocket(req, "order-closed", { orderId: updated.id, tableName: updated.table?.name, tableId: updated.table?.id, restaurantId: updated.restaurantId, status: updated.status, closedAt: updated.closedAt });
+    emitSocket(req, "table-updated", { tableName: updated.table?.name, tableId: updated.table?.id, restaurantId: updated.restaurantId, reason: "order-closed" });
+    return res.json({ message: "Conto chiuso correttamente", order: updated, paidTotal: outcome.paidTotal });
+  } catch (error) {
+    console.error("closeOrder error:", error);
+    if (error?.code === "OVERPAYMENT") return res.status(400).json({ message: error.message });
+    return res.status(500).json({ message: "Errore durante chiusura conto" });
+  }
+};
+
+export const addOrderPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const rows = normalizedPaymentRows(req.body?.payments || [req.body]);
+    if (!rows.length) return res.status(400).json({ message: "Inserisci almeno un pagamento valido" });
+
+    const order = await ensureRestaurantAccess(req, id);
+    if (!order) return res.status(404).json({ message: "Ordine non trovato" });
+    if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
+    if (order.closedAt) return res.status(400).json({ message: "Il conto è già chiuso" });
+    const existingPaid = paidPaymentsTotal(order.payments || []);
+    const rowsTotal = rows.reduce((sum, row) => sum + row.amount, 0);
+    if (existingPaid + rowsTotal > parseNumber(order.totalAmount) + 0.009) {
+      return res.status(400).json({ message: "L'importo inserito supera il saldo del conto" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      for (const row of rows) {
+        await tx.paymentTransaction.create({
+          data: {
+            restaurantId: order.restaurantId,
+            orderId: id,
+            provider: "manual",
+            amount: row.amount,
+            currency: "EUR",
+            status: "paid",
+            method: row.method,
+            splitLabel: row.splitLabel,
+            paidAt: new Date(),
+            createdByUserId: req.user?.userId || null,
+          },
+        });
+      }
+      const allPayments = await tx.paymentTransaction.findMany({
+        where: { orderId: id, status: "paid" },
+        orderBy: { createdAt: "asc" },
+      });
+      const paidTotal = paidPaymentsTotal(allPayments);
+      const remaining = Math.max(0, parseNumber(order.totalAmount) - paidTotal);
+      const updated = await tx.order.update({
+        where: { id },
+        data: { paymentStatus: remaining <= 0.009 ? "paid" : "pending" },
+        include: { table: true, items: true, payments: { orderBy: { createdAt: "asc" } } },
+      });
+      await writeAudit(tx, req, {
+        action: "order.payment_added",
+        entityType: "order",
+        entityId: id,
+        metadata: { paidTotal, remaining, rows },
+      });
+      return { order: updated, paidTotal, remaining };
+    });
+
+    emitSocket(req, "order-updated", {
+      orderId: id,
+      tableId: result.order.tableId,
+      restaurantId: result.order.restaurantId,
+      reason: "payment-added",
+    });
+    return res.status(201).json({ message: "Pagamento registrato", ...result });
+  } catch (error) {
+    console.error("addOrderPayment error:", error);
+    return res.status(500).json({ message: "Errore durante la registrazione del pagamento" });
+  }
+};
+
+export const updateOrderItem = async (req, res) => {
+  try {
+    const { id, itemId } = req.params;
+    const action = String(req.body?.action || "").trim().toLowerCase();
+    const reason = String(req.body?.reason || "").trim().slice(0, 300);
+    if (!["void", "complimentary", "restore"].includes(action)) {
+      return res.status(400).json({ message: "Azione articolo non valida" });
+    }
+    if (action !== "restore" && !reason) {
+      return res.status(400).json({ message: "Indica il motivo dell'operazione" });
+    }
+
+    const order = await ensureRestaurantAccess(req, id);
+    if (!order) return res.status(404).json({ message: "Ordine non trovato" });
+    if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
+    if (order.closedAt) return res.status(400).json({ message: "Riapri il conto prima di modificarlo" });
+    const currentItem = order.items.find((item) => item.id === itemId);
+    if (!currentItem) return res.status(404).json({ message: "Articolo non trovato" });
+
+    const result = await prisma.$transaction(async (tx) => {
+      if (currentItem.menuItem?.trackStock) {
+        if (action === "void" && currentItem.status !== "voided") {
+          const before = parseNumber(currentItem.menuItem.stockQuantity);
+          const after = before + currentItem.quantity;
+          await tx.menuItem.update({
+            where: { id: currentItem.menuItemId },
+            data: { stockQuantity: after },
+          });
+          await tx.stockMovement.create({
+            data: {
+              restaurantId: order.restaurantId,
+              menuItemId: currentItem.menuItemId,
+              userId: req.user?.userId || null,
+              orderItemId: currentItem.id,
+              type: "restore",
+              quantityBefore: before,
+              quantityChange: currentItem.quantity,
+              quantityAfter: after,
+              reason,
+            },
+          });
+        }
+        if (action === "restore" && currentItem.status === "voided") {
+          const before = parseNumber(currentItem.menuItem.stockQuantity);
+          if (before < currentItem.quantity) {
+            const stockError = new Error("Scorte insufficienti per ripristinare l'articolo");
+            stockError.code = "INSUFFICIENT_STOCK";
+            throw stockError;
+          }
+          const after = before - currentItem.quantity;
+          await tx.menuItem.update({
+            where: { id: currentItem.menuItemId },
+            data: { stockQuantity: after, isAvailable: after > 0 ? currentItem.menuItem.isAvailable : false },
+          });
+          await tx.stockMovement.create({
+            data: {
+              restaurantId: order.restaurantId,
+              menuItemId: currentItem.menuItemId,
+              userId: req.user?.userId || null,
+              orderItemId: currentItem.id,
+              type: "sale",
+              quantityBefore: before,
+              quantityChange: -currentItem.quantity,
+              quantityAfter: after,
+              reason: "Ripristino articolo sul conto",
+            },
+          });
+        }
+      }
+
+      const data = action === "void"
+        ? {
+            status: "voided",
+            voidReason: reason,
+            voidedAt: new Date(),
+            voidedByUserId: req.user?.userId || null,
+            isComplimentary: false,
+            complimentaryReason: null,
+          }
+        : action === "complimentary"
+          ? {
+              status: "active",
+              voidReason: null,
+              voidedAt: null,
+              voidedByUserId: null,
+              isComplimentary: true,
+              complimentaryReason: reason,
+            }
+          : {
+              status: "active",
+              voidReason: null,
+              voidedAt: null,
+              voidedByUserId: null,
+              isComplimentary: false,
+              complimentaryReason: null,
+            };
+
+      const item = await tx.orderItem.update({ where: { id: itemId }, data });
+      const updated = await recalcOrderTotal(tx, id);
+      if (order.tableSessionId) await recalcSessionTotal(tx, order.tableSessionId);
+      await writeAudit(tx, req, {
+        action: `order_item.${action}`,
+        entityType: "order",
+        entityId: id,
+        reason,
+        metadata: { itemId, itemName: currentItem.nameSnapshot, quantity: currentItem.quantity },
+      });
+      return { item, order: updated };
+    });
+
+    emitSocket(req, "order-updated", {
+      orderId: id,
+      tableId: order.tableId,
+      restaurantId: order.restaurantId,
+      reason: `item-${action}`,
+    });
+    return res.json({ message: "Conto aggiornato", ...result });
+  } catch (error) {
+    console.error("updateOrderItem error:", error);
+    if (error?.code === "INSUFFICIENT_STOCK") return res.status(409).json({ message: error.message });
+    return res.status(500).json({ message: "Errore durante l'aggiornamento dell'articolo" });
+  }
+};
+
+export const reopenOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reason = String(req.body?.reason || "").trim().slice(0, 300);
+    if (!reason) return res.status(400).json({ message: "Indica il motivo della riapertura" });
+    const order = await ensureRestaurantAccess(req, id);
+    if (!order) return res.status(404).json({ message: "Ordine non trovato" });
+    if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
+    if (!order.closedAt) return res.status(400).json({ message: "Il conto è già aperto" });
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.order.update({
+        where: { id },
+        data: {
+          status: "ready",
+          closedAt: null,
+          servedAt: null,
+          reopenedAt: new Date(),
+          reopenedByUserId: req.user?.userId || null,
+        },
+        include: { table: true, items: true, payments: { orderBy: { createdAt: "asc" } } },
+      });
+      if (order.tableSessionId) {
+        await tx.tableSession.update({
+          where: { id: order.tableSessionId },
+          data: { status: "open", closedAt: null },
+        });
+      }
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: id,
+          fromStatus: order.status,
+          toStatus: "ready",
+          changedByUserId: req.user?.userId || null,
+          changedByRole: req.user?.role || null,
+          note: `Conto riaperto: ${reason}`,
+        },
+      });
+      await writeAudit(tx, req, {
+        action: "order.reopened",
+        entityType: "order",
+        entityId: id,
+        reason,
+      });
       return result;
     });
 
-    emitSocket(req, "order-closed", { orderId: updated.id, tableName: updated.table?.name, tableId: updated.table?.id, restaurantId: updated.restaurantId, status: updated.status, closedAt: updated.closedAt });
-    emitSocket(req, "table-updated", { tableName: updated.table?.name, tableId: updated.table?.id, restaurantId: updated.restaurantId, reason: "order-closed" });
-    return res.json({ message: "Conto chiuso correttamente", order: updated });
+    emitSocket(req, "order-updated", {
+      orderId: id,
+      tableId: updated.tableId,
+      restaurantId: updated.restaurantId,
+      reason: "order-reopened",
+    });
+    emitSocket(req, "table-updated", {
+      tableId: updated.tableId,
+      restaurantId: updated.restaurantId,
+      reason: "order-reopened",
+    });
+    return res.json({ message: "Conto riaperto", order: updated });
   } catch (error) {
-    console.error("closeOrder error:", error);
-    return res.status(500).json({ message: "Errore durante chiusura conto" });
+    console.error("reopenOrder error:", error);
+    return res.status(500).json({ message: "Errore durante la riapertura del conto" });
+  }
+};
+
+export const getOrderAudit = async (req, res) => {
+  try {
+    const order = await ensureRestaurantAccess(req, req.params.id);
+    if (!order) return res.status(404).json({ message: "Ordine non trovato" });
+    if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
+    const rows = await prisma.auditLog.findMany({
+      where: { restaurantId: order.restaurantId, entityType: "order", entityId: order.id },
+      include: { user: { select: { id: true, name: true, role: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    return res.json(rows);
+  } catch (error) {
+    console.error("getOrderAudit error:", error);
+    return res.status(500).json({ message: "Registro attività non disponibile" });
   }
 };
 
@@ -412,8 +913,31 @@ export const deleteOrder = async (req, res) => {
     const order = await ensureRestaurantAccess(req, id);
     if (!order) return res.status(404).json({ message: "Ordine non trovato" });
     if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
+    if (order.closedAt || order.paymentStatus === "paid") {
+      return res.status(400).json({ message: "Un conto chiuso non può essere eliminato. Riaprilo per eventuali correzioni." });
+    }
 
     await prisma.$transaction(async (tx) => {
+      for (const item of order.items) {
+        if (!item.menuItem?.trackStock || item.status === "voided") continue;
+        const current = await tx.menuItem.findUnique({ where: { id: item.menuItemId } });
+        const before = parseNumber(current?.stockQuantity);
+        const after = before + item.quantity;
+        await tx.menuItem.update({ where: { id: item.menuItemId }, data: { stockQuantity: after } });
+        await tx.stockMovement.create({
+          data: {
+            restaurantId: order.restaurantId,
+            menuItemId: item.menuItemId,
+            userId: req.user?.userId || null,
+            orderItemId: item.id,
+            type: "restore",
+            quantityBefore: before,
+            quantityChange: item.quantity,
+            quantityAfter: after,
+            reason: "Ordine annullato",
+          },
+        });
+      }
       await tx.orderStatusHistory.create({
         data: {
           orderId: id,
@@ -421,10 +945,19 @@ export const deleteOrder = async (req, res) => {
           toStatus: "cancelled",
           changedByUserId: req.user?.userId || null,
           changedByRole: req.user?.role || null,
-          note: "Eliminato dallo storico",
+          note: "Ordine annullato",
         },
       });
-      await tx.order.delete({ where: { id } });
+      await tx.order.update({
+        where: { id },
+        data: { status: "cancelled", closedAt: new Date() },
+      });
+      await writeAudit(tx, req, {
+        action: "order.cancelled",
+        entityType: "order",
+        entityId: id,
+        reason: "Annullato da amministrazione",
+      });
       if (order.tableSessionId) await recalcSessionTotal(tx, order.tableSessionId);
     });
 
@@ -442,7 +975,7 @@ export const deleteOrder = async (req, res) => {
       reason: "order-deleted",
     });
 
-    return res.json({ message: "Ordine eliminato" });
+    return res.json({ message: "Ordine annullato e conservato nel registro" });
   } catch (error) {
     console.error("deleteOrder error:", error);
     return res.status(500).json({ message: "Errore durante eliminazione ordine" });

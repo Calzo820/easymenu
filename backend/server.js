@@ -22,6 +22,7 @@ import subscriptionRoutes from "./routes/subscription.routes.js";
 import logRoutes from "./routes/log.routes.js";
 import demoRoutes from "./routes/demo.routes.js";
 import systemRoutes from "./routes/system.routes.js";
+import cashRoutes from "./routes/cash.routes.js";
 import { handleStripeWebhook } from "./controllers/payment.controller.js";
 import prisma from "./lib/prisma.js";
 import { validateEnvironment } from "./lib/env.js";
@@ -143,6 +144,7 @@ app.use((req, _res, next) => {
 });
 
 app.use("/auth/login", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 20 }));
+app.use("/auth/pin-login", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 30 }));
 app.use("/auth/register", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 }));
 app.use("/auth/forgot-password", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 }));
 app.use("/auth/reset-password", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 }));
@@ -186,6 +188,7 @@ app.use("/tables", tableRoutes);
 app.use("/reservations", reservationRoutes);
 app.use("/orders", orderRoutes);
 app.use("/payments", paymentRoutes);
+app.use("/cash", cashRoutes);
 app.use("/subscriptions", subscriptionRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/onboarding", onboardingRoutes);

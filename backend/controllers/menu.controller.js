@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma.js";
 import { billingBlockPayload, resolveBillingState } from "../lib/billingPolicy.js";
+import { writeAudit } from "../lib/audit.js";
 
 const VALID_AREAS = ["kitchen", "bar"];
 
@@ -34,6 +35,14 @@ function buildMenuItemData(payload) {
       throw new Error("Il prezzo deve essere un numero maggiore di zero");
     }
     data.price = parsedPrice;
+  }
+
+  if (payload.costPrice !== undefined) {
+    const costPrice = Number(payload.costPrice);
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      throw new Error("Il costo materia prima non può essere negativo");
+    }
+    data.costPrice = costPrice;
   }
 
   if (payload.category !== undefined) {
@@ -83,7 +92,38 @@ function buildMenuItemData(payload) {
     data.isFeatured = Boolean(payload.isFeatured);
   }
 
+  if (payload.trackStock !== undefined) {
+    data.trackStock = Boolean(payload.trackStock);
+  }
+
+  if (payload.stockQuantity !== undefined) {
+    const stockQuantity = Number(payload.stockQuantity);
+    if (!Number.isFinite(stockQuantity) || stockQuantity < 0) {
+      throw new Error("La quantità disponibile non può essere negativa");
+    }
+    data.stockQuantity = stockQuantity;
+  }
+
+  if (payload.lowStockThreshold !== undefined) {
+    const threshold = Number(payload.lowStockThreshold);
+    if (!Number.isFinite(threshold) || threshold < 0) {
+      throw new Error("La soglia scorte non può essere negativa");
+    }
+    data.lowStockThreshold = threshold;
+  }
+
   return data;
+}
+
+function publicMenuItem(item) {
+  const {
+    costPrice: _costPrice,
+    trackStock: _trackStock,
+    stockQuantity: _stockQuantity,
+    lowStockThreshold: _lowStockThreshold,
+    ...safeItem
+  } = item;
+  return safeItem;
 }
 
 export const getMenuItems = async (req, res) => {
@@ -111,11 +151,36 @@ export const createMenuItem = async (req, res) => {
       return res.status(400).json({ message: "name, price e preparationArea sono obbligatori" });
     }
 
-    const item = await prisma.menuItem.create({
-      data: {
-        restaurantId: req.user.restaurantId,
-        ...data,
-      },
+    if (data.trackStock && Number(data.stockQuantity || 0) <= 0) data.isAvailable = false;
+
+    const item = await prisma.$transaction(async (tx) => {
+      const created = await tx.menuItem.create({
+        data: {
+          restaurantId: req.user.restaurantId,
+          ...data,
+        },
+      });
+      if (created.trackStock && Number(created.stockQuantity) !== 0) {
+        await tx.stockMovement.create({
+          data: {
+            restaurantId: req.user.restaurantId,
+            menuItemId: created.id,
+            userId: req.user?.userId || null,
+            type: "restock",
+            quantityBefore: 0,
+            quantityChange: created.stockQuantity,
+            quantityAfter: created.stockQuantity,
+            reason: "Scorta iniziale",
+          },
+        });
+      }
+      await writeAudit(tx, req, {
+        action: "menu_item.created",
+        entityType: "menu_item",
+        entityId: created.id,
+        metadata: { name: created.name, price: Number(created.price) },
+      });
+      return created;
     });
 
     return res.status(201).json({ message: "Prodotto creato", item });
@@ -138,16 +203,122 @@ export const updateMenuItem = async (req, res) => {
     }
 
     const data = buildMenuItemData(req.body);
+    const nextTrackStock = data.trackStock ?? existingItem.trackStock;
+    const nextStock = data.stockQuantity ?? Number(existingItem.stockQuantity);
+    if (nextTrackStock && Number(nextStock) <= 0) data.isAvailable = false;
 
-    const item = await prisma.menuItem.update({
-      where: { id },
-      data,
+    const item = await prisma.$transaction(async (tx) => {
+      const updated = await tx.menuItem.update({ where: { id }, data });
+      const before = Number(existingItem.stockQuantity);
+      const after = Number(updated.stockQuantity);
+      if (updated.trackStock && before !== after) {
+        await tx.stockMovement.create({
+          data: {
+            restaurantId: req.user.restaurantId,
+            menuItemId: id,
+            userId: req.user?.userId || null,
+            type: after > before ? "restock" : "adjustment",
+            quantityBefore: before,
+            quantityChange: after - before,
+            quantityAfter: after,
+            reason: String(req.body?.stockReason || "Aggiornamento dal menu").slice(0, 300),
+          },
+        });
+      }
+      await writeAudit(tx, req, {
+        action: "menu_item.updated",
+        entityType: "menu_item",
+        entityId: id,
+        metadata: { changedFields: Object.keys(data) },
+      });
+      return updated;
     });
 
     return res.json({ message: "Prodotto aggiornato", item });
   } catch (error) {
     console.error("updateMenuItem error:", error);
     return res.status(400).json({ message: error.message || "Errore nell'aggiornamento del prodotto" });
+  }
+};
+
+export const updateMenuStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mode = String(req.body?.mode || "set").trim().toLowerCase();
+    const quantity = Number(req.body?.quantity);
+    const reason = String(req.body?.reason || "").trim().slice(0, 300);
+    if (!["set", "add", "waste"].includes(mode) || !Number.isFinite(quantity) || quantity < 0) {
+      return res.status(400).json({ message: "Movimento scorte non valido" });
+    }
+
+    const existing = await prisma.menuItem.findFirst({
+      where: { id, restaurantId: req.user.restaurantId, isDeleted: false },
+    });
+    if (!existing) return res.status(404).json({ message: "Prodotto non trovato" });
+    if (!existing.trackStock) return res.status(400).json({ message: "Attiva prima il controllo scorte per questo prodotto" });
+
+    const before = Number(existing.stockQuantity);
+    const after = mode === "set"
+      ? quantity
+      : mode === "add"
+        ? before + quantity
+        : Math.max(0, before - quantity);
+    const change = after - before;
+
+    const item = await prisma.$transaction(async (tx) => {
+      const updated = await tx.menuItem.update({
+        where: { id },
+        data: {
+          stockQuantity: after,
+          isAvailable: after <= 0 ? false : existing.isAvailable,
+        },
+      });
+      await tx.stockMovement.create({
+        data: {
+          restaurantId: req.user.restaurantId,
+          menuItemId: id,
+          userId: req.user?.userId || null,
+          type: mode === "add" ? "restock" : mode === "waste" ? "waste" : "adjustment",
+          quantityBefore: before,
+          quantityChange: change,
+          quantityAfter: after,
+          reason: reason || (mode === "add" ? "Carico scorte" : mode === "waste" ? "Scarico o spreco" : "Rettifica inventario"),
+        },
+      });
+      await writeAudit(tx, req, {
+        action: "menu_item.stock_updated",
+        entityType: "menu_item",
+        entityId: id,
+        reason,
+        metadata: { mode, before, change, after },
+      });
+      return updated;
+    });
+
+    return res.json({ message: "Scorte aggiornate", item });
+  } catch (error) {
+    console.error("updateMenuStock error:", error);
+    return res.status(500).json({ message: "Errore durante l'aggiornamento delle scorte" });
+  }
+};
+
+export const getMenuStockHistory = async (req, res) => {
+  try {
+    const item = await prisma.menuItem.findFirst({
+      where: { id: req.params.id, restaurantId: req.user.restaurantId, isDeleted: false },
+      select: { id: true },
+    });
+    if (!item) return res.status(404).json({ message: "Prodotto non trovato" });
+    const movements = await prisma.stockMovement.findMany({
+      where: { menuItemId: item.id, restaurantId: req.user.restaurantId },
+      include: { user: { select: { id: true, name: true, role: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    return res.json(movements);
+  } catch (error) {
+    console.error("getMenuStockHistory error:", error);
+    return res.status(500).json({ message: "Storico scorte non disponibile" });
   }
 };
 
@@ -205,7 +376,7 @@ export const getPublicMenu = async (req, res) => {
         logoUrl: restaurant.logoUrl,
         currency: restaurant.currency,
       },
-      items,
+      items: items.map(publicMenuItem),
     });
   } catch (error) {
     console.error("getPublicMenu error:", error);

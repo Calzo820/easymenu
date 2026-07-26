@@ -11,6 +11,7 @@ const emptyItem = {
   shortDescription: "",
   description: "",
   price: "",
+  costPrice: "",
   category: "",
   preparationArea: "kitchen",
   imageUrl: "",
@@ -18,6 +19,9 @@ const emptyItem = {
   sortOrder: 0,
   vatRate: 10,
   isAvailable: true,
+  trackStock: false,
+  stockQuantity: "",
+  lowStockThreshold: "",
 };
 
 const emptyTable = {
@@ -28,6 +32,8 @@ const emptyTable = {
 
 const emptyUser = {
   name: "",
+  accessMode: "pin",
+  pin: "",
   email: "",
   password: "",
   role: "kitchen",
@@ -49,6 +55,16 @@ function getMenuQualityStats(items) {
 function formatEuro(value) {
   const amount = Number(value || 0);
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number.isFinite(amount) ? amount : 0);
+}
+
+function formatQuantity(value) {
+  return new Intl.NumberFormat("it-IT", { maximumFractionDigits: 3 }).format(Number(value || 0));
+}
+
+function marginPercent(item) {
+  const price = Number(item?.price || 0);
+  const cost = Number(item?.costPrice || 0);
+  return price > 0 ? Math.max(0, ((price - cost) / price) * 100) : 0;
 }
 
 function bySortThenName(a, b) {
@@ -149,6 +165,7 @@ export default function AdminPanel({ embedded = false } = {}) {
   });
   const [itemForm, setItemForm] = useState(emptyItem);
   const [editingItemId, setEditingItemId] = useState("");
+  const [stockHistory, setStockHistory] = useState([]);
   const [tableForm, setTableForm] = useState(emptyTable);
   const [userForm, setUserForm] = useState(emptyUser);
 
@@ -266,10 +283,14 @@ export default function AdminPanel({ embedded = false } = {}) {
       const payload = {
         ...itemForm,
         price: Number(itemForm.price),
+        costPrice: Number(itemForm.costPrice || 0),
         sortOrder: Number(itemForm.sortOrder || 0),
         vatRate: Number(itemForm.vatRate || 10),
         allergens: itemForm.allergens,
         isFeatured: false,
+        trackStock: Boolean(itemForm.trackStock),
+        stockQuantity: Number(itemForm.stockQuantity || 0),
+        lowStockThreshold: Number(itemForm.lowStockThreshold || 0),
       };
 
       if (editingItemId) {
@@ -282,6 +303,7 @@ export default function AdminPanel({ embedded = false } = {}) {
 
       setItemForm(emptyItem);
       setEditingItemId("");
+      setStockHistory([]);
       await loadData();
     } catch (err) {
       setError(err.message || "Errore salvataggio prodotto");
@@ -346,6 +368,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         shortDescription: item.shortDescription || "",
         description: item.description || "",
         price: Number(item.price || 1),
+        costPrice: Number(item.costPrice || 0),
         category: item.category || "",
         preparationArea: item.preparationArea || "kitchen",
         imageUrl: item.imageUrl || "",
@@ -353,6 +376,9 @@ export default function AdminPanel({ embedded = false } = {}) {
         sortOrder: Number(item.sortOrder || 0) + 1,
         vatRate: Number(item.vatRate || 10),
         isAvailable: false,
+        trackStock: Boolean(item.trackStock),
+        stockQuantity: Number(item.stockQuantity || 0),
+        lowStockThreshold: Number(item.lowStockThreshold || 0),
       });
       setSuccess("Prodotto duplicato come bozza offline");
       await loadData();
@@ -361,7 +387,7 @@ export default function AdminPanel({ embedded = false } = {}) {
     }
   }
 
-  function handleEditItem(item) {
+  async function handleEditItem(item) {
     setActiveTab("menu");
     setEditingItemId(item.id);
     setItemForm({
@@ -369,6 +395,7 @@ export default function AdminPanel({ embedded = false } = {}) {
       shortDescription: item.shortDescription || "",
       description: item.description || "",
       price: item.price ?? "",
+      costPrice: item.costPrice ?? "",
       category: item.category || "",
       preparationArea: item.preparationArea || "kitchen",
       imageUrl: item.imageUrl || "",
@@ -376,7 +403,19 @@ export default function AdminPanel({ embedded = false } = {}) {
       sortOrder: item.sortOrder ?? 0,
       vatRate: item.vatRate ?? 10,
       isAvailable: Boolean(item.isAvailable),
+      trackStock: Boolean(item.trackStock),
+      stockQuantity: item.stockQuantity ?? "",
+      lowStockThreshold: item.lowStockThreshold ?? "",
     });
+    setStockHistory([]);
+    if (item.trackStock) {
+      try {
+        const movements = await apiGet(`/menu/${item.id}/stock`);
+        setStockHistory(Array.isArray(movements) ? movements : []);
+      } catch {
+        setStockHistory([]);
+      }
+    }
   }
 
   async function toggleItemAvailability(item) {
@@ -437,8 +476,10 @@ export default function AdminPanel({ embedded = false } = {}) {
       setSuccess("");
       await apiPost("/users", {
         name: userForm.name.trim(),
-        email: userForm.email.trim().toLowerCase(),
-        password: userForm.password,
+        accessMode: userForm.accessMode,
+        pin: userForm.accessMode === "pin" ? userForm.pin : undefined,
+        email: userForm.accessMode === "email" ? userForm.email.trim().toLowerCase() : undefined,
+        password: userForm.accessMode === "email" ? userForm.password : undefined,
         role: userForm.role,
       });
       setUserForm(emptyUser);
@@ -464,7 +505,7 @@ export default function AdminPanel({ embedded = false } = {}) {
   }
 
   async function deleteUser(user) {
-    if (!window.confirm(`Eliminare l'utente ${user.email}?`)) return;
+    if (!window.confirm(`Eliminare l'accesso di ${user.name || user.email}?`)) return;
     try {
       setError("");
       setSuccess("");
@@ -558,6 +599,48 @@ export default function AdminPanel({ embedded = false } = {}) {
               <Field label="Allergeni">
                 <TextInput placeholder="Es. glutine, uova, latte" value={itemForm.allergens} onChange={(e) => setItemForm((prev) => ({ ...prev, allergens: e.target.value }))} />
               </Field>
+              <details className="menu-management-details">
+                <summary>Costi e scorte</summary>
+                <div className="menu-management-details__body">
+                  <div className="menu-editor-row wide-price">
+                    <Field label="Costo materia prima">
+                      <TextInput placeholder="4.20" type="number" min="0" step="0.01" value={itemForm.costPrice} onChange={(e) => setItemForm((prev) => ({ ...prev, costPrice: e.target.value }))} />
+                    </Field>
+                    <div className="menu-margin-preview">
+                      <span>Margine lordo stimato</span>
+                      <strong>{itemForm.price ? `${marginPercent(itemForm).toFixed(0)}%` : "-"}</strong>
+                      <small>{itemForm.price ? formatEuro(Number(itemForm.price) - Number(itemForm.costPrice || 0)) : "Inserisci prezzo e costo"}</small>
+                    </div>
+                  </div>
+                  <label className="management-check-row">
+                    <input type="checkbox" checked={itemForm.trackStock} onChange={(e) => setItemForm((prev) => ({ ...prev, trackStock: e.target.checked }))} />
+                    <span><b>Controlla le scorte</b><small>Quando arrivano a zero, il prodotto diventa non disponibile.</small></span>
+                  </label>
+                  {itemForm.trackStock ? (
+                    <div className="menu-editor-row wide-price">
+                      <Field label="Quantità disponibile">
+                        <TextInput type="number" min="0" step="0.001" value={itemForm.stockQuantity} onChange={(e) => setItemForm((prev) => ({ ...prev, stockQuantity: e.target.value }))} />
+                      </Field>
+                      <Field label="Avvisami sotto">
+                        <TextInput type="number" min="0" step="0.001" value={itemForm.lowStockThreshold} onChange={(e) => setItemForm((prev) => ({ ...prev, lowStockThreshold: e.target.value }))} />
+                      </Field>
+                    </div>
+                  ) : null}
+                  {editingItemId && stockHistory.length ? (
+                    <details className="stock-history">
+                      <summary>Ultimi movimenti ({stockHistory.length})</summary>
+                      <div>
+                        {stockHistory.slice(0, 8).map((movement) => (
+                          <p key={movement.id}>
+                            <b>{Number(movement.quantityChange) > 0 ? "+" : ""}{formatQuantity(movement.quantityChange)}</b>
+                            <span>{movement.reason || "Movimento scorte"} · {new Date(movement.createdAt).toLocaleString("it-IT")}</span>
+                          </p>
+                        ))}
+                      </div>
+                    </details>
+                  ) : null}
+                </div>
+              </details>
               <Field label="Foto piatto">
                 <div className="management-upload-row">
                   <TextInput placeholder="URL immagine oppure carica da PC" value={itemForm.imageUrl} onChange={(e) => setItemForm((prev) => ({ ...prev, imageUrl: e.target.value }))} />
@@ -570,7 +653,7 @@ export default function AdminPanel({ embedded = false } = {}) {
               <div className="menu-editor-actions">
                 <label className="management-badge green"><input type="checkbox" checked={itemForm.isAvailable} onChange={(e) => setItemForm((prev) => ({ ...prev, isAvailable: e.target.checked }))} /> Disponibile</label>
                 <button className="management-btn" type="submit" disabled={savingItem}>{savingItem ? "Salvataggio..." : editingItemId ? "Salva modifica" : "Aggiungi prodotto"}</button>
-                {editingItemId ? <button className="management-btn secondary" type="button" onClick={() => { setEditingItemId(""); setItemForm(emptyItem); }}>Annulla</button> : null}
+                {editingItemId ? <button className="management-btn secondary" type="button" onClick={() => { setEditingItemId(""); setItemForm(emptyItem); setStockHistory([]); }}>Annulla</button> : null}
               </div>
             </div>
 
@@ -615,7 +698,15 @@ export default function AdminPanel({ embedded = false } = {}) {
                 <div>
                   <div className="management-row-title">{item.name}</div>
                   <div className="management-row-meta">{item.category || "Senza categoria"} - {item.preparationArea === "bar" ? "Bar" : "Cucina"}</div>
-                  <div className="management-price">{formatEuro(item.price)}</div>
+                  <div className="management-price">
+                    {formatEuro(item.price)}
+                    {Number(item.costPrice) > 0 ? <small> · margine {marginPercent(item).toFixed(0)}%</small> : null}
+                  </div>
+                  {item.trackStock ? (
+                    <div className={`stock-inline ${Number(item.stockQuantity) <= Number(item.lowStockThreshold) ? "is-low" : ""}`}>
+                      Scorta {formatQuantity(item.stockQuantity)}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="management-row" style={{ justifyContent: "flex-end" }}>
                   <span className={`management-badge ${item.isAvailable ? "green" : "red"}`}>{item.isAvailable ? "Online" : "Esaurito"}</span>
@@ -682,10 +773,23 @@ export default function AdminPanel({ embedded = false } = {}) {
     return (
       <div className="management-grid-2">
         <form className="management-card management-form" onSubmit={handleUserSubmit}>
-          <SectionHead title="Nuovo accesso" subtitle="Ruoli separati: ogni operatore vede solo la schermata utile al suo lavoro." />
+          <SectionHead title="Nuovo accesso" subtitle="Sul tablet condiviso basta un PIN. Email e password restano disponibili per chi lavora da remoto." />
+          <div className="staff-access-switch" aria-label="Tipo di accesso">
+            <button type="button" className={userForm.accessMode === "pin" ? "is-active" : ""} onClick={() => setUserForm((prev) => ({ ...prev, accessMode: "pin" }))}>PIN rapido</button>
+            <button type="button" className={userForm.accessMode === "email" ? "is-active" : ""} onClick={() => setUserForm((prev) => ({ ...prev, accessMode: "email" }))}>Email</button>
+          </div>
           <Field label="Nome"><TextInput placeholder="Mario" value={userForm.name} onChange={(e) => setUserForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
-          <Field label="Email"><TextInput placeholder="mario@ristorante.it" type="email" value={userForm.email} onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))} /></Field>
-          <Field label="Password temporanea"><TextInput placeholder="Password" type="password" value={userForm.password} onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))} /></Field>
+          {userForm.accessMode === "pin" ? (
+            <>
+              <Field label="PIN personale"><TextInput placeholder="4-6 numeri" type="password" inputMode="numeric" minLength="4" maxLength="6" value={userForm.pin} onChange={(e) => setUserForm((prev) => ({ ...prev, pin: e.target.value.replace(/\D/g, "").slice(0, 6) }))} /></Field>
+              <div className="staff-code-note"><span>Codice ristorante</span><strong>{restaurant?.slug || "-"}</strong><small>Lo staff inserisce questo codice e il proprio PIN nella pagina di accesso.</small></div>
+            </>
+          ) : (
+            <>
+              <Field label="Email"><TextInput placeholder="mario@ristorante.it" type="email" value={userForm.email} onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))} /></Field>
+              <Field label="Password temporanea"><TextInput placeholder="Minimo 8 caratteri" type="password" value={userForm.password} onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))} /></Field>
+            </>
+          )}
           <Field label="Ruolo">
             <SelectInput value={userForm.role} onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}>
               <option value="kitchen">Cucina</option>
@@ -704,7 +808,7 @@ export default function AdminPanel({ embedded = false } = {}) {
               <div key={user.id} className="management-list-row">
                 <div>
                   <div className="management-row-title">{user.name || user.email}</div>
-                  <div className="management-row-meta">{user.email} - {roleLabel(user.role)}</div>
+                  <div className="management-row-meta">{user.pinEnabled ? "Accesso PIN" : user.email} - {roleLabel(user.role)}</div>
                 </div>
                 <div className="management-row" style={{ justifyContent: "flex-end" }}>
                   <span className={`management-badge ${user.isActive ? "green" : "red"}`}>{user.isActive ? "Attivo" : "Disattivo"}</span>

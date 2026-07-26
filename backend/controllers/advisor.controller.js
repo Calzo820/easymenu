@@ -24,6 +24,7 @@ function buildProductStats(orders) {
 
   for (const order of orders) {
     for (const item of order.items || []) {
+      if (item.status === "voided") continue;
       const key = item.menuItemId || item.nameSnapshot || "prodotto";
       const current = map.get(key) || {
         id: key,
@@ -31,10 +32,16 @@ function buildProductStats(orders) {
         category: item.categorySnapshot || "Menu",
         quantity: 0,
         revenue: 0,
+        cost: 0,
+        margin: 0,
       };
 
       current.quantity += toNumber(item.quantity);
-      current.revenue += toNumber(item.quantity) * toNumber(item.priceSnapshot);
+      if (!item.isComplimentary) {
+        current.revenue += toNumber(item.quantity) * toNumber(item.priceSnapshot);
+      }
+      current.cost += toNumber(item.quantity) * toNumber(item.costSnapshot);
+      current.margin = current.revenue - current.cost;
       map.set(key, current);
     }
   }
@@ -59,42 +66,13 @@ function makeInsight(priority, title, message, actionLabel, actionHref) {
 function buildRuleInsights(facts) {
   const insights = [];
 
-  if (!facts.setup.logoLoaded) {
+  if (facts.stock.lowStockItems.length > 0) {
+    const first = facts.stock.lowStockItems[0];
     insights.push(makeInsight(
       "high",
-      "Carica il logo prima della demo",
-      "Il menu cliente sembra subito più credibile quando il ristorante vede il proprio brand in alto.",
-      "Apri setup",
-      "/onboarding"
-    ));
-  }
-
-  if (facts.setup.tables < 10) {
-    insights.push(makeInsight(
-      "high",
-      "Prepara almeno 10 tavoli demo",
-      "Con pochi tavoli la cassa sembra vuota. Crea una sala completa e stampa i QR solo dopo il controllo.",
-      "Crea tavoli",
-      "/tavoli"
-    ));
-  }
-
-  if (facts.setup.availableMenuItems < 12 || facts.setup.categories < 4) {
-    insights.push(makeInsight(
-      "high",
-      "Rendi il menu più completo",
-      "Per una prova commerciale servono antipasti, primi, secondi, dolci e bevande. Il cliente deve capire il flusso in pochi tocchi.",
-      "Apri menu",
-      "/admin"
-    ));
-  }
-
-  if (facts.setup.unavailableItems > 0) {
-    insights.push(makeInsight(
-      "medium",
-      "Controlla i prodotti non disponibili",
-      `${facts.setup.unavailableItems} prodotti risultano non disponibili. Tienili visibili solo se vuoi mostrare la gestione reale del servizio.`,
-      "Rivedi menu",
+      `${first.name}: scorta quasi esaurita`,
+      `${facts.stock.lowStockItems.length} prodotti hanno raggiunto la soglia minima. Fai il carico o rendili non disponibili prima del servizio.`,
+      "Gestisci scorte",
       "/admin"
     ));
   }
@@ -102,28 +80,59 @@ function buildRuleInsights(facts) {
   if (facts.service.readyOrders >= 2) {
     insights.push(makeInsight(
       "high",
-      "Libera subito i piatti pronti",
-      "Ci sono piatti pronti in attesa. In servizio reale questa è la cosa che rovina di più la percezione del cliente.",
+      "Piatti pronti da portare al tavolo",
+      `${facts.service.readyOrders} comande risultano pronte. Riduci l'attesa liberando prima il pass.`,
       "Apri cucina",
       "/cucina"
     ));
   }
 
-  if (facts.service.pendingOrders >= 3) {
+  if (facts.service.averagePreparationMinutes > 18) {
     insights.push(makeInsight(
       "medium",
-      "Accetta le nuove comande più velocemente",
-      "La cucina deve vedere poche decisioni chiare: nuovo, in preparazione, pronto. Tieni la coda pulita.",
-      "Apri cucina",
-      "/cucina"
+      "Tempi cucina sopra la soglia",
+      `La preparazione media è di ${Math.round(facts.service.averagePreparationMinutes)} minuti. Controlla i piatti più lenti e la distribuzione delle comande.`,
+      "Vedi statistiche",
+      "/statistiche"
     ));
   }
 
   if (facts.issues.pendingPayments > 0) {
     insights.push(makeInsight(
       "high",
-      "Risolvi i pagamenti in sospeso",
-      "Prima di far provare il prodotto, la cassa deve mostrare conti chiari e nessun pagamento bloccato.",
+      "Conti con pagamento incompleto",
+      `${facts.issues.pendingPayments} pagamenti risultano ancora in sospeso. Controllali prima della chiusura giornaliera.`,
+      "Apri cassa",
+      "/cassa"
+    ));
+  }
+
+  if (facts.sales.paidOrders > 0 && facts.sales.marginRate !== null && facts.sales.marginRate < 55) {
+    insights.push(makeInsight(
+      "medium",
+      "Margine menu da controllare",
+      `Il margine lordo stimato è del ${Math.round(facts.sales.marginRate)}%. Verifica costo e prezzo dei prodotti meno redditizi.`,
+      "Rivedi costi",
+      "/admin"
+    ));
+  }
+
+  if (facts.sales.lowMarginProducts.length > 0) {
+    const product = facts.sales.lowMarginProducts[0];
+    insights.push(makeInsight(
+      "medium",
+      `${product.name} rende meno degli altri`,
+      `Margine stimato ${Math.round(product.marginRate)}%. Valuta porzione, costo materia prima o prezzo.`,
+      "Apri menu",
+      "/admin"
+    ));
+  }
+
+  if (facts.sales.voidRate > 5) {
+    insights.push(makeInsight(
+      "medium",
+      "Troppi annulli sul conto",
+      `Gli articoli annullati sono il ${facts.sales.voidRate.toFixed(1)}% del venduto. Controlla i motivi nel registro cassa.`,
       "Apri cassa",
       "/cassa"
     ));
@@ -133,7 +142,7 @@ function buildRuleInsights(facts) {
     insights.push(makeInsight(
       "medium",
       "Controlla gli errori tecnici aperti",
-      "Prima di contattare nuovi ristoranti, sistema gli errori non risolti o mostra un messaggio chiaro.",
+      "Sono presenti problemi non ancora risolti. Se interferiscono con il servizio, contatta l'assistenza.",
       "Contattaci",
       "/contattaci"
     ));
@@ -141,29 +150,33 @@ function buildRuleInsights(facts) {
 
   if (facts.sales.paidOrders === 0) {
     insights.push(makeInsight(
-      "medium",
-      "Chiudi qualche conto demo",
-      "Le statistiche diventano convincenti solo quando hanno incasso, prodotti top e metodi di pagamento.",
+      "low",
+      "Nessun conto chiuso nel periodo",
+      "I consigli economici inizieranno dopo il primo pagamento reale. Nel frattempo puoi controllare scorte e servizio.",
       "Apri cassa",
       "/cassa"
     ));
-  } else if (facts.sales.averageTicket !== null && facts.sales.averageTicket < 18) {
+  } else if (
+    facts.sales.averageTicket !== null &&
+    facts.sales.previousAverageTicket > 0 &&
+    facts.sales.averageTicket < facts.sales.previousAverageTicket * 0.9
+  ) {
     insights.push(makeInsight(
       "medium",
-      "Alza il ticket medio con bevande e dolci",
-      "Il ticket medio e basso: prova a mettere cocktail, calici o dessert tra i consigliati del menu cliente.",
-      "Apri menu",
-      "/admin"
+      "Ticket medio in calo",
+      "Il ticket medio è sceso rispetto al periodo precedente. Controlla soprattutto bevande, dessert e prodotti più redditizi.",
+      "Vedi statistiche",
+      "/statistiche"
     ));
   }
 
-  if (facts.sales.topProducts.length > 0) {
-    const top = facts.sales.topProducts[0];
+  if (facts.sales.topProducts.length > 0 && facts.sales.paidOrders > 0) {
+    const top = [...facts.sales.topProducts].sort((a, b) => b.margin - a.margin)[0];
     insights.push(makeInsight(
       "low",
-      `Metti in evidenza ${top.name}`,
-      "Il prodotto più ordinato deve essere facile da trovare: consigliato, foto chiara e descrizione breve.",
-      "Apri menu",
+      `${top.name} sostiene il margine`,
+      "È tra i prodotti che generano più margine nel periodo. Verifica che sia disponibile nei turni più importanti.",
+      "Controlla scorte",
       "/admin"
     ));
   }
@@ -178,24 +191,13 @@ function buildRuleInsights(facts) {
     ));
   }
 
-  const subscriptionProblem = ["past_due", "unpaid", "incomplete", "canceled"].includes(facts.billing.subscriptionStatus || "");
-  if (!facts.billing.restaurantActive || subscriptionProblem) {
-    insights.unshift(makeInsight(
-      "high",
-      "Sistema lo stato abbonamento",
-      "Il ristorante deve risultare attivo, altrimenti menu e demo possono restare bloccati.",
-      "Apri billing",
-      "/billing"
-    ));
-  }
-
   if (insights.length === 0) {
     insights.push(makeInsight(
       "low",
-      "Setup pronto per una prova commerciale",
-      "Logo, tavoli, menu e dati operativi sono coerenti. Ora fai provare prima il menu cliente, poi cucina e cassa.",
-      "Apri demo",
-      "/demo"
+      "Servizio sotto controllo",
+      "Non emergono criticità dai dati del periodo. Continua a registrare costi e scorte per rendere i consigli più precisi.",
+      "Vedi statistiche",
+      "/statistiche"
     ));
   }
 
@@ -296,12 +298,14 @@ export const getAnalyticsAdvisor = async (req, res) => {
 
     const days = getDays(req.query);
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const previousFrom = new Date(from.getTime() - days * 24 * 60 * 60 * 1000);
     const today = startOfToday();
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const [
       restaurant,
       orders,
+      previousOrders,
       activeOrders,
       menuItems,
       tablesCount,
@@ -325,6 +329,14 @@ export const getAnalyticsAdvisor = async (req, res) => {
       prisma.order.findMany({
         where: {
           restaurantId,
+          createdAt: { gte: previousFrom, lt: from },
+          status: { not: "cancelled" },
+        },
+        include: { items: true },
+      }),
+      prisma.order.findMany({
+        where: {
+          restaurantId,
           status: { in: ["pending", "in_progress", "ready"] },
         },
         select: { id: true, status: true },
@@ -339,6 +351,10 @@ export const getAnalyticsAdvisor = async (req, res) => {
           isFeatured: true,
           preparationArea: true,
           price: true,
+          costPrice: true,
+          trackStock: true,
+          stockQuantity: true,
+          lowStockThreshold: true,
         },
       }),
       prisma.table.count({
@@ -373,10 +389,34 @@ export const getAnalyticsAdvisor = async (req, res) => {
 
     const paidOrders = orders.filter((order) => order.paymentStatus === "paid" || order.status === "served");
     const revenue = paidOrders.reduce((sum, order) => sum + toNumber(order.totalAmount), 0);
+    const previousPaidOrders = previousOrders.filter((order) => order.paymentStatus === "paid" || order.status === "served");
+    const previousRevenue = previousPaidOrders.reduce((sum, order) => sum + toNumber(order.totalAmount), 0);
     const activeCounts = statusCounts(activeOrders);
     const categories = new Set(menuItems.map((item) => item.category).filter(Boolean));
     const unavailableItems = menuItems.filter((item) => !item.isAvailable);
-    const topProducts = buildProductStats(paidOrders).slice(0, 5);
+    const allProductStats = buildProductStats(paidOrders);
+    const topProducts = allProductStats.slice(0, 5);
+    const totalCost = allProductStats.reduce((sum, product) => sum + product.cost, 0);
+    const grossMargin = revenue - totalCost;
+    const lowMarginProducts = allProductStats
+      .map((product) => ({
+        ...product,
+        marginRate: product.revenue ? (product.margin / product.revenue) * 100 : 0,
+      }))
+      .filter((product) => product.revenue > 0 && product.marginRate < 55)
+      .sort((a, b) => a.marginRate - b.marginRate)
+      .slice(0, 5);
+    const activeItems = orders.flatMap((order) => order.items || []);
+    const soldItems = activeItems.filter((item) => item.status !== "voided");
+    const voidedItems = activeItems.filter((item) => item.status === "voided");
+    const preparationTimes = paidOrders
+      .filter((order) => order.acceptedAt && order.readyAt)
+      .map((order) => (new Date(order.readyAt) - new Date(order.acceptedAt)) / 60000)
+      .filter((minutes) => Number.isFinite(minutes) && minutes >= 0);
+    const lowStockItems = menuItems
+      .filter((item) => item.trackStock && toNumber(item.stockQuantity) <= toNumber(item.lowStockThreshold))
+      .sort((a, b) => toNumber(a.stockQuantity) - toNumber(b.stockQuantity))
+      .slice(0, 8);
     const subscription = restaurant?.subscription || null;
 
     const facts = {
@@ -398,6 +438,9 @@ export const getAnalyticsAdvisor = async (req, res) => {
         readyOrders: activeCounts.ready || 0,
         reservationsNext7Days: reservations.length,
         seatedReservations: reservations.filter((reservation) => reservation.status === "seated").length,
+        averagePreparationMinutes: preparationTimes.length
+          ? preparationTimes.reduce((sum, minutes) => sum + minutes, 0) / preparationTimes.length
+          : 0,
       },
       sales: {
         periodDays: days,
@@ -405,10 +448,31 @@ export const getAnalyticsAdvisor = async (req, res) => {
         paidOrders: paidOrders.length,
         revenue: privacyMode ? null : Number(revenue.toFixed(2)),
         averageTicket: privacyMode || paidOrders.length === 0 ? null : Number((revenue / paidOrders.length).toFixed(2)),
+        previousAverageTicket: privacyMode || previousPaidOrders.length === 0
+          ? 0
+          : Number((previousRevenue / previousPaidOrders.length).toFixed(2)),
+        grossMargin: privacyMode ? null : Number(grossMargin.toFixed(2)),
+        marginRate: privacyMode || revenue === 0 ? null : Number(((grossMargin / revenue) * 100).toFixed(2)),
+        voidRate: soldItems.length + voidedItems.length
+          ? (voidedItems.length / (soldItems.length + voidedItems.length)) * 100
+          : 0,
+        lowMarginProducts: privacyMode ? [] : lowMarginProducts.map((product) => ({
+          name: product.name,
+          marginRate: product.marginRate,
+        })),
         topProducts: topProducts.map((product) => ({
           name: product.name,
           category: product.category,
           quantity: product.quantity,
+          margin: privacyMode ? 0 : Number(product.margin.toFixed(2)),
+        })),
+      },
+      stock: {
+        lowStockItems: lowStockItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          quantity: toNumber(item.stockQuantity),
+          threshold: toNumber(item.lowStockThreshold),
         })),
       },
       billing: {
