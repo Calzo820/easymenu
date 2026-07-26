@@ -82,6 +82,11 @@ function normalizeTableCode(value) {
   return String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "").toUpperCase();
 }
 
+function formatTableLabel(table) {
+  const code = String(table?.code || table?.name || "?").trim();
+  return /^t/i.test(code) ? code.toUpperCase() : `T${code}`;
+}
+
 function normalizeReservations(data) {
   const rows = Array.isArray(data) ? data : data?.reservations || [];
   return rows.map((item) => ({
@@ -132,9 +137,14 @@ function liveTableState(table, status, reservations, selectedDate) {
   }
   if (activeReservations.length) {
     const first = activeReservations[0];
+    const hasArrived = activeReservations.some((reservation) => reservation.status === "seated");
     return {
-      kind: "reserved",
-      label: activeReservations.length > 1 ? `${activeReservations.length} prenotazioni` : "Prenotato",
+      kind: hasArrived ? "occupied" : "reserved",
+      label: hasArrived
+        ? "Arrivato"
+        : activeReservations.length > 1
+          ? `${activeReservations.length} prenotazioni`
+          : "Prenotato",
       detail: `${first.time || "--:--"} · ${first.name || "Cliente"}`,
       total: 0,
     };
@@ -161,6 +171,7 @@ export default function Tavoli() {
   const [reservationError, setReservationError] = useState("");
   const [message, setMessage] = useState("");
   const [reservationQuery, setReservationQuery] = useState("");
+  const [reservationView, setReservationView] = useState("all");
 
   const loadCore = useCallback(async () => {
     const [tablesData, restaurantData, statusesData] = await Promise.all([
@@ -234,17 +245,18 @@ export default function Tavoli() {
 
   const normalizedQuery = reservationQuery.trim().toLocaleLowerCase("it");
   const filteredDayReservations = useMemo(() => {
-    if (!normalizedQuery) return dayReservations;
-    return dayReservations.filter((reservation) =>
-      [
+    return dayReservations.filter((reservation) => {
+      if (reservationView !== "all" && reservation.status !== reservationView) return false;
+      if (!normalizedQuery) return true;
+      return [
         reservation.name,
         reservation.phone,
         reservation.tableName,
         reservation.tableCode,
         reservation.time,
-      ].some((value) => String(value || "").toLocaleLowerCase("it").includes(normalizedQuery))
-    );
-  }, [dayReservations, normalizedQuery]);
+      ].some((value) => String(value || "").toLocaleLowerCase("it").includes(normalizedQuery));
+    });
+  }, [dayReservations, normalizedQuery, reservationView]);
 
   const dailyGuests = useMemo(
     () => dayReservations.reduce((total, reservation) => total + Number(reservation.guests || 0), 0),
@@ -254,6 +266,7 @@ export default function Tavoli() {
     () => dayReservations.filter((reservation) => reservation.status === "seated").length,
     [dayReservations]
   );
+  const waitingReservations = dayReservations.length - arrivedReservations;
 
   const tableCards = useMemo(() => tables
     .map((table) => {
@@ -341,6 +354,19 @@ export default function Tavoli() {
   async function saveReservation(event) {
     event.preventDefault();
     if (!selectedTable || !reservationForm.name.trim() || !reservationForm.time || saving) return;
+    const conflictingReservation = reservations.find((reservation) =>
+      reservation.id !== editingReservationId &&
+      reservationMatchesTable(reservation, selectedTable) &&
+      reservation.date === reservationForm.date &&
+      reservation.time === reservationForm.time &&
+      ACTIVE_RESERVATION_STATUSES.has(reservation.status)
+    );
+    if (conflictingReservation) {
+      setReservationError(
+        `${selectedTable.name || `Tavolo ${selectedTable.code}`} ha già una prenotazione alle ${reservationForm.time}.`
+      );
+      return;
+    }
     const payload = {
       tableId: selectedTable.id,
       tableCode: selectedTable.code,
@@ -361,7 +387,7 @@ export default function Tavoli() {
       else await apiPost("/reservations", payload);
       setMessage(editingReservationId ? "Prenotazione aggiornata." : "Prenotazione aggiunta al tavolo.");
       setReservationError("");
-      const targetMonth = payload.date.slice(0, 7);
+      const targetMonth = monthKey(payload.date);
       setSelectedDate(payload.date);
       setVisibleMonth(targetMonth);
       setEditingReservationId("");
@@ -376,6 +402,7 @@ export default function Tavoli() {
 
   async function cancelReservation() {
     if (!editingReservationId || saving) return;
+    if (!window.confirm("Vuoi cancellare questa prenotazione?")) return;
     try {
       setSaving(true);
       setError("");
@@ -386,6 +413,25 @@ export default function Tavoli() {
       await loadReservations(visibleMonth);
     } catch (deleteError) {
       setReservationError(deleteError.message || "Errore durante la cancellazione");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateReservationStatus(reservation, status) {
+    if (!reservation?.id || saving || reservation.status === status) return;
+    try {
+      setSaving(true);
+      setReservationError("");
+      setMessage("");
+      await apiPatch(`/reservations/${reservation.id}`, { status });
+      setMessage(status === "seated" ? `${reservation.name} segnato come arrivato.` : "Prenotazione ripristinata.");
+      if (editingReservationId === reservation.id) {
+        setReservationForm((value) => ({ ...value, status }));
+      }
+      await loadReservations(visibleMonth);
+    } catch (statusError) {
+      setReservationError(statusError.message || "Non riesco ad aggiornare lo stato della prenotazione.");
     } finally {
       setSaving(false);
     }
@@ -409,7 +455,7 @@ export default function Tavoli() {
         <section className="tables-calendar-toolbar">
           <div>
             <span>Sala e prenotazioni</span>
-            <h1>{tables.length} tavoli</h1>
+            <h1>{tables.length} tavoli attivi</h1>
           </div>
           <div className="tables-calendar-legend" aria-label="Legenda stati tavolo">
             <span><i className="free" />Libero</span>
@@ -434,73 +480,100 @@ export default function Tavoli() {
         ) : null}
         {message ? <div className="tables-inline-message is-success"><span>{message}</span></div> : null}
 
-        <section className="table-calendar-card">
-          <header>
-            <div>
-              <span>Calendario prenotazioni</span>
-              <h2>{formatMonth(visibleMonth)}</h2>
+        <section className="tables-agenda-shell">
+          <section className="table-calendar-card">
+            <header>
+              <div>
+                <span>Calendario prenotazioni</span>
+                <h2>{formatMonth(visibleMonth)}</h2>
+              </div>
+              <div>
+                <button type="button" title="Mese precedente" aria-label="Mese precedente" onClick={() => setVisibleMonth((value) => addMonths(value, -1))}>‹</button>
+                <button type="button" onClick={() => { setVisibleMonth(monthKey(today)); selectDate(today); }}>Oggi</button>
+                <button type="button" title="Mese successivo" aria-label="Mese successivo" onClick={() => setVisibleMonth((value) => addMonths(value, 1))}>›</button>
+              </div>
+            </header>
+            {reservationLoading ? <div className="table-calendar-loading">Aggiorno l'agenda...</div> : null}
+            <div className="table-calendar-weekdays">
+              {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((day) => <span key={day}>{day}</span>)}
             </div>
-            <div>
-              <button type="button" title="Mese precedente" aria-label="Mese precedente" onClick={() => setVisibleMonth((value) => addMonths(value, -1))}>‹</button>
-              <button type="button" onClick={() => { setVisibleMonth(monthKey(today)); selectDate(today); }}>Oggi</button>
-              <button type="button" title="Mese successivo" aria-label="Mese successivo" onClick={() => setVisibleMonth((value) => addMonths(value, 1))}>›</button>
+            <div className="table-calendar-grid">
+              {monthDays.map((date) => {
+                const count = reservationsByDate.get(date) || 0;
+                const outside = monthKey(date) !== visibleMonth;
+                return (
+                  <button
+                    type="button"
+                    key={date}
+                    className={`${date === selectedDate ? "is-selected" : ""} ${date === today ? "is-today" : ""} ${outside ? "is-outside" : ""} ${count ? "has-reservations" : ""}`}
+                    onClick={() => selectDate(date)}
+                    aria-label={`${formatSelectedDate(date)}${count ? `, ${count} prenotazioni` : ""}`}
+                  >
+                    <b>{parseDateKey(date).getDate()}</b>
+                    {count ? <small>{count}</small> : null}
+                  </button>
+                );
+              })}
             </div>
-          </header>
-          {reservationLoading ? <div className="table-calendar-loading">Aggiorno l'agenda...</div> : null}
-          <div className="table-calendar-weekdays">
-            {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((day) => <span key={day}>{day}</span>)}
-          </div>
-          <div className="table-calendar-grid">
-            {monthDays.map((date) => {
-              const count = reservationsByDate.get(date) || 0;
-              const outside = monthKey(date) !== visibleMonth;
-              return (
-                <button
-                  type="button"
-                  key={date}
-                  className={`${date === selectedDate ? "is-selected" : ""} ${date === today ? "is-today" : ""} ${outside ? "is-outside" : ""}`}
-                  onClick={() => selectDate(date)}
-                >
-                  <b>{parseDateKey(date).getDate()}</b>
-                  {count ? <small>{count}</small> : null}
-                </button>
-              );
-            })}
-          </div>
-        </section>
+          </section>
 
-        <section className="tables-day-summary">
-          <div>
-            <span>Giorno selezionato</span>
-            <h2>{formatSelectedDate(selectedDate)}</h2>
-          </div>
-          <div className="tables-day-metrics">
-            <span><b>{dayReservations.length}</b> prenotazioni</span>
-            <span><b>{dailyGuests}</b> coperti</span>
-            <span><b>{arrivedReservations}</b> arrivati</span>
-          </div>
-          <div className="tables-day-tools">
-            <div>
-              <button type="button" className={selectedDate === today ? "is-active" : ""} onClick={() => selectDate(today)}>Oggi</button>
-              <button type="button" className={selectedDate === addDays(today, 1) ? "is-active" : ""} onClick={() => selectDate(addDays(today, 1))}>Domani</button>
+          <section className="tables-day-summary">
+            <div className="tables-day-summary__head">
+              <div>
+                <span>Agenda del giorno</span>
+                <h2>{formatSelectedDate(selectedDate)}</h2>
+              </div>
+              <div className="tables-day-metrics">
+                <span><b>{waitingReservations}</b> da accogliere</span>
+                <span><b>{arrivedReservations}</b> arrivati</span>
+                <span><b>{dailyGuests}</b> persone</span>
+              </div>
             </div>
-            <input
-              type="search"
-              value={reservationQuery}
-              onChange={(event) => setReservationQuery(event.target.value)}
-              placeholder="Cerca nome, telefono o tavolo"
-              aria-label="Cerca nelle prenotazioni"
-            />
-          </div>
-          <div className="tables-day-reservations">
-            {filteredDayReservations.length ? filteredDayReservations.map((reservation) => (
-              <button type="button" key={reservation.id} onClick={() => editReservation(reservation)}>
-                <b>{reservation.time}</b>
-                <span>{reservation.tableName || `Tavolo ${reservation.tableCode || "?"}`}</span>
-                <small>{reservation.name}</small>
+            <div className="tables-day-tools">
+              <div>
+                <button type="button" className={selectedDate === today ? "is-active" : ""} onClick={() => selectDate(today)}>Oggi</button>
+                <button type="button" className={selectedDate === addDays(today, 1) ? "is-active" : ""} onClick={() => selectDate(addDays(today, 1))}>Domani</button>
+              </div>
+              <input
+                type="search"
+                value={reservationQuery}
+                onChange={(event) => setReservationQuery(event.target.value)}
+                placeholder="Cerca nome, telefono o tavolo"
+                aria-label="Cerca nelle prenotazioni"
+              />
+            </div>
+            <div className="tables-reservation-filters" aria-label="Filtra le prenotazioni">
+              <button type="button" className={reservationView === "all" ? "is-active" : ""} onClick={() => setReservationView("all")}>
+                Tutte <b>{dayReservations.length}</b>
               </button>
-            )) : <p>{dayReservations.length ? "Nessun risultato per questa ricerca." : "Nessuna prenotazione: tutti i tavoli sono disponibili."}</p>}
-          </div>
+              <button type="button" className={reservationView === "booked" ? "is-active" : ""} onClick={() => setReservationView("booked")}>
+                Da accogliere <b>{waitingReservations}</b>
+              </button>
+              <button type="button" className={reservationView === "seated" ? "is-active" : ""} onClick={() => setReservationView("seated")}>
+                Arrivate <b>{arrivedReservations}</b>
+              </button>
+            </div>
+            <div className="tables-day-reservations">
+              {filteredDayReservations.length ? filteredDayReservations.map((reservation) => (
+                <article className={`reservation-agenda-item is-${reservation.status}`} key={reservation.id}>
+                  <button type="button" className="reservation-agenda-item__main" onClick={() => editReservation(reservation)}>
+                    <b>{reservation.time}</b>
+                    <span>{reservation.tableName || `Tavolo ${reservation.tableCode || "?"}`}</span>
+                    <strong>{reservation.name}</strong>
+                    <small>{reservation.guests} persone{reservation.phone ? ` · ${reservation.phone}` : ""}</small>
+                  </button>
+                  <button
+                    type="button"
+                    className="reservation-agenda-item__status"
+                    disabled={saving}
+                    onClick={() => updateReservationStatus(reservation, reservation.status === "seated" ? "booked" : "seated")}
+                  >
+                    {reservation.status === "seated" ? "Ripristina" : "Arrivata"}
+                  </button>
+                </article>
+              )) : <p>{dayReservations.length ? "Nessuna prenotazione corrisponde ai filtri." : "Nessuna prenotazione: tutti i tavoli sono disponibili."}</p>}
+            </div>
+          </section>
         </section>
 
         <section className="tables-calendar-layout">
@@ -525,10 +598,11 @@ export default function Tavoli() {
                 <button
                   type="button"
                   key={table.id}
-                  onClick={() => selectTable(table)}
-                  className={`table-compact table-compact--${table.visual.kind} ${selectedTableId === table.id ? "is-selected" : ""}`}
-                >
-                  <b>{table.code || table.name}</b>
+                   onClick={() => selectTable(table)}
+                   className={`table-compact table-compact--${table.visual.kind} ${selectedTableId === table.id ? "is-selected" : ""}`}
+                   aria-label={`${formatTableLabel(table)}, ${table.visual.label}, ${table.visual.detail}`}
+                 >
+                   <b>{formatTableLabel(table)}</b>
                   <span>{table.visual.label}</span>
                   <small>{table.visual.detail}</small>
                   {table.visual.total ? <em>{formatEuro(table.visual.total)}</em> : null}
@@ -545,7 +619,7 @@ export default function Tavoli() {
                     <span>Tavolo selezionato</span>
                     <h2>{selectedTable.name || `Tavolo ${selectedTable.code}`}</h2>
                   </div>
-                  <button type="button" title="Chiudi" onClick={() => setSelectedTableId("")}>×</button>
+                  <button type="button" title="Chiudi" aria-label="Chiudi dettaglio tavolo" onClick={() => setSelectedTableId("")}>×</button>
                 </header>
 
                 <div className={`table-booking-status is-${selectedTable.visual.kind}`}>
@@ -557,13 +631,23 @@ export default function Tavoli() {
                   <div className="table-booking-existing">
                     <span>Prenotazioni del tavolo</span>
                     {selectedTable.dayReservations.map((reservation) => (
-                      <button type="button" key={reservation.id} onClick={() => editReservation(reservation)}>
-                        <b>{reservation.time}</b>
-                        <span>{reservation.name}</span>
-                        <small>{reservation.guests} persone · {STATUS_LABELS[reservation.status]}</small>
-                      </button>
+                      <div className={`table-booking-existing__item is-${reservation.status}`} key={reservation.id}>
+                        <button type="button" className="table-booking-existing__main" onClick={() => editReservation(reservation)}>
+                          <b>{reservation.time}</b>
+                          <span>{reservation.name}</span>
+                          <small>{reservation.guests} persone · {STATUS_LABELS[reservation.status]}</small>
+                        </button>
+                        <button
+                          type="button"
+                          className="table-booking-existing__status"
+                          disabled={saving}
+                          onClick={() => updateReservationStatus(reservation, reservation.status === "seated" ? "booked" : "seated")}
+                        >
+                          {reservation.status === "seated" ? "Ripristina" : "Arrivata"}
+                        </button>
+                      </div>
                     ))}
-                    <button type="button" className="add" onClick={() => startReservation(selectedTable)}>+ Altra prenotazione</button>
+                    <button type="button" className="add" onClick={() => startReservation(selectedTable)}>Aggiungi un'altra prenotazione</button>
                   </div>
                 ) : null}
 
@@ -579,10 +663,10 @@ export default function Tavoli() {
                     <label>Persone<input type="number" min="1" max="300" required value={reservationForm.guests} onChange={(event) => setReservationForm((value) => ({ ...value, guests: event.target.value }))} /></label>
                   </div>
                   <label>Telefono<input inputMode="tel" value={reservationForm.phone} onChange={(event) => setReservationForm((value) => ({ ...value, phone: event.target.value }))} /></label>
-                  <label>Stato<select value={reservationForm.status} onChange={(event) => setReservationForm((value) => ({ ...value, status: event.target.value }))}><option value="booked">Prenotata</option><option value="seated">Arrivata</option><option value="no_show">Non presentato</option></select></label>
+                  {editingReservation ? <label>Stato<select value={reservationForm.status} onChange={(event) => setReservationForm((value) => ({ ...value, status: event.target.value }))}><option value="booked">Prenotata</option><option value="seated">Arrivata</option><option value="no_show">Non presentato</option></select></label> : null}
                   <label>Note<textarea rows="2" value={reservationForm.notes} onChange={(event) => setReservationForm((value) => ({ ...value, notes: event.target.value }))} /></label>
                   <div className="table-booking-actions">
-                    <button type="submit" disabled={saving}>{saving ? "Salvo..." : editingReservation ? "Aggiorna" : "Prenota tavolo"}</button>
+                    <button type="submit" disabled={saving}>{saving ? "Salvo..." : editingReservation ? "Salva modifiche" : "Conferma prenotazione"}</button>
                     {editingReservation ? <button type="button" className="danger" onClick={cancelReservation}>Cancella</button> : null}
                   </div>
                 </form>
@@ -594,8 +678,8 @@ export default function Tavoli() {
               </>
             ) : (
               <div className="table-booking-placeholder">
-                <b>Seleziona un tavolo</b>
-                <p>Il giorno è già impostato. Tocca un tavolo verde per aggiungere la prenotazione.</p>
+                 <b>Seleziona un tavolo</b>
+                 <p>Il giorno è già impostato. Seleziona un tavolo libero per aggiungere la prenotazione.</p>
               </div>
             )}
           </aside>

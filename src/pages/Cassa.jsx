@@ -677,6 +677,17 @@ function Cassa() {
 
   const tableTiles = Array.from({ length: totaleTavoli }, (_, i) => i + 1);
   const selectedHasOrder = Boolean(ordineSelezionato);
+  const selectedTileKind = ordineSelezionato
+    ? getTableTileKind({
+      ordine: ordineSelezionato,
+      contoRichiesto: Boolean(
+        ordineSelezionato.billRequested ||
+        ordineSelezionato.paymentStatus === "pending" ||
+        richiesteConto[String(tavoloSelezionato)]
+      ),
+      cameriereRichiesto: Boolean(richiesteCameriere[String(tavoloSelezionato)]),
+    })
+    : "free";
 
   return (
     <div style={glowPageStyle}>
@@ -699,11 +710,12 @@ function Cassa() {
         <section className="pos-topbar">
           <div>
             <span>Cassa live</span>
-            <strong>{tavoliAperti} aperti</strong>
+            <strong>Servizio in corso</strong>
           </div>
           <div className="pos-topbar__stats">
-            <b>{contiRichiesti}</b><small>conti</small>
-            <b>{formatEuro(incassoPotenziale)}</b><small>potenziale</small>
+            <span><b>{tavoliAperti}</b><small>tavoli aperti</small></span>
+            <span className={contiRichiesti ? "is-alert" : ""}><b>{contiRichiesti}</b><small>conti richiesti</small></span>
+            <span><b>{formatEuro(incassoPotenziale)}</b><small>da incassare</small></span>
           </div>
           <button type="button" onClick={syncOrdini}>Aggiorna</button>
         </section>
@@ -719,12 +731,17 @@ function Cassa() {
         <section className="pos-layout">
           <div className="pos-table-map">
             <div className="pos-map-head">
-              <div>
-                <strong>Tavoli</strong>
-                <span>{totaleTavoli} totali - clicca il numero richiesto dal cliente</span>
-              </div>
-              <div className="pos-legend">
-                <i className="free" /> libero <i className="open" /> aperto <i className="bill" /> conto
+               <div>
+                 <strong>Tavoli</strong>
+                 <span>{totaleTavoli} tavoli · seleziona un tavolo per aprire il conto</span>
+               </div>
+               <div className="pos-legend">
+                 <span><i className="free" />Libero</span>
+                 <span><i className="open" />Ordine</span>
+                 <span><i className="progress" />Preparazione</span>
+                 <span><i className="ready" />Pronto</span>
+                 <span><i className="bill" />Conto</span>
+                 <span><i className="staff" />Assistenza</span>
               </div>
             </div>
 
@@ -754,10 +771,11 @@ function Cassa() {
                       key={tavolo}
                       type="button"
                       onClick={() => setTavoloSelezionato(tavolo)}
-                      className={`cash-table-card cash-table-card--${tileKind} ${evidenziato ? "is-live" : ""} ${selected ? "is-selected" : ""}`}
-                      style={{ animation: evidenziato ? "pulseTableRealtime 1.2s ease-in-out infinite" : "none" }}
-                    >
-                      <div className="cash-table-card__number">{tavolo}</div>
+                       className={`cash-table-card cash-table-card--${tileKind} ${evidenziato ? "is-live" : ""} ${selected ? "is-selected" : ""}`}
+                       style={{ animation: evidenziato ? "pulseTableRealtime 1.2s ease-in-out infinite" : "none" }}
+                       aria-label={`Tavolo ${tavolo}, ${stato.label}${ordine ? `, ${formatEuro(totale)}` : ""}`}
+                     >
+                       <div className="cash-table-card__number">T{tavolo}</div>
                       <div className="cash-table-card__state">{stato.label}</div>
                       <div className="cash-table-card__total">{ordine ? formatEuro(totale) : "-"}</div>
                     </button>
@@ -773,7 +791,7 @@ function Cassa() {
                 <span>Tavolo selezionato</span>
                 <strong>{tavoloSelezionato ? `Tavolo ${tavoloSelezionato}` : "Nessun tavolo"}</strong>
               </div>
-              {tavoloSelezionato ? <button type="button" onClick={() => setTavoloSelezionato(null)}>x</button> : null}
+              {tavoloSelezionato ? <button type="button" aria-label="Chiudi dettaglio tavolo" onClick={() => setTavoloSelezionato(null)}>×</button> : null}
             </div>
 
             {!tavoloSelezionato ? (
@@ -786,6 +804,10 @@ function Cassa() {
 
             {ordineSelezionato ? (
               <div className="pos-bill">
+                <div className={`pos-order-status is-${selectedTileKind}`}>
+                  <span>Stato tavolo</span>
+                  <b>{getStatoOrdineCassa(ordineSelezionato).label}</b>
+                </div>
                 <div className="pos-total-card">
                   <span>Totale</span>
                   <strong>{formatEuro(totaleFinale(ordineSelezionato))}</strong>
@@ -798,7 +820,7 @@ function Cassa() {
 
                 <div className="pos-items-list">
                   {(ordineSelezionato.piatti || []).map((p, index) => (
-                    <div key={`${p.id || p.nome}-${index}`}>
+                    <div className={`is-${String(p.stato || "nuovo").toLowerCase()}`} key={`${p.id || p.nome}-${index}`}>
                       <b>{parseNumber(p.qty || 1)}x {p.nome}</b>
                       <span>{formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</span>
                     </div>
