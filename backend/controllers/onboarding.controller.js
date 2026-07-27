@@ -20,6 +20,15 @@ function normalizeCode(value) {
   return String(value || "").trim().toUpperCase().replace(/\s+/g, "-").replace(/[^A-Z0-9-_]/g, "").slice(0, 30);
 }
 
+function getTableNumber(table) {
+  const candidates = [table?.code, table?.name];
+  for (const value of candidates) {
+    const match = String(value ?? "").trim().match(/^(?:T(?:AVOLO)?\s*)?0*(\d+)$/i);
+    if (match) return Number(match[1]);
+  }
+  return null;
+}
+
 function parsePositiveInt(value, fallback, max = 300) {
   const n = Number(value);
   if (!Number.isInteger(n) || n <= 0) return fallback;
@@ -84,15 +93,23 @@ export const autoSetupRestaurant = async (req, res) => {
     const result = await prisma.$transaction(async (tx) => {
       const existingTables = await tx.table.findMany({
         where: { restaurantId },
-        select: { id: true, code: true, isActive: true },
+        select: { id: true, name: true, code: true, isActive: true },
       });
-      const existingByCode = new Map(existingTables.map((table) => [table.code, table]));
+      const existingByCode = new Map(existingTables.map((table) => [normalizeCode(table.code), table]));
+      const existingByNumber = new Map();
+      existingTables.forEach((table) => {
+        const number = getTableNumber(table);
+        const current = number === null ? null : existingByNumber.get(number);
+        if (number !== null && (!current || (!current.isActive && table.isActive))) {
+          existingByNumber.set(number, table);
+        }
+      });
       const tablesToCreate = [];
       let tablesReactivated = 0;
 
       for (let i = 1; i <= tablesCount; i += 1) {
         const code = normalizeCode(`T${i}`);
-        const existing = existingByCode.get(code);
+        const existing = existingByNumber.get(i) || existingByCode.get(code);
         const zone = zoneMode === "zones" ? (i <= Math.ceil(tablesCount / 2) ? "Sala" : "Dehors") : null;
 
         if (existing) {

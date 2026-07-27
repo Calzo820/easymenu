@@ -17,6 +17,31 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function tableIdentity(table) {
+  const candidates = [table?.code, table?.name];
+  for (const value of candidates) {
+    const match = String(value ?? "").trim().match(/^(?:T(?:AVOLO)?\s*)?0*(\d+)$/i);
+    if (match) return `number:${Number(match[1])}`;
+  }
+  return `table:${String(table?.code || table?.name || table?.id || "").trim().toLowerCase()}`;
+}
+
+function uniqueOperationalTables(tables, activeTableIds) {
+  const byIdentity = new Map();
+
+  for (const table of tables) {
+    const identity = tableIdentity(table);
+    const current = byIdentity.get(identity);
+    const occupied = activeTableIds.has(table.id);
+
+    if (!current || (!activeTableIds.has(current.id) && occupied)) {
+      byIdentity.set(identity, table);
+    }
+  }
+
+  return [...byIdentity.values()];
+}
+
 function getRange(query) {
   const now = new Date();
   const from = query.from
@@ -362,8 +387,9 @@ export const getAnalyticsSummary = async (req, res) => {
     const activeTableIds = new Set(
       activeOrders.map((order) => order.tableId).filter(Boolean)
     );
+    const operationalTables = uniqueOperationalTables(tables, activeTableIds);
 
-    const activeTables = tables
+    const activeTables = operationalTables
       .filter((table) => activeTableIds.has(table.id))
       .map((table) => ({
         id: table.id,
@@ -372,7 +398,7 @@ export const getAnalyticsSummary = async (req, res) => {
         zone: table.zone,
       }));
 
-    const tableMap = tables.slice(0, 60).map((table) => ({
+    const tableMap = operationalTables.slice(0, 60).map((table) => ({
       id: table.id,
       name: table.name,
       code: table.code,
@@ -492,8 +518,8 @@ export const getAnalyticsSummary = async (req, res) => {
         openOrders: activeOrders.length,
 
         activeTables: activeTables.length,
-        totalTables: tables.length,
-        freeTables: Math.max(0, tables.length - activeTables.length),
+        totalTables: operationalTables.length,
+        freeTables: Math.max(0, operationalTables.length - activeTables.length),
 
         menuItems: menuItems.length,
         unavailableItems: unavailableItems.length,
@@ -569,7 +595,7 @@ export const getAnalyticsSummary = async (req, res) => {
 
       setup: {
         menuItems: menuItems.length,
-        tables: tables.length,
+        tables: operationalTables.length,
         staffUsers: staffUsersCount,
       },
 

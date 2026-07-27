@@ -673,6 +673,44 @@ body .em-sidebar__avatar {
   gap: 10px !important;
 }
 
+.dash-main-grid--focus {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px) !important;
+}
+
+.dash-table-map {
+  padding: 14px !important;
+}
+
+.dash-table-map .dash-panel-head {
+  margin-bottom: 10px !important;
+}
+
+.dash-table-map .dash-panel-head h2 {
+  font-size: 19px !important;
+}
+
+.dash-table-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+.dash-table-seat {
+  min-height: 48px !important;
+  padding: 6px 4px !important;
+  border-radius: 6px !important;
+}
+
+.dash-table-seat b {
+  font-size: 14px !important;
+  line-height: 1 !important;
+}
+
+.dash-table-seat span {
+  margin-top: 3px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+}
+
 .dash-ready-service__grid > div {
   border-radius: 6px !important;
   background: var(--premium-surface-soft) !important;
@@ -1027,6 +1065,14 @@ body .em-sidebar__avatar {
   .landing-final h2 {
     font-size: 34px !important;
   }
+
+  .dash-main-grid--focus {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dash-table-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  }
 }
 
 @media (max-width: 680px) {
@@ -1136,6 +1182,10 @@ body .em-sidebar__avatar {
   .dash-hero-pro h1,
   .management-hero-title {
     font-size: 28px !important;
+  }
+
+  .dash-table-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 
   .auth-shell {
