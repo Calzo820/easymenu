@@ -1,7 +1,9 @@
 import { API_URL } from "./api";
 
 const QUEUE_KEY = "easymenu_pending_public_orders_v2";
+const SYNCED_KEY_PREFIX = "easymenu_synced_public_order_v1:";
 const MAX_RETRIES = 8;
+const REQUEST_TIMEOUT_MS = 20000;
 
 function safeJson(value, fallback) {
   try { return JSON.parse(value); } catch { return fallback; }
@@ -21,6 +23,26 @@ export function pendingPublicOrdersCount() {
   return getPendingPublicOrders().length;
 }
 
+function syncedOrderKey(queueId) {
+  return `${SYNCED_KEY_PREFIX}${queueId}`;
+}
+
+function rememberSyncedPublicOrder(queueId, result) {
+  if (typeof window === "undefined" || !queueId) return;
+  localStorage.setItem(syncedOrderKey(queueId), JSON.stringify({
+    result,
+    syncedAt: new Date().toISOString(),
+  }));
+}
+
+export function consumeSyncedPublicOrder(queueId) {
+  if (typeof window === "undefined" || !queueId) return null;
+  const key = syncedOrderKey(queueId);
+  const stored = safeJson(localStorage.getItem(key) || "null", null);
+  localStorage.removeItem(key);
+  return stored?.result || null;
+}
+
 export function enqueuePublicOrder(payload) {
   const queued = {
     id: payload.clientRequestId || `offline:${Date.now()}:${Math.random().toString(36).slice(2)}`,
@@ -36,21 +58,45 @@ export function enqueuePublicOrder(payload) {
 }
 
 async function postPublicOrder(payload) {
-  const response = await fetch(`${API_URL}/orders/public`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.message || `Ordine non sincronizzato (${response.status})`);
-  return data;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${API_URL}/orders/public`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": payload.clientRequestId || "",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const error = new Error(data?.message || `Ordine non sincronizzato (${response.status})`);
+      error.status = response.status;
+      error.transient = response.status >= 500 || response.status === 429;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      error.message = "Il server non ha risposto in tempo";
+      error.transient = true;
+    } else if (error?.name === "TypeError" || /failed to fetch|network/i.test(error?.message || "")) {
+      error.transient = true;
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 export async function sendPublicOrderResilient(payload) {
   try {
     return await postPublicOrder(payload);
   } catch (error) {
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    if ((typeof navigator !== "undefined" && navigator.onLine === false) || error?.transient) {
       const queued = enqueuePublicOrder(payload);
       return { queued: true, order: { id: queued.id, publicToken: null, status: "queued", createdAt: queued.createdAt } };
     }
@@ -67,8 +113,12 @@ export async function flushPendingPublicOrders() {
 
   for (const item of queue) {
     try {
-      await postPublicOrder(item.payload);
+      const result = await postPublicOrder(item.payload);
       sent += 1;
+      rememberSyncedPublicOrder(item.id, result);
+      window.dispatchEvent(new CustomEvent("easymenu:offline-order-synced", {
+        detail: { queueId: item.id, result },
+      }));
     } catch (error) {
       const retries = Number(item.retries || 0) + 1;
       if (retries < MAX_RETRIES) {

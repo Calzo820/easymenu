@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/api";
+import { createRestaurantSocket } from "../lib/realtime";
 import { glowPageStyle } from "../styles/pageStyles";
 
 const ACTIVE_RESERVATION_STATUSES = new Set(["booked", "seated"]);
@@ -217,6 +218,29 @@ export default function Tavoli() {
   useEffect(() => {
     loadPage();
   }, [loadPage]);
+
+  useEffect(() => {
+    const socket = createRestaurantSocket();
+    const refreshCore = () => loadCore().catch(() => {});
+    const refreshReservations = () => loadReservationAgenda(visibleMonth);
+    socket.on("new-order", refreshCore);
+    socket.on("order-updated", refreshCore);
+    socket.on("order-closed", refreshCore);
+    socket.on("table-updated", refreshCore);
+    socket.on("reservation-updated", refreshReservations);
+    socket.on("connect", () => {
+      refreshCore();
+      refreshReservations();
+    });
+    const fallback = window.setInterval(() => {
+      refreshCore();
+      refreshReservations();
+    }, 30000);
+    return () => {
+      socket.disconnect();
+      window.clearInterval(fallback);
+    };
+  }, [loadCore, loadReservationAgenda, visibleMonth]);
 
   const statusMap = useMemo(() => {
     const map = new Map();

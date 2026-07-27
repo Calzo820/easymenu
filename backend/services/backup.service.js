@@ -4,6 +4,7 @@ import path from "node:path";
 import { gzip } from "node:zlib";
 import { promisify } from "node:util";
 import prisma from "../lib/prisma.js";
+import { logError } from "../lib/logger.js";
 
 const gzipAsync = promisify(gzip);
 const MAGIC = Buffer.from("EASYMENU1");
@@ -32,6 +33,10 @@ async function collectBackupData() {
     subscriptions,
     orderCounters,
     errorLogs,
+    cashClosures,
+    auditLogs,
+    stockMovements,
+    printJobs,
   ] = await Promise.all([
     prisma.restaurant.findMany(),
     prisma.user.findMany(),
@@ -47,6 +52,10 @@ async function collectBackupData() {
     prisma.saaSSubscription.findMany(),
     prisma.orderCounter.findMany(),
     prisma.errorLog.findMany(),
+    prisma.cashClosure.findMany(),
+    prisma.auditLog.findMany(),
+    prisma.stockMovement.findMany(),
+    prisma.printJob.findMany(),
   ]);
 
   return {
@@ -68,6 +77,10 @@ async function collectBackupData() {
       subscriptions,
       orderCounters,
       errorLogs,
+      cashClosures,
+      auditLogs,
+      stockMovements,
+      printJobs,
     },
   };
 }
@@ -127,6 +140,12 @@ export async function runEncryptedBackup() {
   if (upload.uploaded && String(process.env.BACKUP_KEEP_LOCAL || "true").toLowerCase() === "false") {
     await fs.unlink(filePath);
   }
+  await logError({
+    source: "backup-success",
+    level: "info",
+    message: "Backup cifrato completato",
+    metadata: { fileName, bytes: encrypted.length, uploaded: upload.uploaded },
+  });
   return { fileName, bytes: encrypted.length, uploaded: upload.uploaded };
 }
 
@@ -139,7 +158,15 @@ export function startBackupScheduler() {
   const intervalMs = Math.max(60 * 60 * 1000, intervalHours * 60 * 60 * 1000);
   const run = () => runEncryptedBackup()
     .then((result) => console.log(`Backup cifrato completato: ${result.fileName}`))
-    .catch((error) => console.error("backup error:", error.message));
+    .catch((error) => {
+      console.error("backup error:", error.message);
+      logError({
+        source: "backup-failed",
+        level: "error",
+        message: error.message || "Backup non riuscito",
+        error,
+      }).catch(() => {});
+    });
   backupTimer = setInterval(run, intervalMs);
   backupTimer.unref?.();
   setTimeout(run, 30000).unref?.();

@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { publicApiGet, publicApiPost } from "../lib/api";
+import { consumeSyncedPublicOrder, sendPublicOrderResilient } from "../lib/offlineOrders";
+import { createOrderFingerprint, guardDoubleSubmit } from "../lib/orderGuards";
 import { demoDishImage, demoRestaurantLogo } from "../lib/demoVisuals";
 import "../styles/customer-menu.css";
 
@@ -219,6 +221,35 @@ export default function Cliente() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const pendingSubmission = useRef({ fingerprint: "", requestId: "" });
+
+  useEffect(() => {
+    const applySyncedOrder = (queueId, result) => {
+      if (!queueId || order?.id !== queueId) return;
+      const syncedOrder = result?.order || result;
+      if (!syncedOrder?.id) return;
+
+      setOrder((current) => {
+        if (current?.id !== queueId) return current;
+        const next = { ...current, ...syncedOrder, status: syncedOrder.status || "pending" };
+        localStorage.setItem(orderKey(slug, tableToken), JSON.stringify(next));
+        return next;
+      });
+      setServiceMessage("Ordine sincronizzato e ricevuto dal ristorante.");
+      pendingSubmission.current = { fingerprint: "", requestId: "" };
+    };
+
+    const persistedResult = order?.id ? consumeSyncedPublicOrder(order.id) : null;
+    if (persistedResult) applySyncedOrder(order.id, persistedResult);
+
+    const onSynced = (event) => {
+      const { queueId, result } = event.detail || {};
+      applySyncedOrder(queueId, result);
+    };
+
+    window.addEventListener("easymenu:offline-order-synced", onSynced);
+    return () => window.removeEventListener("easymenu:offline-order-synced", onSynced);
+  }, [order?.id, slug, tableToken]);
 
   useEffect(() => {
     let active = true;
@@ -392,15 +423,31 @@ export default function Cliente() {
         tableToken,
         customerName: "",
         notes: "",
-        clientRequestId: `${slug}:${tableToken}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
         items: cartItems.map((item) => ({ menuItemId: item.id, quantity: item.quantity, notes: item.note || "" })),
       };
+      const fingerprint = createOrderFingerprint(payload);
+      if (!guardDoubleSubmit(fingerprint)) {
+        setError("Ordine già in invio. Attendi la conferma prima di riprovare.");
+        return;
+      }
+      if (pendingSubmission.current.fingerprint !== fingerprint) {
+        pendingSubmission.current = {
+          fingerprint,
+          requestId: `${slug}:${tableToken}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
+        };
+      }
+      payload.clientRequestId = pendingSubmission.current.requestId;
 
       let createdOrder = null;
 
       try {
-        const data = await publicApiPost("/orders/public", payload);
+        const data = await sendPublicOrderResilient(payload);
         createdOrder = data.order || data;
+        if (data.queued) {
+          setServiceMessage("Connessione instabile: ordine salvato sul dispositivo e invio automatico in corso.");
+        } else {
+          pendingSubmission.current = { fingerprint: "", requestId: "" };
+        }
       } catch (err) {
         if (!isDemo) throw err;
         createdOrder = {

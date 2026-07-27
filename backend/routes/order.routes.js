@@ -26,15 +26,15 @@ router.get("/public/:token", getPublicOrderByTokenOrId);
 router.post("/public/:token/request-bill", requestPublicBill);
 router.post("/public/:token/call-staff", requestPublicStaff);
 
-router.get("/", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, getOrders);
-router.get("/kitchen/list", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "kitchen", "bar", "cashier"]), getServiceOrders);
+router.get("/", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin"]), getOrders);
+router.get("/kitchen/list", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "kitchen", "bar"]), getServiceOrders);
 
 router.patch(
   "/:id/status",
   requireAuth,
   denyImpersonatedPrivateData,
   requireActiveSubscription,
-  requireRole(["owner", "admin", "kitchen", "bar", "cashier"]),
+  requireRole(["owner", "admin", "kitchen", "bar"]),
   validateOrderStatusPayload,
   updateOrderStatus
 );

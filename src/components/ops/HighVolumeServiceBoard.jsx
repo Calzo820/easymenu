@@ -77,7 +77,7 @@ function serviceSummary(items) {
   return `${subito || items.length} subito`;
 }
 
-function ServiceOrderCard({ order, itemsKey, updating, onNext, onBack, readyLabel, warnAfter, lateAfter }) {
+function ServiceOrderCard({ order, itemsKey, updating, onNext, onBack, onPrint, readyLabel, warnAfter, lateAfter }) {
   const items = order[itemsKey] || [];
   const status = getOrderStatus(order);
   const minutes = order.timerMinuti ?? 0;
@@ -123,6 +123,11 @@ function ServiceOrderCard({ order, itemsKey, updating, onNext, onBack, readyLabe
       {order.notes || order.nota ? <div className="kds-ticket__note">{order.notes || order.nota}</div> : null}
 
       <footer className="kds-ticket__actions">
+        {onPrint ? (
+          <button className="kds-ticket__ghost" type="button" onClick={() => onPrint(order)} disabled={updating}>
+            Stampa
+          </button>
+        ) : null}
         {status !== "pending" ? (
           <button className="kds-ticket__ghost" type="button" onClick={() => onBack(order.id, status)} disabled={updating}>
             Indietro
@@ -154,6 +159,12 @@ export default function HighVolumeServiceBoard({
   onRefresh,
   onNext,
   onBack,
+  onPrint,
+  autoPrint = false,
+  onToggleAutoPrint,
+  pendingPrintJobs = 0,
+  printMode = "browser",
+  printerStatus,
   readyLabel,
 }) {
   const [query, setQuery] = useState("");
@@ -216,9 +227,26 @@ export default function HighVolumeServiceBoard({
 
         <div className="kds-topbar__tools">
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca tavolo o piatto" />
+          {onToggleAutoPrint ? (
+            <button
+              type="button"
+              className={autoPrint ? "is-active" : ""}
+              onClick={() => onToggleAutoPrint(!autoPrint)}
+              title={printMode === "bridge" ? "Stampante locale collegata" : "Usa la finestra di stampa del browser"}
+            >
+              Auto stampa {autoPrint ? "ON" : "OFF"}
+            </button>
+          ) : null}
           <button type="button" onClick={() => setDense((value) => !value)}>{dense ? "Comoda" : "Densa"}</button>
         </div>
       </section>
+
+      {onToggleAutoPrint ? (
+        <div className={`kds-printer-status kds-printer-status--${printerStatus?.tone || "idle"}`}>
+          <span>{printMode === "bridge" ? "Stampante termica" : "Stampa browser"}</span>
+          <b>{pendingPrintJobs > 0 ? `${pendingPrintJobs} in coda` : printerStatus?.message || "Coda pronta"}</b>
+        </div>
+      ) : null}
 
       <section className="kds-pass-strip" aria-label="Regia servizio">
         <div>
@@ -263,6 +291,7 @@ export default function HighVolumeServiceBoard({
                       updating={updatingIds.includes(order.id)}
                       onNext={onNext}
                       onBack={onBack}
+                      onPrint={onPrint}
                       readyLabel={readyLabel}
                       warnAfter={warnAfter}
                       lateAfter={lateAfter}

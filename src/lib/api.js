@@ -1,6 +1,20 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 export const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 60000);
 
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function dispatchConnectionStatus(detail) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("easymenu:connection-status", { detail }));
+}
+
+export function createClientRequestId(prefix = "request") {
+  const random = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}:${random}`;
+}
+
 export function getAuthToken() {
   return localStorage.getItem("auth_token") || "";
 }
@@ -46,13 +60,22 @@ function buildUrl(endpoint) {
   return `${API_URL}${endpoint}`;
 }
 
-async function performFetch(endpoint, options = {}, withAuth = true) {
+async function performFetch(endpoint, options = {}, withAuth = true, attempt = 0) {
   const {
     timeoutMs = API_TIMEOUT_MS,
     skipRefresh,
+    retries,
+    retryDelayMs = 650,
+    idempotencyKey,
     withAuth: _withAuth,
     ...fetchOptions
   } = options;
+  const method = String(fetchOptions.method || "GET").toUpperCase();
+  const maxRetries = Number.isFinite(Number(retries))
+    ? Math.max(0, Number(retries))
+    : ["GET", "HEAD"].includes(method) || idempotencyKey
+      ? 2
+      : 0;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -62,9 +85,13 @@ async function performFetch(endpoint, options = {}, withAuth = true) {
       signal: fetchOptions.signal || controller.signal,
       credentials: "include",
       headers: withAuth
-        ? getAuthHeaders(fetchOptions.headers || {})
+        ? getAuthHeaders({
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+            ...(fetchOptions.headers || {}),
+          })
         : {
             "Content-Type": "application/json",
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
             ...(fetchOptions.headers || {}),
           },
     });
@@ -72,6 +99,10 @@ async function performFetch(endpoint, options = {}, withAuth = true) {
     const data = await parseResponse(response);
 
     if (!response.ok) {
+      if (response.status >= 500 && attempt < maxRetries) {
+        await wait(Math.min(4000, retryDelayMs * 2 ** attempt));
+        return performFetch(endpoint, options, withAuth, attempt + 1);
+      }
       if (response.status === 402) {
         throw new Error(data?.message || "Piano non attivo: riattiva l'abbonamento da Billing per usare i dati reali del ristorante.");
       }
@@ -86,23 +117,40 @@ async function performFetch(endpoint, options = {}, withAuth = true) {
           const refreshData = await parseResponse(refresh);
           if (refresh.ok && refreshData?.token) {
             setAuthToken(refreshData.token);
-            return performFetch(endpoint, { ...options, skipRefresh: true }, true);
+            return performFetch(endpoint, { ...options, skipRefresh: true }, true, attempt);
           }
         } catch {
           // Fall through to local logout.
         }
         clearAuthSession();
       }
-      throw new Error(data?.message || `Errore API (${response.status})`);
+      const apiError = new Error(data?.message || `Errore API (${response.status})`);
+      apiError.status = response.status;
+      apiError.transient = response.status >= 500 || response.status === 429;
+      throw apiError;
     }
 
+    dispatchConnectionStatus({ status: "connected", message: "Server raggiungibile" });
     return data;
   } catch (error) {
+    const transient = error?.name === "AbortError"
+      || error?.name === "TypeError"
+      || /failed to fetch|network/i.test(error?.message || "");
+    if (transient && attempt < maxRetries) {
+      await wait(Math.min(4000, retryDelayMs * 2 ** attempt));
+      return performFetch(endpoint, options, withAuth, attempt + 1);
+    }
     if (error?.name === "AbortError") {
-      throw new Error("Il server si sta avviando. Attendi qualche secondo e riprova.");
+      const timeoutError = new Error("Il server si sta avviando. Attendi qualche secondo e riprova.");
+      timeoutError.transient = true;
+      dispatchConnectionStatus({ status: "recovering", message: timeoutError.message });
+      throw timeoutError;
     }
     if (error?.name === "TypeError" || /failed to fetch|network/i.test(error?.message || "")) {
-      throw new Error("Server in avvio o temporaneamente non disponibile. Riprova tra qualche secondo.");
+      const networkError = new Error("Server in avvio o temporaneamente non disponibile. Riprova tra qualche secondo.");
+      networkError.transient = true;
+      dispatchConnectionStatus({ status: "offline", message: networkError.message });
+      throw networkError;
     }
     throw error;
   } finally {
@@ -153,6 +201,17 @@ export async function publicApiPost(endpoint, body = {}, extraHeaders = {}, opti
     method: "POST",
     headers: extraHeaders,
     body: JSON.stringify(body),
+  });
+}
+
+export async function publicApiPostIdempotent(endpoint, body = {}, extraHeaders = {}, idempotencyKey = "") {
+  const requestId = idempotencyKey || body.clientRequestId || createClientRequestId("public");
+  return publicApiFetch(endpoint, {
+    method: "POST",
+    headers: extraHeaders,
+    body: JSON.stringify({ ...body, clientRequestId: body.clientRequestId || requestId }),
+    idempotencyKey: requestId,
+    retries: 2,
   });
 }
 

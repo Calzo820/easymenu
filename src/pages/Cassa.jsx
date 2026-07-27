@@ -387,7 +387,7 @@ function Cassa() {
     let timer;
 
     syncOrdini();
-    timer = setInterval(syncOrdini, 4000);
+    timer = setInterval(syncOrdini, 20000);
 
     const onStorage = () => {
       const dati = JSON.parse(localStorage.getItem(ordiniKey(ristoranteAttivo)) || "[]");
@@ -536,6 +536,7 @@ function Cassa() {
             name: extraName,
             price: extraPrice,
             quantity: 1,
+            preparationArea: valore.preparationArea || "kitchen",
           }),
         });
 
@@ -559,7 +560,7 @@ function Cassa() {
 
       setExtraInputs((prev) => ({
         ...prev,
-        [tavolo]: { nome: "", prezzo: "" },
+        [tavolo]: { nome: "", prezzo: "", preparationArea: "kitchen" },
       }));
 
       await syncOrdini();
@@ -1215,6 +1216,10 @@ function Cassa() {
                   <div className="pos-extra-row">
                     <input style={inputStyle} placeholder="Extra" value={extraInputs[tavoloSelezionato]?.nome || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "nome", event.target.value)} />
                     <input style={inputStyle} placeholder="Prezzo" inputMode="decimal" value={extraInputs[tavoloSelezionato]?.prezzo || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "prezzo", event.target.value)} />
+                    <select style={inputStyle} value={extraInputs[tavoloSelezionato]?.preparationArea || "kitchen"} onChange={(event) => aggiornaExtra(tavoloSelezionato, "preparationArea", event.target.value)}>
+                      <option value="kitchen">Cucina</option>
+                      <option value="bar">Bar</option>
+                    </select>
                     <button type="button" onClick={() => aggiungiPiatto(tavoloSelezionato)}>Aggiungi</button>
                   </div>
                   {orderAudit.length ? (

@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get("/public/:slug/:tableToken", getPublicTableMenu);
 
-router.get("/status", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "cashier", "kitchen", "bar"]), getTablesStatus);
+router.get("/status", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "cashier"]), getTablesStatus);
 router.get("/", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "cashier"]), getTables);
 router.post("/", requireAuth, requireActiveSubscription, requireRole(["owner", "admin"]), createTable);
 router.patch("/:id", requireAuth, requireActiveSubscription, requireRole(["owner", "admin"]), updateTable);

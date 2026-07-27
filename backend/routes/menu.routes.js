@@ -13,7 +13,7 @@ import { requireActiveSubscription } from "../middleware/billing.middleware.js";
 
 const router = express.Router();
 
-router.get("/", requireAuth, requireActiveSubscription, getMenuItems);
+router.get("/", requireAuth, requireActiveSubscription, requireRole(["owner", "admin"]), getMenuItems);
 router.post("/", requireAuth, requireActiveSubscription, requireRole(["owner", "admin"]), createMenuItem);
 router.get("/:id/stock", requireAuth, requireActiveSubscription, requireRole(["owner", "admin"]), getMenuStockHistory);
 router.post("/:id/stock", requireAuth, requireActiveSubscription, requireRole(["owner", "admin"]), updateMenuStock);

@@ -8,14 +8,14 @@ const router = express.Router();
 router.get(
   "/summary",
   requireAuth,
-  requireRole(["owner", "admin", "cashier"]),
+  requireRole(["owner", "admin"]),
   getAnalyticsSummary
 );
 
 router.get(
   "/advisor",
   requireAuth,
-  requireRole(["owner", "admin", "cashier"]),
+  requireRole(["owner", "admin"]),
   getAnalyticsAdvisor
 );
 

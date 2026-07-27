@@ -23,6 +23,7 @@ import logRoutes from "./routes/log.routes.js";
 import demoRoutes from "./routes/demo.routes.js";
 import systemRoutes from "./routes/system.routes.js";
 import cashRoutes from "./routes/cash.routes.js";
+import printRoutes from "./routes/print.routes.js";
 import { handleStripeWebhook } from "./controllers/payment.controller.js";
 import prisma from "./lib/prisma.js";
 import { validateEnvironment } from "./lib/env.js";
@@ -68,24 +69,45 @@ io.on("connection", (socket) => {
   devLog(`Socket connesso: ${socket.id}`);
 
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  let authenticated = false;
   if (token) {
     try {
       const decoded = jwt.verify(String(token), process.env.JWT_SECRET);
       if (decoded?.restaurantId) {
         socket.join(`restaurant:${decoded.restaurantId}`);
+        if (decoded.role) socket.join(`restaurant:${decoded.restaurantId}:role:${decoded.role}`);
         socket.data.restaurantId = decoded.restaurantId;
         socket.data.role = decoded.role;
+        authenticated = true;
       }
     } catch {
-      socket.emit("auth-warning", { message: "Socket connesso senza autenticazione valida" });
+      authenticated = false;
     }
   }
 
-  socket.on("join-public-restaurant", () => {
+  if (!authenticated) {
     socket.emit("auth-required", { message: "Canale riservato agli utenti autenticati" });
+    setTimeout(() => socket.disconnect(true), 500).unref?.();
+    return;
+  }
+
+  const sendHeartbeat = () => socket.emit("server-health", {
+    ok: true,
+    message: "Aggiornamento live attivo",
+    timestamp: new Date().toISOString(),
+  });
+  sendHeartbeat();
+  const heartbeat = setInterval(sendHeartbeat, 25000);
+  heartbeat.unref?.();
+
+  socket.on("client-heartbeat", (acknowledge) => {
+    if (typeof acknowledge === "function") {
+      acknowledge({ ok: true, timestamp: new Date().toISOString() });
+    }
   });
 
   socket.on("disconnect", () => {
+    clearInterval(heartbeat);
     devLog(`Socket disconnesso: ${socket.id}`);
   });
 });
@@ -189,6 +211,7 @@ app.use("/reservations", reservationRoutes);
 app.use("/orders", orderRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/cash", cashRoutes);
+app.use("/print-jobs", printRoutes);
 app.use("/subscriptions", subscriptionRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/onboarding", onboardingRoutes);

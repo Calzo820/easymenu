@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ConnectionStatus from "./components/ConnectionStatus.jsx";
 import ServiceUnavailable from "./pages/ServiceUnavailable.jsx";
 
 const AdminPanel = lazy(() => import("./pages/AdminPanel.jsx"));
@@ -42,6 +43,7 @@ function PageFallback() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ConnectionStatus />
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -64,7 +66,7 @@ export default function App() {
           <Route path="/cliente/menu" element={<Cliente />} />
           <Route path="/cliente/menu/:tavolo" element={<Cliente />} />
 
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute roles={["owner", "admin"]}><Dashboard /></ProtectedRoute>} />
           <Route path="/onboarding" element={<ProtectedRoute roles={["owner", "admin"]}><Onboarding /></ProtectedRoute>} />
           <Route path="/setup" element={<ProtectedRoute roles={["owner", "admin"]}><Onboarding /></ProtectedRoute>} />
           <Route path="/billing" element={<ProtectedRoute roles={["owner", "admin"]}><Billing /></ProtectedRoute>} />

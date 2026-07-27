@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import CommandDock from "../components/CommandDock";
 import { apiDelete, apiGet } from "../lib/api";
+import { createRestaurantSocket } from "../lib/realtime";
 import Modal from "../components/Modal";
 import { glowPageStyle, appShellStyle } from "../styles/pageStyles";
 
@@ -134,7 +135,12 @@ function Storico() {
 
     syncStorico();
 
-    const timer = setInterval(syncStorico, 5000);
+    const timer = setInterval(syncStorico, 30000);
+    const socket = createRestaurantSocket();
+    socket.on("order-closed", syncStorico);
+    socket.on("order-updated", syncStorico);
+    socket.on("order-deleted", syncStorico);
+    socket.on("connect", syncStorico);
     const onStorage = () => syncStorico();
 
     window.addEventListener("storage", onStorage);
@@ -142,6 +148,7 @@ function Storico() {
     return () => {
       cancelled = true;
       clearInterval(timer);
+      socket.disconnect();
       window.removeEventListener("storage", onStorage);
     };
   }, [ristoranteAttivo]);

@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { safeEmit } from "../lib/socketSafe.js";
 
 const ACTIVE_STATUSES = ["booked", "seated"];
 const VALID_STATUSES = new Set(["booked", "seated", "cancelled", "no_show"]);
@@ -19,13 +20,12 @@ function reservationErrorResponse(error, res, fallbackMessage) {
 }
 
 function emitSocket(req, eventName, payload = {}) {
-  const io = req.app.get("io");
-  if (!io) return;
-  if (payload.restaurantId) {
-    io.to(`restaurant:${payload.restaurantId}`).emit(eventName, payload);
-    return;
-  }
-  io.emit(eventName, payload);
+  safeEmit(
+    req.app.get("io"),
+    payload.restaurantId ? `restaurant:${payload.restaurantId}` : null,
+    eventName,
+    payload
+  );
 }
 
 function dateKey(value = new Date()) {

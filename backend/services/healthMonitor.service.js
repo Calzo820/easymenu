@@ -5,19 +5,44 @@ let lastHealthy = null;
 
 export async function collectSystemHealth() {
   const startedAt = Date.now();
+  const backupEnabled = String(process.env.BACKUP_ENABLED || "").toLowerCase() === "true";
   const checks = {
     database: { ok: false },
-    stripe: { ok: Boolean(process.env.STRIPE_SECRET_KEY), configured: Boolean(process.env.STRIPE_SECRET_KEY) },
+    stripe: {
+      ok: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
+      configured: Boolean(process.env.STRIPE_SECRET_KEY),
+      webhookConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+      connectWebhookConfigured: Boolean(process.env.STRIPE_CONNECT_WEBHOOK_SECRET),
+    },
     email: { ok: Boolean(process.env.BREVO_API_KEY), configured: Boolean(process.env.BREVO_API_KEY) },
     backups: {
-      ok: String(process.env.BACKUP_ENABLED || "").toLowerCase() === "true",
+      ok: false,
+      enabled: backupEnabled,
       configured: Boolean(process.env.BACKUP_ENCRYPTION_KEY),
+      lastSuccessAt: null,
+      uploaded: false,
     },
   };
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    const [, latestBackup] = await Promise.all([
+      prisma.$queryRaw`SELECT 1`,
+      prisma.errorLog.findFirst({
+        where: { source: "backup-success", level: "info" },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, metadata: true },
+      }),
+    ]);
     checks.database = { ok: true };
+    const intervalHours = Math.max(1, Number(process.env.BACKUP_INTERVAL_HOURS || 24));
+    const maxAgeMs = (intervalHours * 2 + 2) * 60 * 60 * 1000;
+    const lastSuccessAt = latestBackup?.createdAt || null;
+    checks.backups.lastSuccessAt = lastSuccessAt;
+    checks.backups.uploaded = Boolean(latestBackup?.metadata?.uploaded);
+    checks.backups.ok = backupEnabled
+      && checks.backups.configured
+      && Boolean(lastSuccessAt)
+      && Date.now() - new Date(lastSuccessAt).getTime() <= maxAgeMs;
   } catch (error) {
     checks.database = { ok: false, code: error?.code || "database_unavailable" };
   }

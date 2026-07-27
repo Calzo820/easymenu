@@ -1,5 +1,20 @@
 import crypto from "node:crypto";
 import prisma from "../lib/prisma.js";
+import { safeEmit } from "../lib/socketSafe.js";
+
+function emitTableUpdate(req, table, reason) {
+  safeEmit(
+    req.app.get("io"),
+    `restaurant:${req.user.restaurantId}`,
+    "table-updated",
+    {
+      restaurantId: req.user.restaurantId,
+      tableId: table.id,
+      tableName: table.name,
+      reason,
+    }
+  );
+}
 
 function parseIntValue(value, fallback = 0) {
   const n = Number(value);
@@ -174,6 +189,7 @@ export const createTable = async (req, res) => {
     const table = await prisma.table.create({
       data: { restaurantId: req.user.restaurantId, name: tableName, code, qrToken: crypto.randomUUID(), seats: Math.max(1, parseIntValue(seats, 4)), zone: zone ? String(zone).trim() : null, sortOrder: Math.max(0, parseIntValue(sortOrder, 0)), isActive: true },
     });
+    emitTableUpdate(req, table, "created");
     return res.status(201).json(table);
   } catch (error) {
     console.error("createTable error:", error);
@@ -199,6 +215,7 @@ export const updateTable = async (req, res) => {
     if (req.body.regenerateQrToken) data.qrToken = crypto.randomUUID();
 
     const updated = await prisma.table.update({ where: { id }, data });
+    emitTableUpdate(req, updated, "updated");
     return res.json(updated);
   } catch (error) {
     console.error("updateTable error:", error);

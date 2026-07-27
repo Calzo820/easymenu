@@ -3,6 +3,14 @@ import Navbar from "../components/Navbar.jsx";
 
 const integrations = [
   {
+    name: "Stampante comande",
+    area: "Operatività",
+    status: "Disponibile",
+    priority: "Alta",
+    impact: "Comande separate per cucina e bar, ristampa manuale e coda recuperata dopo un riavvio.",
+    setup: "La stampa browser funziona subito. Per la stampa termica automatica e silenziosa si collega un bridge locale alla stampante del reparto.",
+  },
+  {
     name: "SumUp",
     area: "Pagamenti",
     status: "Da collegare",
@@ -68,9 +76,10 @@ const integrations = [
   },
 ];
 
-const areaOrder = ["Tutte", "Pagamenti", "Fiscale", "POS", "Prenotazioni", "Delivery"];
+const areaOrder = ["Tutte", "Operatività", "Pagamenti", "Fiscale", "POS", "Prenotazioni", "Delivery"];
 
 function statusTone(status) {
+  if (status === "Disponibile") return "green";
   if (status === "Da collegare") return "blue";
   if (status === "A richiesta") return "amber";
   return "gray";

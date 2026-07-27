@@ -29,33 +29,6 @@ const SUBSCRIPTION_STATUS_LABELS = {
   incomplete: "Incompleto",
 };
 
-const PLATFORM_ROADMAP = [
-  {
-    area: "Pagamenti",
-    title: "SumUp / Nexi",
-    status: "Priorità alta",
-    impact: "Incasso al tavolo e riconciliazione pagamenti: aumenta il valore percepito del prodotto.",
-  },
-  {
-    area: "Fiscale",
-    title: "Fatture in Cloud",
-    status: "Priorità alta",
-    impact: "Export fiscale e documenti contabili: utile per ristoranti più strutturati.",
-  },
-  {
-    area: "POS",
-    title: "Tilby / Cassa in Cloud",
-    status: "Discovery",
-    impact: "Riduce sostituzione del gestionale esistente: EasyMenu diventa strato operativo.",
-  },
-  {
-    area: "Prenotazioni",
-    title: "TheFork / gestione turni",
-    status: "Discovery",
-    impact: "Collega sala, tavoli e coperti: forte leva per locali con servizio su prenotazione.",
-  },
-];
-
 function getStatusLabel(restaurant) {
   const status = getSubscriptionStatus(restaurant);
   if (status === "past_due" || status === "unpaid") return "Pagamento richiesto";
@@ -140,6 +113,11 @@ function StatCard({ label, value, hint }) {
   );
 }
 
+function systemCheckLabel(check, fallback = "Non configurato") {
+  if (check?.configured === false || check?.enabled === false) return fallback;
+  return check?.ok ? "Operativo" : "Da verificare";
+}
+
 export default function SuperAdmin() {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +128,8 @@ export default function SuperAdmin() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [systemOverview, setSystemOverview] = useState(null);
+  const [monitorLoading, setMonitorLoading] = useState(true);
   const [createForm, setCreateForm] = useState({
     name: "",
     slug: "",
@@ -173,8 +153,24 @@ export default function SuperAdmin() {
     }
   }
 
+  async function loadSystemOverview() {
+    try {
+      setMonitorLoading(true);
+      const data = await apiGet("/system/overview");
+      setSystemOverview(data || null);
+    } catch (error) {
+      setErrore((current) => current || error.message || "Monitoraggio tecnico non disponibile");
+    } finally {
+      setMonitorLoading(false);
+    }
+  }
+
+  async function refreshPlatform() {
+    await Promise.all([loadRestaurants(), loadSystemOverview()]);
+  }
+
   useEffect(() => {
-    loadRestaurants();
+    refreshPlatform();
   }, []);
 
   const stats = useMemo(
@@ -209,6 +205,10 @@ export default function SuperAdmin() {
       return !q || haystack.includes(q);
     });
   }, [restaurants, query, statusFilter]);
+
+  const health = systemOverview?.health || {};
+  const checks = health.checks || {};
+  const technical = systemOverview?.technical || {};
 
   async function updateRestaurant(restaurantId, patch) {
     try {
@@ -324,8 +324,8 @@ export default function SuperAdmin() {
               <button className="superadmin-btn primary" onClick={() => setShowCreate(true)}>
                 + Nuovo ristorante
               </button>
-              <button className="superadmin-btn" onClick={loadRestaurants} disabled={loading}>
-                {loading ? "Aggiorno..." : "Aggiorna dati"}
+              <button className="superadmin-btn" onClick={refreshPlatform} disabled={loading || monitorLoading}>
+                {loading || monitorLoading ? "Aggiorno..." : "Aggiorna dati"}
               </button>
             </div>
           </div>
@@ -333,20 +333,24 @@ export default function SuperAdmin() {
           <div className="superadmin-panel superadmin-health">
             <h3>Stato piattaforma</h3>
             <div className="superadmin-health-row">
-              <span>Ristoranti attivi</span>
-              <strong>{stats.active}</strong>
+              <span>Backend e database</span>
+              <strong className={health.ok ? "is-ok" : "is-alert"}>{health.ok ? "Online" : "Attenzione"}</strong>
             </div>
             <div className="superadmin-health-row">
-              <span>Alert operativi</span>
-              <strong>{stats.alerts}</strong>
+              <span>Webhook Stripe</span>
+              <strong className={checks.stripe?.webhookConfigured ? "is-ok" : "is-alert"}>
+                {checks.stripe?.webhookConfigured ? "Attivo" : "Manca"}
+              </strong>
             </div>
             <div className="superadmin-health-row">
-              <span>Menu caricati</span>
-              <strong>{stats.menuItems}</strong>
+              <span>Backup cifrato</span>
+              <strong className={checks.backups?.ok ? "is-ok" : "is-alert"}>
+                {systemCheckLabel(checks.backups)}
+              </strong>
             </div>
             <div className="superadmin-health-row">
-              <span>Tavoli configurati</span>
-              <strong>{stats.tables}</strong>
+              <span>Canali live</span>
+              <strong>{health.realtimeClients || 0}</strong>
             </div>
           </div>
         </section>
@@ -358,29 +362,67 @@ export default function SuperAdmin() {
           <StatCard label="Ristoranti" value={stats.total} hint="Totali in piattaforma" />
           <StatCard label="Attivi" value={stats.active} hint="Utilizzabili dai clienti" />
           <StatCard label="Sospesi" value={stats.suspended} hint="Disattivati" />
-          <StatCard label="Tavoli" value={stats.tables} hint="QR configurati" />
-          <StatCard label="Privacy" value="ON" hint="Dati economici non aggregati" />
-          <StatCard label="Alert" value={stats.alerts} hint="Da controllare" />
+          <StatCard label="Errori 24h" value={technical.unresolved24h || 0} hint="Alert tecnici non risolti" />
+          <StatCard label="Pagamenti" value={technical.paymentAlerts24h || 0} hint="Webhook o incassi da verificare" />
+          <StatCard label="Privacy" value="ON" hint="Nessun ordine o fatturato mostrato" />
         </section>
 
-        <section className="superadmin-panel superadmin-roadmap">
+        <section className="superadmin-panel superadmin-monitor">
           <div className="superadmin-card-header">
             <div>
-              <h2 className="superadmin-card-title">Roadmap competitiva</h2>
+              <h2 className="superadmin-card-title">Centro affidabilità</h2>
               <p className="superadmin-card-subtitle">
-                Questa sezione è solo tua: serve a decidere quali integrazioni rendono EasyMenu più forte come SaaS.
+                Stato tecnico aggregato della piattaforma, senza ordini, dati clienti o fatturato dei ristoranti.
               </p>
             </div>
+            <button className="superadmin-btn" onClick={loadSystemOverview} disabled={monitorLoading}>
+              {monitorLoading ? "Controllo..." : "Ricontrolla"}
+            </button>
           </div>
-          <div className="superadmin-roadmap-grid">
-            {PLATFORM_ROADMAP.map((item) => (
-              <article key={`${item.area}-${item.title}`} className="superadmin-roadmap-card">
-                <span>{item.area}</span>
-                <h3>{item.title}</h3>
-                <b>{item.status}</b>
-                <p>{item.impact}</p>
-              </article>
-            ))}
+
+          <div className="superadmin-monitor-grid">
+            <div className="superadmin-monitor-checks">
+              <div><span>Database</span><b className={checks.database?.ok ? "is-ok" : "is-alert"}>{checks.database?.ok ? "Connesso" : "Non raggiungibile"}</b></div>
+              <div><span>Stripe</span><b className={checks.stripe?.ok ? "is-ok" : "is-alert"}>{systemCheckLabel(checks.stripe)}</b></div>
+              <div><span>Email di servizio</span><b className={checks.email?.ok ? "is-ok" : "is-alert"}>{systemCheckLabel(checks.email)}</b></div>
+              <div>
+                <span>Ultimo backup</span>
+                <b className={checks.backups?.ok ? "is-ok" : "is-alert"}>
+                  {checks.backups?.lastSuccessAt ? formatDate(checks.backups.lastSuccessAt) : "Mai registrato"}
+                </b>
+              </div>
+            </div>
+
+            <div className="superadmin-monitor-restaurants">
+              <h3>Ristoranti con alert tecnici</h3>
+              {(technical.restaurants || []).length ? (
+                (technical.restaurants || []).map((item) => (
+                  <div key={item.restaurantId}>
+                    <span><b>{item.name}</b><small>{item.lastSource}</small></span>
+                    <strong>{item.errors}</strong>
+                  </div>
+                ))
+              ) : <p>Nessun ristorante con errori tecnici nelle ultime 24 ore.</p>}
+            </div>
+          </div>
+
+          {(technical.alerts || []).length ? (
+            <details className="superadmin-monitor-alerts">
+              <summary>Ultimi alert tecnici ({technical.alerts.length})</summary>
+              <div>
+                {technical.alerts.map((alert) => (
+                  <article key={alert.id}>
+                    <span>{alert.restaurantName} - {alert.source}</span>
+                    <b>{alert.message}</b>
+                    <small>{new Date(alert.createdAt).toLocaleString("it-IT")}</small>
+                  </article>
+                ))}
+              </div>
+            </details>
+          ) : null}
+
+          <div className="superadmin-privacy-note">
+            Monitor privacy-safe: vengono mostrati solo salute del servizio, origine tecnica e conteggio degli errori.
           </div>
         </section>
 

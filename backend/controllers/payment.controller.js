@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import prisma from "../lib/prisma.js";
 import { syncSubscriptionFromStripe } from "./subscription.controller.js";
 import { logPaymentProblem } from "../lib/logger.js";
+import { safeEmit } from "../lib/socketSafe.js";
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -376,7 +377,7 @@ export async function handleStripeWebhook(req, res) {
         const synced = await syncSubscriptionFromStripe(session);
         const io = req.app.get("io");
         if (io && synced?.restaurant) {
-          io.to(`restaurant:${synced.restaurant.id}`).emit("subscription-updated", {
+          safeEmit(io, `restaurant:${synced.restaurant.id}`, "subscription-updated", {
             restaurantId: synced.restaurant.id,
             plan: synced.restaurant.plan,
             status: synced.subscription.status,
@@ -414,7 +415,7 @@ export async function handleStripeWebhook(req, res) {
 
         const io = req.app.get("io");
         if (io && updated) {
-          io.to(`restaurant:${updated.restaurantId}`).emit("payment-updated", {
+          safeEmit(io, `restaurant:${updated.restaurantId}`, "payment-updated", {
             orderId: updated.id,
             restaurantId: updated.restaurantId,
             tableId: updated.tableId,
@@ -422,7 +423,7 @@ export async function handleStripeWebhook(req, res) {
             paymentStatus: updated.paymentStatus,
             paidAt: updated.paidAt,
           });
-          io.to(`restaurant:${updated.restaurantId}`).emit("table-updated", {
+          safeEmit(io, `restaurant:${updated.restaurantId}`, "table-updated", {
             orderId: updated.id,
             restaurantId: updated.restaurantId,
             tableId: updated.tableId,
@@ -446,7 +447,7 @@ export async function handleStripeWebhook(req, res) {
         await persistConnectStatus(restaurant.id, account);
         const io = req.app.get("io");
         if (io) {
-          io.to(`restaurant:${restaurant.id}`).emit("connect-updated", {
+          safeEmit(io, `restaurant:${restaurant.id}`, "connect-updated", {
             restaurantId: restaurant.id,
             ...connectStatus(restaurant, account),
           });
@@ -475,7 +476,7 @@ export async function handleStripeWebhook(req, res) {
         }
         const io = req.app.get("io");
         if (io && synced?.restaurant) {
-          io.to(`restaurant:${synced.restaurant.id}`).emit("subscription-updated", {
+          safeEmit(io, `restaurant:${synced.restaurant.id}`, "subscription-updated", {
             restaurantId: synced.restaurant.id,
             plan: synced.restaurant.plan,
             status: synced.subscription.status,
@@ -489,7 +490,7 @@ export async function handleStripeWebhook(req, res) {
       const synced = await syncSubscriptionFromStripe(subscription);
       const io = req.app.get("io");
       if (io && synced?.restaurant) {
-        io.to(`restaurant:${synced.restaurant.id}`).emit("subscription-updated", {
+        safeEmit(io, `restaurant:${synced.restaurant.id}`, "subscription-updated", {
           restaurantId: synced.restaurant.id,
           plan: synced.restaurant.plan,
           status: synced.subscription.status,
@@ -540,7 +541,12 @@ export async function handleStripeWebhook(req, res) {
               include: { table: true },
             });
             const io = req.app.get("io");
-            if (io) io.to(`restaurant:${updated.restaurantId}`).emit("payment-updated", { orderId: updated.id, restaurantId: updated.restaurantId, tableId: updated.tableId, paymentStatus: updated.paymentStatus });
+            if (io) safeEmit(io, `restaurant:${updated.restaurantId}`, "payment-updated", {
+              orderId: updated.id,
+              restaurantId: updated.restaurantId,
+              tableId: updated.tableId,
+              paymentStatus: updated.paymentStatus,
+            });
           }
         }
       }

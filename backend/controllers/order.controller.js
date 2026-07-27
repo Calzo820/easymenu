@@ -1,5 +1,7 @@
 import prisma from "../lib/prisma.js";
 import { writeAudit } from "../lib/audit.js";
+import { createOrderPrintJobs, preparationAreas } from "../lib/printJobs.js";
+import { safeEmit } from "../lib/socketSafe.js";
 
 function parseNumber(value, fallback = 0) {
   const n = Number(value);
@@ -35,12 +37,8 @@ function paidPaymentsTotal(payments = []) {
 
 function emitSocket(req, eventName, payload = {}) {
   const io = req.app.get("io");
-  if (!io) return;
-  if (payload.restaurantId) {
-    io.to(`restaurant:${payload.restaurantId}`).emit(eventName, payload);
-    return;
-  }
-  io.emit(eventName, payload);
+  const room = payload.restaurantId ? `restaurant:${payload.restaurantId}` : null;
+  safeEmit(io, room, eventName, payload);
 }
 
 function canTransitionStatus(currentStatus, nextStatus) {
@@ -54,8 +52,49 @@ function canTransitionStatus(currentStatus, nextStatus) {
   return (allowedTransitions[currentStatus] || []).includes(nextStatus);
 }
 
+function resolveServiceArea(req) {
+  if (req.user?.role === "kitchen") return "kitchen";
+  if (req.user?.role === "bar") return "bar";
+  const requested = String(req.query?.area || req.body?.area || "").trim().toLowerCase();
+  return ["kitchen", "bar"].includes(requested) ? requested : null;
+}
+
+function stationStatus(items = []) {
+  const active = items.filter((item) => item.status !== "voided");
+  if (!active.length) return "ready";
+  const statuses = active.map((item) => item.preparationStatus || "pending");
+  if (statuses.every((status) => status === "ready" || status === "served")) return "ready";
+  if (statuses.some((status) => status === "in_progress" || status === "ready" || status === "served")) return "in_progress";
+  return "pending";
+}
+
+function overallPreparationStatus(items = []) {
+  const active = items.filter((item) => item.status !== "voided" && item.preparationArea);
+  if (!active.length) return "pending";
+  const statuses = active.map((item) => item.preparationStatus || "pending");
+  if (statuses.every((status) => status === "ready" || status === "served")) return "ready";
+  if (statuses.some((status) => status === "in_progress" || status === "ready" || status === "served")) return "in_progress";
+  return "pending";
+}
+
 function publicOrderNumber(orderNumber) {
   return `ORD-${String(orderNumber || 1).padStart(4, "0")}`;
+}
+
+function publicOrderPayload(order) {
+  return {
+    id: order.id,
+    publicToken: order.publicToken,
+    status: order.status,
+    notes: order.notes,
+    orderNumber: publicOrderNumber(order.orderNumber),
+    restaurantName: order.restaurant?.name,
+    tableName: order.table?.name,
+    table: order.table ? { id: order.table.id, name: order.table.name, code: order.table.code } : null,
+    items: order.items,
+    totalAmount: order.totalAmount,
+    createdAt: order.createdAt,
+  };
 }
 
 function orderItemsTotal(items = []) {
@@ -65,10 +104,10 @@ function orderItemsTotal(items = []) {
   }, 0);
 }
 
-function buildIdempotencyKey({ restaurantId, tableId, tableSessionId, clientRequestId }) {
+function buildIdempotencyKey({ restaurantId, tableId, clientRequestId }) {
   const safe = clientRequestId ? String(clientRequestId).trim().slice(0, 120) : null;
   if (!safe || !restaurantId || !tableId) return null;
-  return [restaurantId, tableId, tableSessionId || "no-session", safe].join(":");
+  return [restaurantId, tableId, safe].join(":");
 }
 
 async function nextOrderNumber(tx, restaurantId) {
@@ -110,6 +149,8 @@ async function recalcSessionTotal(tx, tableSessionId) {
 }
 
 export const createPublicOrder = async (req, res) => {
+  let finalIdempotencyKey = null;
+
   try {
     const { restaurantSlug, tableToken, restaurantId, tableId, customerName, notes, items, clientRequestId } = req.body || {};
 
@@ -144,11 +185,11 @@ export const createPublicOrder = async (req, res) => {
 
     if (!table) return res.status(404).json({ message: "Tavolo o ristorante non trovato" });
 
-    let openSession = await prisma.tableSession.findFirst({
-      where: { restaurantId: table.restaurantId, tableId: table.id, status: "open" },
-      orderBy: { openedAt: "desc" },
+    const idempotencyKey = buildIdempotencyKey({
+      restaurantId: table.restaurantId,
+      tableId: table.id,
+      clientRequestId: safeClientRequestId,
     });
-    const idempotencyKey = buildIdempotencyKey({ restaurantId: table.restaurantId, tableId: table.id, tableSessionId: openSession?.id, clientRequestId: safeClientRequestId });
     if (idempotencyKey) {
       const existing = await prisma.order.findUnique({
         where: { idempotencyKey },
@@ -157,19 +198,7 @@ export const createPublicOrder = async (req, res) => {
       if (existing) {
         return res.status(200).json({
           message: "Ordine già ricevuto",
-          order: {
-            id: existing.id,
-            publicToken: existing.publicToken,
-            status: existing.status,
-            notes: existing.notes,
-            orderNumber: publicOrderNumber(existing.orderNumber),
-            restaurantName: existing.restaurant?.name,
-            tableName: existing.table?.name,
-            table: existing.table ? { id: existing.table.id, name: existing.table.name, code: existing.table.code } : null,
-            items: existing.items,
-            totalAmount: existing.totalAmount,
-            createdAt: existing.createdAt,
-          },
+          order: publicOrderPayload(existing),
         });
       }
     }
@@ -202,7 +231,12 @@ export const createPublicOrder = async (req, res) => {
       if (!session) {
         session = await tx.tableSession.create({ data: { restaurantId: table.restaurantId, tableId: table.id, status: "open", guestName: customerName ? String(customerName).slice(0, 100) : null, notes: notes ? String(notes).slice(0, 500) : null } });
       }
-      const scopedIdempotencyKey = buildIdempotencyKey({ restaurantId: table.restaurantId, tableId: table.id, tableSessionId: session.id, clientRequestId: safeClientRequestId });
+      const scopedIdempotencyKey = buildIdempotencyKey({
+        restaurantId: table.restaurantId,
+        tableId: table.id,
+        clientRequestId: safeClientRequestId,
+      });
+      finalIdempotencyKey = scopedIdempotencyKey;
       if (scopedIdempotencyKey) {
         const existingInTx = await tx.order.findUnique({
           where: { idempotencyKey: scopedIdempotencyKey },
@@ -247,6 +281,7 @@ export const createPublicOrder = async (req, res) => {
         },
         include: { restaurant: true, table: true, items: { include: { menuItem: true } } },
       });
+      await createOrderPrintJobs(tx, created);
       for (const createdItem of created.items) {
         const source = menuById.get(createdItem.menuItemId);
         if (!source?.trackStock) continue;
@@ -272,13 +307,28 @@ export const createPublicOrder = async (req, res) => {
     });
 
     emitSocket(req, "new-order", { orderId: order.id, publicToken: order.publicToken, orderNumber: publicOrderNumber(order.orderNumber), tableName: order.table.name, tableId: order.table.id, restaurantId: order.restaurantId, restaurantName: order.restaurant.name, status: order.status, createdAt: order.createdAt });
+    preparationAreas(order.items).forEach((area) => {
+      emitSocket(req, "print-job", { orderId: order.id, restaurantId: order.restaurantId, area, kind: "order" });
+    });
     emitSocket(req, "table-updated", { tableName: order.table.name, tableId: order.table.id, restaurantId: order.restaurantId, reason: "new-order" });
 
-    return res.status(201).json({ message: "Ordine creato correttamente", order: { id: order.id, publicToken: order.publicToken, status: order.status, notes: order.notes, orderNumber: publicOrderNumber(order.orderNumber), restaurantName: order.restaurant.name, tableName: order.table.name, table: { id: order.table.id, name: order.table.name, code: order.table.code }, items: order.items, totalAmount: order.totalAmount, createdAt: order.createdAt } });
+    return res.status(201).json({ message: "Ordine creato correttamente", order: publicOrderPayload(order) });
   } catch (error) {
     console.error("createPublicOrder error:", error);
     if (error?.code === "INSUFFICIENT_STOCK") {
       return res.status(409).json({ message: error.message });
+    }
+    if (error?.code === "P2002" && finalIdempotencyKey) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey: finalIdempotencyKey },
+        include: { restaurant: true, table: true, items: { include: { menuItem: true } } },
+      });
+      if (existing) {
+        return res.status(200).json({
+          message: "Ordine già ricevuto",
+          order: publicOrderPayload(existing),
+        });
+      }
     }
     return res.status(500).json({ message: "Errore durante la creazione dell'ordine" });
   }
@@ -368,6 +418,9 @@ export const getOrders = async (req, res) => {
 
 export const getServiceOrders = async (req, res) => {
   try {
+    const area = resolveServiceArea(req);
+    if (!area) return res.status(400).json({ message: "Indica il reparto cucina o bar" });
+
     const orders = await prisma.order.findMany({
       where: {
         restaurantId: req.user.restaurantId,
@@ -376,17 +429,45 @@ export const getServiceOrders = async (req, res) => {
       },
       include: {
         table: true,
-        items: { include: { menuItem: true } },
-        payments: { orderBy: { createdAt: "asc" } },
+        items: {
+          where: { status: "active", preparationArea: area },
+          select: {
+            id: true,
+            menuItemId: true,
+            quantity: true,
+            nameSnapshot: true,
+            categorySnapshot: true,
+            notes: true,
+            preparationArea: true,
+            preparationStatus: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
       orderBy: [{ createdAt: "asc" }],
     });
 
     return res.json(
-      orders.map((order) => ({
-        ...order,
-        orderNumberLabel: publicOrderNumber(order.orderNumber),
-      }))
+      orders
+        .filter((order) => order.items.length > 0)
+        .map((order) => ({
+          id: order.id,
+          publicToken: order.publicToken,
+          orderNumber: order.orderNumber,
+          orderNumberLabel: publicOrderNumber(order.orderNumber),
+          notes: order.notes,
+          source: order.source,
+          status: stationStatus(order.items),
+          globalStatus: order.status,
+          station: area,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          acceptedAt: order.acceptedAt,
+          readyAt: order.readyAt,
+          table: order.table,
+          items: order.items,
+        }))
     );
   } catch (error) {
     console.error("getServiceOrders error:", error);
@@ -402,19 +483,76 @@ export const updateOrderStatus = async (req, res) => {
     const order = await ensureRestaurantAccess(req, id);
     if (!order) return res.status(404).json({ message: "Ordine non trovato" });
     if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
-    if (!canTransitionStatus(order.status, status)) return res.status(400).json({ message: `Transizione non consentita da ${order.status} a ${status}` });
-
-    const data = { status };
-    if (status === "pending") {
-      data.acceptedAt = null;
-      data.readyAt = null;
+    const area = resolveServiceArea(req);
+    const stationRole = ["kitchen", "bar"].includes(req.user?.role);
+    const isStationUpdate = Boolean(area) && (stationRole || ["owner", "admin"].includes(req.user?.role));
+    if (stationRole && !area) return res.status(403).json({ message: "Reparto non autorizzato" });
+    if (isStationUpdate && !["pending", "in_progress", "ready"].includes(status)) {
+      return res.status(400).json({ message: "Il reparto può gestire solo preparazione e pronto" });
     }
-    if (status === "in_progress" && !order.acceptedAt) data.acceptedAt = new Date();
-    if (status === "in_progress") data.readyAt = null;
-    if (status === "ready") data.readyAt = new Date();
-    if (status === "served") data.servedAt = new Date();
+
+    const currentStationStatus = isStationUpdate
+      ? stationStatus(order.items.filter((item) => item.preparationArea === area))
+      : order.status;
+    if (!canTransitionStatus(currentStationStatus, status)) {
+      return res.status(400).json({ message: `Transizione non consentita da ${currentStationStatus} a ${status}` });
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
+      if (isStationUpdate) {
+        await tx.orderItem.updateMany({
+          where: {
+            orderId: id,
+            status: "active",
+            preparationArea: area,
+          },
+          data: { preparationStatus: status },
+        });
+        const activeItems = await tx.orderItem.findMany({
+          where: { orderId: id, status: "active" },
+          select: { status: true, preparationArea: true, preparationStatus: true },
+        });
+        const derivedStatus = overallPreparationStatus(activeItems);
+        const data = {
+          status: derivedStatus,
+          ...(derivedStatus === "in_progress" && !order.acceptedAt ? { acceptedAt: new Date() } : {}),
+          ...(derivedStatus === "ready" ? { readyAt: new Date() } : { readyAt: null }),
+        };
+        const result = await tx.order.update({
+          where: { id },
+          data,
+          include: { table: true, items: true },
+        });
+        if (order.status !== derivedStatus) {
+          await tx.orderStatusHistory.create({
+            data: {
+              orderId: id,
+              fromStatus: order.status,
+              toStatus: derivedStatus,
+              changedByUserId: req.user?.userId || null,
+              changedByRole: req.user?.role || null,
+              note: `${area}: ${currentStationStatus} -> ${status}`,
+            },
+          });
+        }
+        await writeAudit(tx, req, {
+          action: "order.station_status_updated",
+          entityType: "order",
+          entityId: id,
+          metadata: { area, from: currentStationStatus, to: status, overall: derivedStatus },
+        });
+        return result;
+      }
+
+      const data = { status };
+      if (status === "pending") {
+        data.acceptedAt = null;
+        data.readyAt = null;
+      }
+      if (status === "in_progress" && !order.acceptedAt) data.acceptedAt = new Date();
+      if (status === "in_progress") data.readyAt = null;
+      if (status === "ready") data.readyAt = new Date();
+      if (status === "served") data.servedAt = new Date();
       if (status === "cancelled") {
         for (const item of order.items) {
           if (!item.menuItem?.trackStock || item.status === "voided") continue;
@@ -437,6 +575,12 @@ export const updateOrderStatus = async (req, res) => {
           });
         }
       }
+      if (["pending", "in_progress", "ready", "served"].includes(status)) {
+        await tx.orderItem.updateMany({
+          where: { orderId: id, status: "active" },
+          data: { preparationStatus: status },
+        });
+      }
       const result = await tx.order.update({ where: { id }, data, include: { table: true, items: true } });
       await tx.orderStatusHistory.create({ data: { orderId: id, fromStatus: order.status, toStatus: status, changedByUserId: req.user?.userId || null, changedByRole: req.user?.role || null } });
       await writeAudit(tx, req, {
@@ -448,9 +592,27 @@ export const updateOrderStatus = async (req, res) => {
       return result;
     });
 
-    emitSocket(req, "order-updated", { orderId: updated.id, tableName: updated.table?.name, tableId: updated.table?.id, restaurantId: updated.restaurantId, status: updated.status, updatedAt: updated.updatedAt });
+    emitSocket(req, "order-updated", {
+      orderId: updated.id,
+      tableName: updated.table?.name,
+      tableId: updated.table?.id,
+      restaurantId: updated.restaurantId,
+      status: updated.status,
+      stationStatus: isStationUpdate ? status : updated.status,
+      area,
+      updatedAt: updated.updatedAt,
+    });
     emitSocket(req, "table-updated", { tableName: updated.table?.name, tableId: updated.table?.id, restaurantId: updated.restaurantId, reason: "order-status" });
-    return res.json({ message: "Stato ordine aggiornato", order: updated });
+    const responseOrder = isStationUpdate
+      ? {
+          ...updated,
+          globalStatus: updated.status,
+          status,
+          station: area,
+          items: updated.items.filter((item) => item.status !== "voided" && item.preparationArea === area),
+        }
+      : updated;
+    return res.json({ message: "Stato ordine aggiornato", order: responseOrder });
   } catch (error) {
     console.error("updateOrderStatus error:", error);
     return res.status(500).json({ message: "Errore durante aggiornamento stato ordine" });
@@ -461,6 +623,9 @@ export const addOrderExtra = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, price, quantity } = req.body || {};
+    const preparationArea = ["kitchen", "bar"].includes(req.body?.preparationArea)
+      ? req.body.preparationArea
+      : "kitchen";
     if (!name || parseNumber(price) < 0) return res.status(400).json({ message: "Nome e prezzo extra sono obbligatori" });
     const order = await ensureRestaurantAccess(req, id);
     if (!order) return res.status(404).json({ message: "Ordine non trovato" });
@@ -468,13 +633,30 @@ export const addOrderExtra = async (req, res) => {
     if (["served", "cancelled"].includes(order.status)) return res.status(400).json({ message: "Non puoi aggiungere extra a un ordine chiuso" });
 
     const result = await prisma.$transaction(async (tx) => {
-      const extraItem = await tx.orderItem.create({ data: { orderId: order.id, menuItemId: null, quantity: Math.max(1, Math.trunc(parseNumber(quantity, 1))), notes: "extra cassa", nameSnapshot: String(name).slice(0, 120), priceSnapshot: parseNumber(price), categorySnapshot: "Extra", preparationArea: null } });
+      const extraItem = await tx.orderItem.create({
+        data: {
+          orderId: order.id,
+          menuItemId: null,
+          quantity: Math.max(1, Math.trunc(parseNumber(quantity, 1))),
+          notes: "extra cassa",
+          nameSnapshot: String(name).slice(0, 120),
+          priceSnapshot: parseNumber(price),
+          categorySnapshot: "Extra",
+          preparationArea,
+        },
+      });
+      await createOrderPrintJobs(
+        tx,
+        { id: order.id, restaurantId: order.restaurantId, items: [extraItem] },
+        { kind: "extra", eventKeySuffix: `extra:${extraItem.id}` }
+      );
       const updated = await recalcOrderTotal(tx, order.id);
       if (order.tableSessionId) await recalcSessionTotal(tx, order.tableSessionId);
       return { extraItem, updated };
     });
 
     emitSocket(req, "order-updated", { orderId: order.id, tableName: order.table?.name, tableId: order.table?.id, restaurantId: order.restaurantId, status: order.status, reason: "extra-added" });
+    emitSocket(req, "print-job", { orderId: order.id, restaurantId: order.restaurantId, area: preparationArea, kind: "extra" });
     emitSocket(req, "table-updated", { tableName: order.table?.name, tableId: order.table?.id, restaurantId: order.restaurantId, reason: "extra-added" });
     return res.status(201).json({ message: "Extra aggiunto", item: result.extraItem, order: result.updated });
   } catch (error) {

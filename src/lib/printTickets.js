@@ -38,22 +38,59 @@ export function buildTicketHtml(order, area = "kitchen") {
 
 export function printTicket(order, area = "kitchen") {
   const html = buildTicketHtml(order, area);
-  const frame = document.createElement("iframe");
-  frame.style.position = "fixed";
-  frame.style.right = "0";
-  frame.style.bottom = "0";
-  frame.style.width = "0";
-  frame.style.height = "0";
-  frame.style.border = "0";
-  document.body.appendChild(frame);
-  const doc = frame.contentWindow?.document;
-  if (!doc) return;
-  doc.open();
-  doc.write(html);
-  doc.close();
-  frame.onload = () => {
-    frame.contentWindow?.focus();
-    frame.contentWindow?.print();
-    setTimeout(() => frame.remove(), 1000);
-  };
+  return new Promise((resolve, reject) => {
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.right = "0";
+    frame.style.bottom = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    frame.setAttribute("aria-hidden", "true");
+    document.body.appendChild(frame);
+    const doc = frame.contentWindow?.document;
+    if (!doc) {
+      frame.remove();
+      reject(new Error("Anteprima stampa non disponibile"));
+      return;
+    }
+    const cleanup = () => window.setTimeout(() => frame.remove(), 1200);
+    frame.onerror = () => {
+      cleanup();
+      reject(new Error("Stampante browser non disponibile"));
+    };
+    frame.onload = () => {
+      try {
+        frame.contentWindow?.focus();
+        frame.contentWindow?.print();
+        cleanup();
+        resolve({ mode: "browser" });
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+    doc.open();
+    doc.write(html);
+    doc.close();
+  });
+}
+
+export async function sendTicketToBridge(order, area, bridgeUrl) {
+  const url = String(bridgeUrl || "").trim();
+  if (!url) return printTicket(order, area);
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source: "easymenu",
+      area,
+      orderId: order?.id,
+      orderNumber: order?.orderNumber,
+      html: buildTicketHtml(order, area),
+      order,
+    }),
+  });
+  if (!response.ok) throw new Error(`Stampante locale non raggiungibile (${response.status})`);
+  return { mode: "bridge" };
 }

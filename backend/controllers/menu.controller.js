@@ -1,8 +1,18 @@
 import prisma from "../lib/prisma.js";
 import { billingBlockPayload, resolveBillingState } from "../lib/billingPolicy.js";
 import { writeAudit } from "../lib/audit.js";
+import { safeEmit } from "../lib/socketSafe.js";
 
 const VALID_AREAS = ["kitchen", "bar"];
+
+function emitMenuUpdate(req, itemId, reason) {
+  safeEmit(
+    req.app.get("io"),
+    `restaurant:${req.user.restaurantId}`,
+    "menu-updated",
+    { restaurantId: req.user.restaurantId, itemId, reason }
+  );
+}
 
 function normalizeAllergens(input) {
   if (!input) return [];
@@ -183,6 +193,7 @@ export const createMenuItem = async (req, res) => {
       return created;
     });
 
+    emitMenuUpdate(req, item.id, "created");
     return res.status(201).json({ message: "Prodotto creato", item });
   } catch (error) {
     console.error("createMenuItem error:", error);
@@ -234,6 +245,7 @@ export const updateMenuItem = async (req, res) => {
       return updated;
     });
 
+    emitMenuUpdate(req, item.id, "updated");
     return res.json({ message: "Prodotto aggiornato", item });
   } catch (error) {
     console.error("updateMenuItem error:", error);
@@ -295,6 +307,7 @@ export const updateMenuStock = async (req, res) => {
       return updated;
     });
 
+    emitMenuUpdate(req, item.id, "stock-updated");
     return res.json({ message: "Scorte aggiornate", item });
   } catch (error) {
     console.error("updateMenuStock error:", error);
@@ -339,6 +352,7 @@ export const deleteMenuItem = async (req, res) => {
       data: { isDeleted: true, isAvailable: false },
     });
 
+    emitMenuUpdate(req, req.params.id, "deleted");
     return res.json({ message: "Prodotto eliminato" });
   } catch (error) {
     console.error("deleteMenuItem error:", error);

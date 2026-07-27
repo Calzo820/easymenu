@@ -1801,6 +1801,10 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
 }
 
+.kds-topbar__tools button.is-active {
+  background: #0f766e;
+}
+
 .kds-pass-strip {
   display: grid;
   grid-template-columns: 1.2fr .9fr .9fr;
@@ -2268,7 +2272,7 @@ input:focus, select:focus, textarea:focus {
 .pos-advanced { margin-top:10px; border-radius:16px; background:#f8fafc; border:1px solid #e2e8f0; padding:10px; }
 .pos-advanced summary { cursor:pointer; font-weight:950; color:#0f172a; }
 .pos-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px; }
-.pos-extra-row { display:grid; grid-template-columns:1fr 100px auto; gap:8px; margin-top:8px; }
+.pos-extra-row { display:grid; grid-template-columns:minmax(140px,1fr) 100px 112px auto; gap:8px; margin-top:8px; }
 .pos-split { margin-top:8px; color:#166534; font-weight:950; }
 .pos-main-actions { display:grid; grid-template-columns:.9fr 1.1fr; gap:8px; margin-top:10px; }
 .pos-main-actions .is-primary { background:#16a34a; }
@@ -2866,4 +2870,106 @@ input:focus, select:focus, textarea:focus {
   .cash-recent-orders p { grid-template-columns: 1fr auto; }
   .cash-recent-orders p button { grid-column: 1 / -1; }
   .pos-audit p { grid-template-columns: 1fr; }
+}
+.em-connection {
+  position: fixed;
+  z-index: 1400;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  max-width: min(620px, calc(100vw - 28px));
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.em-connection i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.em-connection b {
+  margin-left: auto;
+  color: #1d4ed8;
+  white-space: nowrap;
+}
+
+.em-connection--offline {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.em-connection--offline i {
+  background: #dc2626;
+}
+
+.em-connection--recovering {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.em-connection--recovering i {
+  background: #f59e0b;
+  animation: em-connection-pulse 1s ease-in-out infinite;
+}
+
+@keyframes em-connection-pulse {
+  50% { opacity: .35; }
+}
+
+@media (max-width: 600px) {
+  .em-connection {
+    bottom: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .em-connection b {
+    width: 100%;
+    margin-left: 20px;
+  }
+}
+.kds-printer-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #dbe4f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.kds-printer-status b {
+  color: #0f172a;
+}
+
+.kds-printer-status--printing {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.kds-printer-status--ready {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.kds-printer-status--error {
+  border-color: #fca5a5;
+  background: #fff1f2;
 }

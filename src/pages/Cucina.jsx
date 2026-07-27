@@ -4,6 +4,7 @@ import HighVolumeServiceBoard from "../components/ops/HighVolumeServiceBoard";
 import { glowPageStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
+import useStationPrinter from "../hooks/useStationPrinter";
 
 function isBevanda(preparationArea) {
   return (preparationArea || "").toLowerCase().trim() === "bar";
@@ -59,6 +60,7 @@ export default function Cucina() {
   const [updatingIds, setUpdatingIds] = useState([]);
   const audioAbilitato = useRef(false);
   const ultimoConteggioCucinaRef = useRef(0);
+  const printer = useStationPrinter("kitchen");
 
   useEffect(() => {
     const abilitaAudio = () => {
@@ -72,7 +74,7 @@ export default function Cucina() {
 
   async function syncOrdini() {
     try {
-      const response = await fetch(`${API_URL}/orders/kitchen/list`, {
+      const response = await fetch(`${API_URL}/orders/kitchen/list?area=kitchen`, {
         headers: getAuthHeaders(),
       });
 
@@ -103,7 +105,7 @@ export default function Cucina() {
 
   useEffect(() => {
     syncOrdini();
-    const timer = setInterval(syncOrdini, 8000);
+    const timer = setInterval(syncOrdini, 30000);
     const socket = createRestaurantSocket();
 
     const refreshLive = async () => {
@@ -127,7 +129,7 @@ export default function Cucina() {
       const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
         method: "PATCH",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ status: nuovoStato }),
+        body: JSON.stringify({ status: nuovoStato, area: "kitchen" }),
       });
 
       const data = await response.json();
@@ -221,6 +223,12 @@ export default function Cucina() {
           onRefresh={syncOrdini}
           onNext={cambiaStato}
           onBack={riportaIndietro}
+          onPrint={printer.printOrder}
+          autoPrint={printer.autoPrint}
+          onToggleAutoPrint={printer.setAutoPrint}
+          pendingPrintJobs={printer.pendingJobs}
+          printMode={printer.printMode}
+          printerStatus={printer.status}
           readyLabel="Pronto"
         />
       </div>

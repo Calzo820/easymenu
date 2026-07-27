@@ -435,3 +435,127 @@
     flex-direction: column;
   }
 }
+.superadmin-health-row strong.is-ok,
+.superadmin-monitor .is-ok {
+  color: #15803d;
+}
+
+.superadmin-health-row strong.is-alert,
+.superadmin-monitor .is-alert {
+  color: #b91c1c;
+}
+
+.superadmin-monitor {
+  padding: 22px;
+}
+
+.superadmin-monitor-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, .85fr) minmax(360px, 1.15fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.superadmin-monitor-checks,
+.superadmin-monitor-restaurants {
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.superadmin-monitor-checks > div,
+.superadmin-monitor-restaurants > div {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.superadmin-monitor-checks > div:last-child,
+.superadmin-monitor-restaurants > div:last-child {
+  border-bottom: 0;
+}
+
+.superadmin-monitor-checks span,
+.superadmin-monitor-restaurants span {
+  color: #475569;
+  font-weight: 800;
+}
+
+.superadmin-monitor-restaurants h3 {
+  margin: 0 0 8px;
+}
+
+.superadmin-monitor-restaurants span {
+  display: grid;
+  gap: 2px;
+}
+
+.superadmin-monitor-restaurants small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.superadmin-monitor-restaurants strong {
+  min-width: 34px;
+  min-height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.superadmin-monitor-alerts {
+  margin-top: 16px;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.superadmin-monitor-alerts summary {
+  padding: 13px 15px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.superadmin-monitor-alerts > div {
+  display: grid;
+  border-top: 1px solid #e2e8f0;
+}
+
+.superadmin-monitor-alerts article {
+  display: grid;
+  grid-template-columns: minmax(180px, .8fr) minmax(260px, 1.4fr) auto;
+  gap: 14px;
+  padding: 11px 15px;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 12px;
+}
+
+.superadmin-monitor-alerts article span,
+.superadmin-monitor-alerts article small {
+  color: #64748b;
+}
+
+.superadmin-privacy-note {
+  margin-top: 14px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+@media (max-width: 900px) {
+  .superadmin-monitor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .superadmin-monitor-alerts article {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

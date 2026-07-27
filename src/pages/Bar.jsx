@@ -4,6 +4,7 @@ import HighVolumeServiceBoard from "../components/ops/HighVolumeServiceBoard";
 import { glowPageStyle } from "../styles/pageStyles";
 import { API_URL, getAuthHeaders } from "../lib/api";
 import { createRestaurantSocket, playOrderSound } from "../lib/realtime";
+import useStationPrinter from "../hooks/useStationPrinter";
 
 function isBevanda(preparationArea) {
   return (preparationArea || "").toLowerCase().trim() === "bar";
@@ -52,11 +53,12 @@ function statoRank(stato) {
 
 export default function Bar() {
   const [ordini, setOrdini] = useState([]);
-  const [ultimoConteggioBar, setUltimoConteggioBar] = useState(0);
+  const ultimoConteggioBarRef = useRef(0);
   const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(true);
   const [updatingIds, setUpdatingIds] = useState([]);
   const audioAbilitato = useRef(false);
+  const printer = useStationPrinter("bar");
 
   useEffect(() => {
     const abilitaAudio = () => {
@@ -70,7 +72,7 @@ export default function Bar() {
 
   const syncOrdini = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/orders/kitchen/list`, {
+      const response = await fetch(`${API_URL}/orders/kitchen/list?area=bar`, {
         headers: getAuthHeaders(),
       });
 
@@ -81,23 +83,23 @@ export default function Bar() {
       setOrdini(lista);
 
       const totalePiattiBar = lista.reduce((acc, ordine) => acc + getPiattiBar(ordine).length, 0);
-      if (audioAbilitato.current && ultimoConteggioBar > 0 && totalePiattiBar > ultimoConteggioBar) {
+      if (audioAbilitato.current && ultimoConteggioBarRef.current > 0 && totalePiattiBar > ultimoConteggioBarRef.current) {
         const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
         audio.play().catch(() => {});
       }
 
-      setUltimoConteggioBar(totalePiattiBar);
+      ultimoConteggioBarRef.current = totalePiattiBar;
       setErrore("");
     } catch (error) {
       setErrore(error.message || "Errore nel caricamento bar");
     } finally {
       setLoading(false);
     }
-  }, [ultimoConteggioBar]);
+  }, []);
 
   useEffect(() => {
     syncOrdini();
-    const timer = setInterval(syncOrdini, 8000);
+    const timer = setInterval(syncOrdini, 30000);
     const socket = createRestaurantSocket();
 
     const refreshLive = async () => {
@@ -121,7 +123,7 @@ export default function Bar() {
       const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
         method: "PATCH",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ status: nuovoStato }),
+        body: JSON.stringify({ status: nuovoStato, area: "bar" }),
       });
 
       const data = await response.json();
@@ -210,6 +212,12 @@ export default function Bar() {
           onRefresh={syncOrdini}
           onNext={cambiaStato}
           onBack={riportaIndietro}
+          onPrint={printer.printOrder}
+          autoPrint={printer.autoPrint}
+          onToggleAutoPrint={printer.setAutoPrint}
+          pendingPrintJobs={printer.pendingJobs}
+          printMode={printer.printMode}
+          printerStatus={printer.status}
           readyLabel="Pronto"
         />
       </div>

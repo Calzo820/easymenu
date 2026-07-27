@@ -39,6 +39,7 @@ model Restaurant {
   cashClosures  CashClosure[]
   auditLogs     AuditLog[]
   stockMovements StockMovement[]
+  printJobs     PrintJob[]
 }
 
 model User {
@@ -69,6 +70,7 @@ model User {
   createdPayments PaymentTransaction[]  @relation("PaymentCreatedBy")
   voidedItems     OrderItem[]            @relation("OrderItemVoidedBy")
   reopenedOrders  Order[]                @relation("OrderReopenedBy")
+  claimedPrintJobs PrintJob[]             @relation("PrintJobClaimedBy")
 }
 
 model UserSession {
@@ -207,6 +209,7 @@ model Order {
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
   payments      PaymentTransaction[]
+  printJobs     PrintJob[]
 
   stripeCheckoutSessionId String?
   stripePaymentIntentId   String?
@@ -228,6 +231,7 @@ model OrderItem {
   categorySnapshot String?
   notes            String?
   preparationArea  PreparationArea?
+  preparationStatus PreparationStatus @default(pending)
   status           OrderItemStatus  @default(active)
   voidReason       String?
   voidedAt         DateTime?
@@ -333,6 +337,30 @@ model StockMovement {
   @@index([menuItemId, createdAt])
 }
 
+model PrintJob {
+  id              String         @id @default(cuid())
+  restaurantId    String
+  orderId         String
+  area            PreparationArea
+  eventKey        String         @unique
+  kind            String         @default("order")
+  status          PrintJobStatus @default(pending)
+  attempts        Int            @default(0)
+  lastError       String?
+  claimedByUserId String?
+  claimedAt       DateTime?
+  printedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  claimedBy  User?      @relation("PrintJobClaimedBy", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([restaurantId, area, status, createdAt])
+  @@index([orderId, createdAt])
+}
+
 model OrderStatusHistory {
   id              String       @id @default(cuid())
   orderId         String
@@ -401,6 +429,13 @@ enum PreparationArea {
   bar
 }
 
+enum PreparationStatus {
+  pending
+  in_progress
+  ready
+  served
+}
+
 enum OrderStatus {
   pending
   in_progress
@@ -459,6 +494,13 @@ enum StockMovementType {
   restock
   waste
   restore
+}
+
+enum PrintJobStatus {
+  pending
+  processing
+  printed
+  failed
 }
 
 model ErrorLog {
