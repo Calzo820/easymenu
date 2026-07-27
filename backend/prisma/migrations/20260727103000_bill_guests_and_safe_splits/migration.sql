@@ -1,0 +1,22 @@
+ALTER TABLE "Order"
+  ADD COLUMN IF NOT EXISTS "discountPercent" DECIMAL(5,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "guestCount" INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS "coverCharge" DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "coverChargePerGuest" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS "equalSplitEnabled" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS "billConfiguredAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "billRevision" INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE "PaymentTransaction"
+  ADD COLUMN IF NOT EXISTS "splitKey" TEXT,
+  ADD COLUMN IF NOT EXISTS "splitIndex" INTEGER,
+  ADD COLUMN IF NOT EXISTS "splitCount" INTEGER,
+  ADD COLUMN IF NOT EXISTS "coversCount" INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "billRevision" INTEGER,
+  ADD COLUMN IF NOT EXISTS "checkoutExpiresAt" TIMESTAMP(3);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PaymentTransaction_splitKey_key"
+  ON "PaymentTransaction"("splitKey");
+
+CREATE INDEX IF NOT EXISTS "PaymentTransaction_orderId_status_createdAt_idx"
+  ON "PaymentTransaction"("orderId", "status", "createdAt");

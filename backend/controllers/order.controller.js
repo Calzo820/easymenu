@@ -1,5 +1,7 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 import { writeAudit } from "../lib/audit.js";
+import { calculateBill, clampGuestCount, moneyNumber } from "../lib/billing.js";
 import { createOrderPrintJobs, preparationAreas } from "../lib/printJobs.js";
 import { safeEmit } from "../lib/socketSafe.js";
 
@@ -33,6 +35,20 @@ function paidPaymentsTotal(payments = []) {
   return payments
     .filter((payment) => payment.status === "paid")
     .reduce((sum, payment) => sum + parseNumber(payment.amount), 0);
+}
+
+function hasActivePendingPayment(payments = [], now = Date.now()) {
+  return payments.some((payment) => {
+    if (payment.status !== "pending") return false;
+    if (payment.checkoutExpiresAt) {
+      return new Date(payment.checkoutExpiresAt).getTime() >= now;
+    }
+    return new Date(payment.createdAt || 0).getTime() >= now - 2 * 60 * 60 * 1000;
+  });
+}
+
+function billHasStarted(payments = []) {
+  return payments.some((payment) => payment.status === "paid") || hasActivePendingPayment(payments);
 }
 
 function emitSocket(req, eventName, payload = {}) {
@@ -93,6 +109,15 @@ function publicOrderPayload(order) {
     table: order.table ? { id: order.table.id, name: order.table.name, code: order.table.code } : null,
     items: order.items,
     totalAmount: order.totalAmount,
+    discountAmount: order.discountAmount,
+    discountPercent: order.discountPercent,
+    extraAmount: order.extraAmount,
+    guestCount: order.guestCount,
+    coverCharge: order.coverCharge,
+    coverChargePerGuest: order.coverChargePerGuest,
+    equalSplitEnabled: order.equalSplitEnabled,
+    billConfiguredAt: order.billConfiguredAt,
+    billRevision: order.billRevision,
     createdAt: order.createdAt,
   };
 }
@@ -137,14 +162,32 @@ async function ensureRestaurantAccess(req, orderId) {
 async function recalcOrderTotal(tx, orderId) {
   const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
   if (!order) return null;
-  const totalAmount = Math.max(0, orderItemsTotal(order.items) + parseNumber(order.extraAmount) - parseNumber(order.discountAmount));
-  return tx.order.update({ where: { id: orderId }, data: { totalAmount }, include: { table: true, items: true } });
+  const bill = calculateBill({
+    itemsSubtotal: orderItemsTotal(order.items),
+    extraAmount: order.extraAmount,
+    guestCount: order.guestCount,
+    coverCharge: order.coverCharge,
+    coverChargePerGuest: order.coverChargePerGuest,
+    discountPercent: order.discountPercent,
+    discountAmount: order.discountAmount,
+  });
+  return tx.order.update({
+    where: { id: orderId },
+    data: {
+      totalAmount: bill.totalAmount,
+      discountAmount: bill.discountAmount,
+    },
+    include: { table: true, items: true },
+  });
 }
 
 async function recalcSessionTotal(tx, tableSessionId) {
   if (!tableSessionId) return;
-  const orders = await tx.order.findMany({ where: { tableSessionId, status: { not: "cancelled" } }, include: { items: true } });
-  const totalAmount = orders.reduce((sum, order) => sum + Math.max(0, orderItemsTotal(order.items) + parseNumber(order.extraAmount) - parseNumber(order.discountAmount)), 0);
+  const orders = await tx.order.findMany({
+    where: { tableSessionId, status: { not: "cancelled" } },
+    select: { totalAmount: true },
+  });
+  const totalAmount = orders.reduce((sum, order) => sum + Math.max(0, parseNumber(order.totalAmount)), 0);
   await tx.tableSession.update({ where: { id: tableSessionId }, data: { totalAmount } });
 }
 
@@ -184,6 +227,30 @@ export const createPublicOrder = async (req, res) => {
     }
 
     if (!table) return res.status(404).json({ message: "Tavolo o ristorante non trovato" });
+
+    const restaurantSettings =
+      table.restaurant?.settingsJson &&
+      typeof table.restaurant.settingsJson === "object" &&
+      !Array.isArray(table.restaurant.settingsJson)
+        ? table.restaurant.settingsJson
+        : {};
+    const billingDefaults =
+      restaurantSettings.billing &&
+      typeof restaurantSettings.billing === "object" &&
+      !Array.isArray(restaurantSettings.billing)
+        ? restaurantSettings.billing
+        : {};
+    const recentSeatedReservation = await prisma.reservation.findFirst({
+      where: {
+        restaurantId: table.restaurantId,
+        tableId: table.id,
+        status: "seated",
+        updatedAt: { gte: new Date(Date.now() - 18 * 60 * 60 * 1000) },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { guests: true },
+    });
+    const initialGuestCount = clampGuestCount(recentSeatedReservation?.guests || 1);
 
     const idempotencyKey = buildIdempotencyKey({
       restaurantId: table.restaurantId,
@@ -231,6 +298,22 @@ export const createPublicOrder = async (req, res) => {
       if (!session) {
         session = await tx.tableSession.create({ data: { restaurantId: table.restaurantId, tableId: table.id, status: "open", guestName: customerName ? String(customerName).slice(0, 100) : null, notes: notes ? String(notes).slice(0, 500) : null } });
       }
+      const previousOrder = await tx.order.findFirst({
+        where: {
+          tableSessionId: session.id,
+          closedAt: null,
+          status: { not: "cancelled" },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          guestCount: true,
+          coverCharge: true,
+          coverChargePerGuest: true,
+          equalSplitEnabled: true,
+          discountPercent: true,
+          billConfiguredAt: true,
+        },
+      });
       const scopedIdempotencyKey = buildIdempotencyKey({
         restaurantId: table.restaurantId,
         tableId: table.id,
@@ -244,6 +327,18 @@ export const createPublicOrder = async (req, res) => {
         });
         if (existingInTx) return existingInTx;
       }
+      const orderGuestCount = previousOrder?.guestCount || initialGuestCount;
+      const orderCoverCharge = previousOrder?.coverCharge ?? Math.max(0, moneyNumber(billingDefaults.coverCharge));
+      const orderCoverChargePerGuest = previousOrder?.coverChargePerGuest ?? billingDefaults.coverChargePerGuest !== false;
+      const orderEqualSplitEnabled = previousOrder?.equalSplitEnabled ?? billingDefaults.equalSplitEnabled !== false;
+      const orderDiscountPercent = previousOrder?.discountPercent || 0;
+      const initialBill = calculateBill({
+        itemsSubtotal: orderItemsData.reduce((sum, item) => sum + item.priceSnapshot * item.quantity, 0),
+        guestCount: orderGuestCount,
+        coverCharge: orderCoverCharge,
+        coverChargePerGuest: orderCoverChargePerGuest,
+        discountPercent: orderDiscountPercent,
+      });
       const orderNumber = await nextOrderNumber(tx, table.restaurantId);
       for (const item of orderItemsData) {
         const source = menuById.get(item.menuItemId);
@@ -276,7 +371,14 @@ export const createPublicOrder = async (req, res) => {
           clientRequestId: safeClientRequestId,
           idempotencyKey: scopedIdempotencyKey,
           paymentStatus: "unpaid",
-          totalAmount: orderItemsData.reduce((sum, item) => sum + item.priceSnapshot * item.quantity, 0),
+          totalAmount: initialBill.totalAmount,
+          discountAmount: initialBill.discountAmount,
+          guestCount: orderGuestCount,
+          coverCharge: orderCoverCharge,
+          coverChargePerGuest: orderCoverChargePerGuest,
+          equalSplitEnabled: orderEqualSplitEnabled,
+          discountPercent: orderDiscountPercent,
+          billConfiguredAt: previousOrder?.billConfiguredAt || (recentSeatedReservation ? new Date() : null),
           items: { create: orderItemsData },
         },
         include: { restaurant: true, table: true, items: { include: { menuItem: true } } },
@@ -348,6 +450,14 @@ export const getPublicOrderByTokenOrId = async (req, res) => {
       restaurantName: order.restaurant?.name || null,
       tableName: order.table?.name || null,
       totalAmount: order.totalAmount,
+      discountAmount: order.discountAmount,
+      discountPercent: order.discountPercent,
+      extraAmount: order.extraAmount,
+      guestCount: order.guestCount,
+      coverCharge: order.coverCharge,
+      coverChargePerGuest: order.coverChargePerGuest,
+      equalSplitEnabled: order.equalSplitEnabled,
+      billConfiguredAt: order.billConfiguredAt,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       acceptedAt: order.acceptedAt,
@@ -631,6 +741,9 @@ export const addOrderExtra = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Ordine non trovato" });
     if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
     if (["served", "cancelled"].includes(order.status)) return res.status(400).json({ message: "Non puoi aggiungere extra a un ordine chiuso" });
+    if (billHasStarted(order.payments)) {
+      return res.status(409).json({ message: "Il conto non può essere modificato dopo l'inizio di un pagamento" });
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const extraItem = await tx.orderItem.create({
@@ -674,17 +787,24 @@ export const closeOrder = async (req, res) => {
     if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
 
     const outcome = await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id },
-        data: {
-          discountAmount: Math.max(0, parseNumber(discount)),
-          extraAmount: Math.max(0, parseNumber(extra)),
-        },
-      });
+      const adjustments = {};
+      if (discount !== undefined) {
+        adjustments.discountAmount = Math.max(0, parseNumber(discount));
+        adjustments.discountPercent = 0;
+      }
+      if (extra !== undefined) adjustments.extraAmount = Math.max(0, parseNumber(extra));
+      if (Object.keys(adjustments).length) {
+        await tx.order.update({ where: { id }, data: adjustments });
+      }
       let result = await recalcOrderTotal(tx, id);
       const existingPayments = await tx.paymentTransaction.findMany({
-        where: { orderId: id, status: "paid" },
+        where: { orderId: id, status: { in: ["paid", "pending"] } },
       });
+      if (hasActivePendingPayment(existingPayments)) {
+        const pendingError = new Error("È presente un pagamento online in corso");
+        pendingError.code = "PAYMENT_IN_PROGRESS";
+        throw pendingError;
+      }
       const rows = normalizedPaymentRows(payments);
       const alreadyPaid = paidPaymentsTotal(existingPayments);
       const remainingBeforeNew = Math.max(0, parseNumber(result.totalAmount) - alreadyPaid);
@@ -812,6 +932,7 @@ export const closeOrder = async (req, res) => {
   } catch (error) {
     console.error("closeOrder error:", error);
     if (error?.code === "OVERPAYMENT") return res.status(400).json({ message: error.message });
+    if (error?.code === "PAYMENT_IN_PROGRESS") return res.status(409).json({ message: error.message });
     return res.status(500).json({ message: "Errore durante chiusura conto" });
   }
 };
@@ -826,6 +947,9 @@ export const addOrderPayment = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Ordine non trovato" });
     if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
     if (order.closedAt) return res.status(400).json({ message: "Il conto è già chiuso" });
+    if (hasActivePendingPayment(order.payments || [])) {
+      return res.status(409).json({ message: "È presente un pagamento online in corso" });
+    }
     const existingPaid = paidPaymentsTotal(order.payments || []);
     const rowsTotal = rows.reduce((sum, row) => sum + row.amount, 0);
     if (existingPaid + rowsTotal > parseNumber(order.totalAmount) + 0.009) {
@@ -882,6 +1006,162 @@ export const addOrderPayment = async (req, res) => {
   }
 };
 
+export const updateOrderBillSettings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await ensureRestaurantAccess(req, id);
+    if (!order) return res.status(404).json({ message: "Ordine non trovato" });
+    if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
+    if (order.closedAt) return res.status(400).json({ message: "Il conto è già chiuso" });
+
+    const guestCount = clampGuestCount(req.body?.guestCount);
+    const coverCharge = Math.min(100, Math.max(0, moneyNumber(req.body?.coverCharge)));
+    const coverChargePerGuest = req.body?.coverChargePerGuest !== false;
+    const equalSplitEnabled = req.body?.equalSplitEnabled !== false;
+    const discountPercent = Math.min(100, Math.max(0, moneyNumber(req.body?.discountPercent)));
+    const saveAsDefault = Boolean(req.body?.saveAsDefault);
+
+    let updated = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        updated = await prisma.$transaction(async (tx) => {
+          const now = new Date();
+          await tx.paymentTransaction.updateMany({
+            where: {
+              orderId: id,
+              status: "pending",
+              OR: [
+                { checkoutExpiresAt: { lt: now } },
+                {
+                  checkoutExpiresAt: null,
+                  createdAt: { lt: new Date(now.getTime() - 2 * 60 * 60 * 1000) },
+                },
+              ],
+            },
+            data: { status: "unpaid" },
+          });
+          const activePayments = await tx.paymentTransaction.count({
+            where: {
+              orderId: id,
+              OR: [
+                { status: "paid" },
+                {
+                  status: "pending",
+                  OR: [
+                    { checkoutExpiresAt: null },
+                    { checkoutExpiresAt: { gte: now } },
+                  ],
+                },
+              ],
+            },
+          });
+          if (activePayments > 0) {
+            throw Object.assign(
+              new Error("Coperti e totale sono bloccati perché è già iniziato un pagamento."),
+              { code: "BILL_LOCKED" }
+            );
+          }
+
+          await tx.order.update({
+            where: { id },
+            data: {
+              guestCount,
+              coverCharge,
+              coverChargePerGuest,
+              equalSplitEnabled,
+              discountPercent,
+              discountAmount: 0,
+              billConfiguredAt: new Date(),
+              billRevision: { increment: 1 },
+            },
+          });
+          const recalculated = await recalcOrderTotal(tx, id);
+          if (order.tableSessionId) await recalcSessionTotal(tx, order.tableSessionId);
+
+          if (saveAsDefault) {
+            const restaurant = await tx.restaurant.findUnique({
+              where: { id: order.restaurantId },
+              select: { settingsJson: true },
+            });
+            const settings =
+              restaurant?.settingsJson &&
+              typeof restaurant.settingsJson === "object" &&
+              !Array.isArray(restaurant.settingsJson)
+                ? restaurant.settingsJson
+                : {};
+            await tx.restaurant.update({
+              where: { id: order.restaurantId },
+              data: {
+                settingsJson: {
+                  ...settings,
+                  billing: {
+                    ...(settings.billing && typeof settings.billing === "object" ? settings.billing : {}),
+                    coverCharge,
+                    coverChargePerGuest,
+                    equalSplitEnabled,
+                  },
+                },
+              },
+            });
+          }
+
+          await writeAudit(tx, req, {
+            action: "order.bill_configured",
+            entityType: "order",
+            entityId: id,
+            metadata: {
+              guestCount,
+              coverCharge,
+              coverChargePerGuest,
+              equalSplitEnabled,
+              discountPercent,
+              saveAsDefault,
+              totalAmount: recalculated.totalAmount,
+            },
+          });
+          return recalculated;
+        }, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+        break;
+      } catch (error) {
+        if (error?.code !== "P2034" || attempt === 2) throw error;
+      }
+    }
+
+    emitSocket(req, "order-updated", {
+      orderId: updated.id,
+      tableId: updated.tableId,
+      restaurantId: updated.restaurantId,
+      reason: "bill-configured",
+    });
+    emitSocket(req, "table-updated", {
+      orderId: updated.id,
+      tableId: updated.tableId,
+      restaurantId: updated.restaurantId,
+      reason: "bill-configured",
+    });
+    return res.json({
+      message: saveAsDefault
+        ? "Coperti aggiornati e coperto salvato come predefinito"
+        : "Coperti e totale aggiornati",
+      order: updated,
+    });
+  } catch (error) {
+    console.error("updateOrderBillSettings error:", error);
+    if (error?.code === "BILL_LOCKED") {
+      return res.status(409).json({ code: error.code, message: error.message });
+    }
+    if (error?.code === "P2034") {
+      return res.status(409).json({
+        code: "BILL_CHANGED",
+        message: "Il conto è cambiato mentre lo stavi aggiornando. Aggiorna la cassa e riprova.",
+      });
+    }
+    return res.status(500).json({ message: "Errore durante l'aggiornamento del conto" });
+  }
+};
+
 export const updateOrderItem = async (req, res) => {
   try {
     const { id, itemId } = req.params;
@@ -898,6 +1178,9 @@ export const updateOrderItem = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Ordine non trovato" });
     if (order === "FORBIDDEN") return res.status(403).json({ message: "Accesso negato" });
     if (order.closedAt) return res.status(400).json({ message: "Riapri il conto prima di modificarlo" });
+    if (billHasStarted(order.payments)) {
+      return res.status(409).json({ message: "Il conto non può essere modificato dopo l'inizio di un pagamento" });
+    }
     const currentItem = order.items.find((item) => item.id === itemId);
     if (!currentItem) return res.status(404).json({ message: "Articolo non trovato" });
 

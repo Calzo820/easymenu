@@ -39,6 +39,9 @@ function mapOrderStatusToCashierStatus(order, session) {
 
 function activeOrderTotal(order) {
   if (!order) return 0;
+  if (order.totalAmount !== undefined && order.totalAmount !== null) {
+    return Math.max(0, Number(order.totalAmount || 0));
+  }
   const itemsTotal = (order.items || []).reduce((sum, item) => {
     if (item.status === "voided" || item.isComplimentary) return sum;
     return sum + Number(item.priceSnapshot || 0) * Number(item.quantity || 0);
@@ -109,7 +112,7 @@ export const getTablesStatus = async (req, res) => {
           orderBy: { createdAt: "desc" },
           include: {
             items: { include: { menuItem: true } },
-            payments: { where: { status: "paid" }, orderBy: { createdAt: "asc" } },
+            payments: { orderBy: { createdAt: "asc" } },
           },
         },
       },
@@ -149,7 +152,14 @@ export const getTablesStatus = async (req, res) => {
           billRequested: activeOrder.paymentStatus === "pending" || activeSession?.status === "closing",
           tableSessionStatus: activeSession?.status || null,
           discountAmount: activeOrder.discountAmount,
+          discountPercent: activeOrder.discountPercent,
           extraAmount: activeOrder.extraAmount,
+          guestCount: activeOrder.guestCount,
+          coverCharge: activeOrder.coverCharge,
+          coverChargePerGuest: activeOrder.coverChargePerGuest,
+          equalSplitEnabled: activeOrder.equalSplitEnabled,
+          billConfiguredAt: activeOrder.billConfiguredAt,
+          billRevision: activeOrder.billRevision,
           totalAmount,
           payments: activeOrder.payments,
           table: { id: table.id, name: table.name, code: table.code, number: table.code },

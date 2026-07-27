@@ -210,7 +210,15 @@ function mapBackendOrderToLegacyShape(order) {
       order.sessionStatus === "closing",
     billRequestedAt: order.billRequestedAt || order.requestedAt || null,
     discountAmount: parseNumber(order.discountAmount),
+    discountPercent: parseNumber(order.discountPercent),
     extraAmount: parseNumber(order.extraAmount),
+    totalAmount: parseNumber(order.totalAmount),
+    guestCount: Math.max(1, parseNumber(order.guestCount) || 1),
+    coverCharge: parseNumber(order.coverCharge),
+    coverChargePerGuest: order.coverChargePerGuest !== false,
+    equalSplitEnabled: order.equalSplitEnabled !== false,
+    billConfiguredAt: order.billConfiguredAt || null,
+    billRevision: parseNumber(order.billRevision || 1),
     closedAt: order.closedAt || null,
     payments: Array.isArray(order.payments) ? order.payments : [],
     raw: order,
@@ -270,6 +278,7 @@ function Cassa() {
   const [tavoloSelezionato, setTavoloSelezionato] = useState(null);
   const [closing, setClosing] = useState(false);
   const [errore, setErrore] = useState("");
+  const [conferma, setConferma] = useState("");
   const [loading, setLoading] = useState(true);
   const [totaleTavoli, setTotaleTavoli] = useState(
     Number(localStorage.getItem(tavoliKey(getRistoranteAttivo())) || 12)
@@ -285,6 +294,7 @@ function Cassa() {
   const [declaredCash, setDeclaredCash] = useState("");
   const [closureNotes, setClosureNotes] = useState("");
   const [orderAudit, setOrderAudit] = useState([]);
+  const [clockNow, setClockNow] = useState(0);
 
   const socketRef = useRef(null);
   const bellRef = useRef(null);
@@ -346,6 +356,24 @@ function Cassa() {
         .sort((a, b) => Number(a.tavolo) - Number(b.tavolo));
 
       setOrdini(mappedOrdini);
+      setImpostazioniConto((prev) => {
+        const next = { ...prev };
+        mappedOrdini.forEach((ordine) => {
+          const current = next[ordine.tavolo];
+          if (current?._dirty) return;
+          next[ordine.tavolo] = {
+            ...(current || {}),
+            coperti: String(ordine.guestCount || 1),
+            costoCoperto: String(ordine.coverCharge || ""),
+            copertoUguale: ordine.coverChargePerGuest !== false,
+            divisioneTelefono: ordine.equalSplitEnabled !== false,
+            sconto: String(ordine.discountPercent || ""),
+            billConfiguredAt: ordine.billConfiguredAt || null,
+            _dirty: false,
+          };
+        });
+        return next;
+      });
       setRichiesteConto((prev) => {
         const next = { ...prev };
         mappedOrdini.forEach((ordine) => {
@@ -381,6 +409,13 @@ function Cassa() {
 
   useEffect(() => {
     bellRef.current = createBellSound() || null;
+  }, []);
+
+  useEffect(() => {
+    const updateClock = () => setClockNow(Date.now());
+    updateClock();
+    const timer = window.setInterval(updateClock, 30000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -507,11 +542,20 @@ function Cassa() {
   }
 
   function aggiornaConto(tavolo, campo, valore) {
+    const isBillSetting = [
+      "coperti",
+      "costoCoperto",
+      "copertoUguale",
+      "divisioneTelefono",
+      "copertoPredefinito",
+      "sconto",
+    ].includes(campo);
     setImpostazioniConto((prev) => ({
       ...prev,
       [tavolo]: {
         ...prev[tavolo],
         [campo]: valore,
+        _dirty: Boolean(prev[tavolo]?._dirty || isBillSetting),
       },
     }));
   }
@@ -581,12 +625,15 @@ function Cassa() {
     if (!ordine) return 0;
 
     const cfg = impostazioniConto[ordine.tavolo] || {};
-    const subtotale = subtotaleOrdine(ordine);
-    const coperti = parseNumber(cfg.coperti);
-    const costoCoperto = parseNumber(cfg.costoCoperto);
-    const sconto = parseNumber(cfg.sconto);
+    const subtotale = subtotaleOrdine(ordine) + parseNumber(ordine.extraAmount);
+    const coperti = Math.max(1, parseNumber(cfg.coperti || ordine.guestCount || 1));
+    const costoCoperto = parseNumber(cfg.costoCoperto ?? ordine.coverCharge);
+    const copertoTotale = (cfg.copertoUguale ?? ordine.coverChargePerGuest) === false
+      ? costoCoperto
+      : coperti * costoCoperto;
+    const sconto = parseNumber(cfg.sconto ?? ordine.discountPercent);
 
-    const totaleConCoperto = subtotale + coperti * costoCoperto;
+    const totaleConCoperto = subtotale + copertoTotale;
     const totaleScontato = totaleConCoperto - (totaleConCoperto * sconto) / 100;
 
     return Math.max(0, Math.round(totaleScontato * 100) / 100);
@@ -595,9 +642,26 @@ function Cassa() {
   function quotaPerPersona(ordine) {
     if (!ordine) return 0;
     const cfg = impostazioniConto[ordine.tavolo] || {};
-    const persone = parseNumber(cfg.dividiConto);
-    if (persone <= 1) return 0;
+    const persone = Math.max(1, parseNumber(cfg.coperti || ordine.guestCount || 1));
+    if (persone <= 1 || (cfg.divisioneTelefono ?? ordine.equalSplitEnabled) === false) return 0;
     return Math.round((totaleFinale(ordine) / persone) * 100) / 100;
+  }
+
+  function contoBloccato(ordine) {
+    return (ordine?.payments || []).some((payment) => {
+      if (payment.status === "paid") return true;
+      if (payment.status !== "pending") return false;
+      if (!payment.checkoutExpiresAt) return true;
+      return new Date(payment.checkoutExpiresAt).getTime() >= clockNow;
+    });
+  }
+
+  function pagamentoOnlineInCorso(ordine) {
+    return (ordine?.payments || []).some((payment) => {
+      if (payment.status !== "pending") return false;
+      if (!payment.checkoutExpiresAt) return true;
+      return new Date(payment.checkoutExpiresAt).getTime() >= clockNow;
+    });
   }
 
   function restanteDaIncassare(ordine) {
@@ -629,6 +693,51 @@ function Cassa() {
       .filter((row) => row.amount > 0);
   }
 
+  async function salvaImpostazioniConto(ordine, { silent = false } = {}) {
+    if (!ordine?.backendId) return null;
+    const cfg = impostazioniConto[ordine.tavolo] || {};
+    if (contoBloccato(ordine)) {
+      if (!silent) setErrore("Coperti e totale sono bloccati perché è già iniziato un pagamento.");
+      return ordine.raw || ordine;
+    }
+
+    const response = await fetch(`${API_URL}/orders/${ordine.backendId}/bill-settings`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        guestCount: Math.max(1, parseNumber(cfg.coperti || ordine.guestCount || 1)),
+        coverCharge: Math.max(0, parseNumber(cfg.costoCoperto ?? ordine.coverCharge)),
+        coverChargePerGuest: (cfg.copertoUguale ?? ordine.coverChargePerGuest) !== false,
+        equalSplitEnabled: (cfg.divisioneTelefono ?? ordine.equalSplitEnabled) !== false,
+        discountPercent: Math.max(0, parseNumber(cfg.sconto ?? ordine.discountPercent)),
+        saveAsDefault: Boolean(cfg.copertoPredefinito),
+      }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.message || "Impossibile aggiornare coperti e totale");
+
+    setImpostazioniConto((prev) => ({
+      ...prev,
+      [ordine.tavolo]: {
+        ...(prev[ordine.tavolo] || {}),
+        coperti: String(data.order?.guestCount || cfg.coperti || 1),
+        costoCoperto: String(data.order?.coverCharge || cfg.costoCoperto || ""),
+        copertoUguale: data.order?.coverChargePerGuest !== false,
+        divisioneTelefono: data.order?.equalSplitEnabled !== false,
+        sconto: String(data.order?.discountPercent || cfg.sconto || ""),
+        billConfiguredAt: data.order?.billConfiguredAt || new Date().toISOString(),
+        _dirty: false,
+      },
+    }));
+    if (!silent) {
+      setErrore("");
+      setConferma(data.message || "Coperti e totale aggiornati");
+      window.setTimeout(() => setConferma(""), 3500);
+    }
+    await syncOrdini();
+    return data.order;
+  }
+
   async function registraAcconto(ordine) {
     const cfg = impostazioniConto[ordine.tavolo] || {};
     const amount = parseNumber(cfg.acconto);
@@ -639,6 +748,7 @@ function Cassa() {
     try {
       setClosing(true);
       setErrore("");
+      await salvaImpostazioniConto(ordine, { silent: true });
       const response = await fetch(`${API_URL}/orders/${ordine.backendId}/payments`, {
         method: "POST",
         headers: getAuthHeaders(),
@@ -799,24 +909,26 @@ function Cassa() {
       setErrore("");
 
       if (ordine.backendId) {
+        if (pagamentoOnlineInCorso(ordine)) {
+          throw new Error("È presente un pagamento online in corso. Attendi la conferma o la scadenza prima di chiudere il conto.");
+        }
+        if (!contoBloccato(ordine)) {
+          await salvaImpostazioniConto(ordine, { silent: true });
+        }
         const mixedPayments = paymentRowsForTable(tavolo);
-        if (cfg.pagamentoMisto && !mixedPayments.length) {
+        const saldoResiduo = restanteDaIncassare(ordine);
+        if (saldoResiduo > 0.009 && cfg.pagamentoMisto && !mixedPayments.length) {
           throw new Error("Inserisci almeno una quota per il pagamento misto.");
         }
-        if (!cfg.pagamentoMisto && !cfg.pagamento) {
+        if (saldoResiduo > 0.009 && !cfg.pagamentoMisto && !cfg.pagamento) {
           throw new Error("Scegli il metodo di pagamento.");
         }
         const response = await fetch(`${API_URL}/orders/${ordine.backendId}/close`, {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            discount: (
-              (subtotaleOrdine(ordine) + parseNumber(cfg.coperti) * parseNumber(cfg.costoCoperto)) *
-              parseNumber(cfg.sconto)
-            ) / 100,
-            extra: parseNumber(cfg.coperti) * parseNumber(cfg.costoCoperto),
-            paymentMethod: cfg.pagamentoMisto ? null : cfg.pagamento || null,
-            payments: cfg.pagamentoMisto ? mixedPayments : undefined,
+            paymentMethod: saldoResiduo > 0.009 && !cfg.pagamentoMisto ? cfg.pagamento || null : null,
+            payments: saldoResiduo > 0.009 && cfg.pagamentoMisto ? mixedPayments : undefined,
           }),
         });
 
@@ -831,12 +943,12 @@ function Cassa() {
       storico.push({
         ...ordine,
         totale,
-        chiusoIl: Date.now(),
+        chiusoIl: clockNow,
         pagamento: cfg.pagamento || "Non indicato",
         coperti: parseNumber(cfg.coperti),
         costoCoperto: parseNumber(cfg.costoCoperto),
         sconto: parseNumber(cfg.sconto),
-        dividiConto: parseNumber(cfg.dividiConto),
+        dividiConto: parseNumber(cfg.coperti),
         acconto: parseNumber(cfg.acconto),
         restante: restanteDaIncassare(ordine),
       });
@@ -915,6 +1027,14 @@ function Cassa() {
   }
 
   const cfgSelezionato = tavoloSelezionato ? impostazioniConto[tavoloSelezionato] || {} : {};
+  const contoSelezionatoBloccato = contoBloccato(ordineSelezionato);
+  const pagamentoSelezionatoInCorso = pagamentoOnlineInCorso(ordineSelezionato);
+  const copertiSelezionatiPagati = (ordineSelezionato?.payments || [])
+    .filter((payment) => payment.status === "paid")
+    .reduce((sum, payment) => sum + parseNumber(payment.coversCount), 0);
+  const copertiSelezionatiInPagamento = (ordineSelezionato?.payments || [])
+    .filter((payment) => payment.status === "pending")
+    .reduce((sum, payment) => sum + parseNumber(payment.coversCount), 0);
 
   const tableTiles = Array.from({ length: totaleTavoli }, (_, i) => i + 1);
   const selectedHasOrder = Boolean(ordineSelezionato);
@@ -971,6 +1091,7 @@ function Cassa() {
         ) : null}
 
         {errore ? <div className="pos-error">{errore}</div> : null}
+        {conferma ? <div className="pos-confirm">{conferma}</div> : null}
 
         {cashPanelOpen ? (
           <section className="cash-close-panel">
@@ -1139,6 +1260,7 @@ function Cassa() {
                           type="button"
                           className="pos-item-menu"
                           aria-label={`Azioni per ${p.nome}`}
+                          disabled={contoSelezionatoBloccato}
                           onClick={() => setItemAction({
                             orderId: ordineSelezionato.backendId,
                             itemId: p.id,
@@ -1172,6 +1294,119 @@ function Cassa() {
                   </div>
                 ) : null}
 
+                <section className={`pos-bill-setup ${contoSelezionatoBloccato ? "is-locked" : ""}`}>
+                  <div className="pos-bill-setup__head">
+                    <div>
+                      <span>Coperti e conto digitale</span>
+                      <strong>
+                        {ordineSelezionato.billConfiguredAt || cfgSelezionato.billConfiguredAt
+                          ? "Totale confermato"
+                          : "Da confermare prima del pagamento dal telefono"}
+                      </strong>
+                    </div>
+                    <b>{formatEuro(totaleFinale(ordineSelezionato))}</b>
+                  </div>
+
+                  <div className="pos-bill-setup__fields">
+                    <label>
+                      Persone al tavolo
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        inputMode="numeric"
+                        value={cfgSelezionato.coperti || "1"}
+                        disabled={contoSelezionatoBloccato}
+                        onChange={(event) => aggiornaConto(tavoloSelezionato, "coperti", event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      {cfgSelezionato.copertoUguale === false ? "Coperto totale tavolo" : "Coperto a persona"}
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={cfgSelezionato.costoCoperto || ""}
+                        disabled={contoSelezionatoBloccato}
+                        onChange={(event) => aggiornaConto(tavoloSelezionato, "costoCoperto", event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Sconto
+                      <span className="pos-input-suffix">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          inputMode="decimal"
+                          value={cfgSelezionato.sconto || ""}
+                          disabled={contoSelezionatoBloccato}
+                          onChange={(event) => aggiornaConto(tavoloSelezionato, "sconto", event.target.value)}
+                        />
+                        <i>%</i>
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="pos-bill-options">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={cfgSelezionato.copertoUguale !== false}
+                        disabled={contoSelezionatoBloccato}
+                        onChange={(event) => aggiornaConto(tavoloSelezionato, "copertoUguale", event.target.checked)}
+                      />
+                      <span><b>Stesso coperto per ogni persona</b><small>Il coperto viene moltiplicato per il numero di persone.</small></span>
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={cfgSelezionato.divisioneTelefono !== false}
+                        disabled={contoSelezionatoBloccato}
+                        onChange={(event) => aggiornaConto(tavoloSelezionato, "divisioneTelefono", event.target.checked)}
+                      />
+                      <span><b>Quote uguali dal telefono</b><small>Ogni cliente può pagare una quota del conto.</small></span>
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(cfgSelezionato.copertoPredefinito)}
+                        disabled={contoSelezionatoBloccato}
+                        onChange={(event) => aggiornaConto(tavoloSelezionato, "copertoPredefinito", event.target.checked)}
+                      />
+                      <span><b>Usa sempre questo coperto</b><small>Diventa il prezzo predefinito per i nuovi conti.</small></span>
+                    </label>
+                  </div>
+
+                  <div className="pos-bill-setup__foot">
+                    <div>
+                      {quotaPerPersona(ordineSelezionato) ? (
+                        <span>Quota indicativa <b>{formatEuro(quotaPerPersona(ordineSelezionato))}</b></span>
+                      ) : (
+                        <span>Pagamento dal telefono solo per il saldo completo</span>
+                      )}
+                      {pagamentoSelezionatoInCorso ? <small>Pagamento online in corso: attendi l'esito.</small> : null}
+                      {!pagamentoSelezionatoInCorso && contoSelezionatoBloccato ? <small>Totale bloccato dopo il primo pagamento.</small> : null}
+                      {copertiSelezionatiPagati > 0 || copertiSelezionatiInPagamento > 0 ? (
+                        <small>
+                          {copertiSelezionatiPagati}/{Math.max(1, parseNumber(cfgSelezionato.coperti || ordineSelezionato.guestCount))} quote pagate
+                          {copertiSelezionatiInPagamento ? ` · ${copertiSelezionatiInPagamento} in pagamento` : ""}
+                        </small>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={closing || contoSelezionatoBloccato}
+                      onClick={() => salvaImpostazioniConto(ordineSelezionato)}
+                    >
+                      {ordineSelezionato.billConfiguredAt || cfgSelezionato.billConfiguredAt ? "Aggiorna totale" : "Conferma coperti"}
+                    </button>
+                  </div>
+                </section>
+
                 <label className="pos-mixed-toggle">
                   <input type="checkbox" checked={Boolean(cfgSelezionato.pagamentoMisto)} onChange={(event) => aggiornaConto(tavoloSelezionato, "pagamentoMisto", event.target.checked)} />
                   <span><b>Pagamento misto</b><small>Dividi l'importo tra più metodi.</small></span>
@@ -1201,26 +1436,21 @@ function Cassa() {
                 ) : null}
 
                 <details className="pos-advanced">
-                  <summary>Extra, sconto e divisione conto</summary>
+                  <summary>Acconti, extra e registro</summary>
                   <div className="pos-form-grid">
-                    <input style={inputStyle} placeholder="Coperti" inputMode="numeric" value={cfgSelezionato.coperti || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "coperti", event.target.value)} />
-                    <input style={inputStyle} placeholder="Costo coperto" inputMode="decimal" value={cfgSelezionato.costoCoperto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "costoCoperto", event.target.value)} />
-                    <input style={inputStyle} placeholder="Sconto %" inputMode="decimal" value={cfgSelezionato.sconto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "sconto", event.target.value)} />
-                    <input style={inputStyle} placeholder="Dividi per" inputMode="numeric" value={cfgSelezionato.dividiConto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "dividiConto", event.target.value)} />
                     <div className="pos-deposit-field">
                       <input style={inputStyle} placeholder="Acconto" inputMode="decimal" value={cfgSelezionato.acconto || ""} onChange={(event) => aggiornaConto(tavoloSelezionato, "acconto", event.target.value)} />
                       <button type="button" disabled={closing} onClick={() => registraAcconto(ordineSelezionato)}>Registra</button>
                     </div>
                   </div>
-                  {quotaPerPersona(ordineSelezionato) ? <div className="pos-split">Quota: {formatEuro(quotaPerPersona(ordineSelezionato))} a persona</div> : null}
                   <div className="pos-extra-row">
-                    <input style={inputStyle} placeholder="Extra" value={extraInputs[tavoloSelezionato]?.nome || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "nome", event.target.value)} />
-                    <input style={inputStyle} placeholder="Prezzo" inputMode="decimal" value={extraInputs[tavoloSelezionato]?.prezzo || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "prezzo", event.target.value)} />
-                    <select style={inputStyle} value={extraInputs[tavoloSelezionato]?.preparationArea || "kitchen"} onChange={(event) => aggiornaExtra(tavoloSelezionato, "preparationArea", event.target.value)}>
+                    <input disabled={contoSelezionatoBloccato} style={inputStyle} placeholder="Extra" value={extraInputs[tavoloSelezionato]?.nome || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "nome", event.target.value)} />
+                    <input disabled={contoSelezionatoBloccato} style={inputStyle} placeholder="Prezzo" inputMode="decimal" value={extraInputs[tavoloSelezionato]?.prezzo || ""} onChange={(event) => aggiornaExtra(tavoloSelezionato, "prezzo", event.target.value)} />
+                    <select disabled={contoSelezionatoBloccato} style={inputStyle} value={extraInputs[tavoloSelezionato]?.preparationArea || "kitchen"} onChange={(event) => aggiornaExtra(tavoloSelezionato, "preparationArea", event.target.value)}>
                       <option value="kitchen">Cucina</option>
                       <option value="bar">Bar</option>
                     </select>
-                    <button type="button" onClick={() => aggiungiPiatto(tavoloSelezionato)}>Aggiungi</button>
+                    <button type="button" disabled={contoSelezionatoBloccato} onClick={() => aggiungiPiatto(tavoloSelezionato)}>Aggiungi</button>
                   </div>
                   {orderAudit.length ? (
                     <details className="pos-audit">
@@ -1248,8 +1478,8 @@ function Cassa() {
 
                 <div className="pos-main-actions">
                   <button type="button" onClick={() => stampaPreconto(tavoloSelezionato)}>Stampa</button>
-                  <button type="button" className="is-primary" disabled={closing} onClick={() => chiudiConto(tavoloSelezionato)}>
-                    {closing ? "Chiusura..." : "Chiudi conto"}
+                  <button type="button" className="is-primary" disabled={closing || pagamentoSelezionatoInCorso} onClick={() => chiudiConto(tavoloSelezionato)}>
+                    {closing ? "Chiusura..." : pagamentoSelezionatoInCorso ? "Pagamento in corso" : "Chiudi conto"}
                   </button>
                 </div>
               </div>
@@ -1264,8 +1494,22 @@ function Cassa() {
           {(ordineSelezionato.piatti || []).map((p, index) => (
             <div key={`${p.nome}-${index}`}>{p.qty || 1} x {p.nome} - {formatEuro(parseNumber(p.prezzo) * parseNumber(p.qty || 1))}</div>
           ))}
+          {parseNumber(cfgSelezionato.costoCoperto) > 0 ? (
+            <div>
+              Coperto {cfgSelezionato.copertoUguale === false ? "tavolo" : `x ${cfgSelezionato.coperti || 1}`} -{" "}
+              {formatEuro(
+                cfgSelezionato.copertoUguale === false
+                  ? parseNumber(cfgSelezionato.costoCoperto)
+                  : parseNumber(cfgSelezionato.costoCoperto) * Math.max(1, parseNumber(cfgSelezionato.coperti))
+              )}
+            </div>
+          ) : null}
+          {parseNumber(cfgSelezionato.sconto) > 0 ? <div>Sconto {cfgSelezionato.sconto}%</div> : null}
           <hr />
           <strong>Totale {formatEuro(totaleFinale(ordineSelezionato))}</strong>
+          {restanteDaIncassare(ordineSelezionato) < totaleFinale(ordineSelezionato) ? (
+            <div>Residuo {formatEuro(restanteDaIncassare(ordineSelezionato))}</div>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -51,11 +51,31 @@ async function main() {
   const inProgress = await request(`/orders/${order.id}/status`, { method: 'PATCH', headers: auth, body: JSON.stringify({ status: 'in_progress' }) });
   assert(inProgress.order?.status === 'in_progress', 'cambio stato ordine');
 
-  if (process.env.STRIPE_SECRET_KEY) {
-    const checkout = await request(`/payments/public/${order.publicToken}/checkout`, { method: 'POST', body: JSON.stringify({ splitCount: 1, payerIndex: 1 }) });
+  const configuredBill = await request(`/orders/${order.id}/bill-settings`, {
+    method: 'PATCH',
+    headers: auth,
+    body: JSON.stringify({
+      guestCount: 2,
+      coverCharge: 2,
+      coverChargePerGuest: true,
+      equalSplitEnabled: true,
+      discountPercent: 0,
+    }),
+  });
+  assert(configuredBill.order?.billConfiguredAt, 'coperti e conto confermati dalla cassa');
+
+  const paymentSummary = await request(`/payments/public/${order.publicToken}/summary`);
+  assert(paymentSummary.billConfigured && paymentSummary.guestCount === 2, 'conto digitale pronto con due coperti');
+  assert(paymentSummary.nextShareAmount > 0, 'quota dal telefono calcolata dal backend');
+
+  if (paymentSummary.onlinePaymentConfigured) {
+    const checkout = await request(`/payments/public/${order.publicToken}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentMode: 'share' }),
+    });
     assert(checkout.checkoutUrl && checkout.sessionId, 'Stripe checkout test creato');
   } else {
-    console.log('Info: Stripe saltato, STRIPE_SECRET_KEY non configurata');
+    console.log('Info: checkout Stripe saltato, conto Connect o webhook non ancora configurato');
   }
 
   console.log('Smoke test completato.');

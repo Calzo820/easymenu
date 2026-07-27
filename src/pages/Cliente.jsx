@@ -217,7 +217,7 @@ export default function Cliente() {
   const [showMenuAfterOrder, setShowMenuAfterOrder] = useState(false);
   const [serviceMessage, setServiceMessage] = useState("");
   const [payment, setPayment] = useState({ loading: false, error: "", open: false, summary: null });
-  const [splitCount, setSplitCount] = useState(1);
+  const [paymentMode, setPaymentMode] = useState("full");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -327,7 +327,12 @@ export default function Cliente() {
             return next;
           });
         }
-        if (summary && active) setPayment((prev) => ({ ...prev, summary }));
+        if (summary && active) {
+          setPayment((prev) => ({ ...prev, summary }));
+          if (!summary.equalSplitEnabled || Number(summary.availableCovers || 0) <= 0) {
+            setPaymentMode("full");
+          }
+        }
       } catch {
         // La pagina cliente deve restare usabile anche se il backend si risveglia lentamente.
       }
@@ -498,10 +503,8 @@ export default function Cliente() {
 
     try {
       setPayment((prev) => ({ ...prev, loading: true, error: "" }));
-      const paidPayments = (payment.summary?.payments || []).filter((item) => item.status === "paid").length;
       const data = await publicApiPost(`/payments/public/${encodeURIComponent(token)}/checkout`, {
-        splitCount,
-        payerIndex: Math.min(splitCount, paidPayments + 1),
+        paymentMode,
       });
       if (!data?.checkoutUrl) throw new Error("Pagamento non disponibile");
       window.location.href = data.checkoutUrl;
@@ -598,6 +601,12 @@ export default function Cliente() {
 
           {payment.error ? <div className="cm-error">{payment.error}</div> : null}
           {serviceMessage ? <div className="cm-service-message">{serviceMessage}</div> : null}
+          {payment.summary?.requiresGuestConfirmation && order.paymentStatus !== "paid" ? (
+            <div className="cm-payment-waiting">
+              <b>Pagamento dal telefono quasi pronto</b>
+              <span>Il personale deve confermare il numero di coperti e il totale. Usa “Chiedi conto” per avvisare la cassa.</span>
+            </div>
+          ) : null}
 
           {payment.open && payment.summary?.onlinePaymentAvailable && order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
             <section className="cm-payment-panel">
@@ -609,16 +618,40 @@ export default function Cliente() {
               <div className="cm-payment-split">
                 <span>Come vuoi pagare?</span>
                 <div>
-                  {[1, 2, 3, 4].map((count) => (
-                    <button type="button" key={count} className={splitCount === count ? "is-active" : ""} onClick={() => setSplitCount(count)}>
-                      {count === 1 ? "Tutto" : `${count} quote`}
+                  <button type="button" className={paymentMode === "full" ? "is-active" : ""} onClick={() => setPaymentMode("full")}>
+                    Tutto il saldo
+                  </button>
+                  {payment.summary?.equalSplitEnabled && Number(payment.summary?.guestCount || 1) > 1 && Number(payment.summary?.availableCovers || 0) > 0 ? (
+                    <button type="button" className={paymentMode === "share" ? "is-active" : ""} onClick={() => setPaymentMode("share")}>
+                      La mia quota
                     </button>
-                  ))}
+                  ) : null}
                 </div>
-                <small>{splitCount === 1 ? "Paghi tutto il conto." : `Paghi una quota da circa ${money(Number(payment.summary?.totalAmount ?? order.totalAmount) / splitCount)}.`}</small>
+                <small>
+                  {paymentMode === "share"
+                    ? `${payment.summary.guestCount} coperti confermati · quota ${money(payment.summary.nextShareAmount)}.`
+                    : `Paghi il saldo disponibile di ${money(Math.max(0, Number(payment.summary?.remainingAmount || 0) - Number(payment.summary?.reservedAmount || 0)))}.`}
+                </small>
+                {Number(payment.summary?.paidCovers || 0) > 0 || Number(payment.summary?.reservedCovers || 0) > 0 ? (
+                  <small>
+                    {payment.summary.paidCovers || 0} quote pagate
+                    {payment.summary.reservedCovers ? ` · ${payment.summary.reservedCovers} in pagamento` : ""}
+                  </small>
+                ) : null}
               </div>
-              <button type="button" className="cm-payment-cta" onClick={payOnline} disabled={payment.loading}>
-                {payment.loading ? "Apro il pagamento..." : splitCount === 1 ? "Paga il conto" : "Paga una quota"}
+              <button
+                type="button"
+                className="cm-payment-cta"
+                onClick={payOnline}
+                disabled={payment.loading || Number(payment.summary?.remainingAmount || 0) - Number(payment.summary?.reservedAmount || 0) < 0.5}
+              >
+                {payment.loading
+                  ? "Apro il pagamento..."
+                  : Number(payment.summary?.remainingAmount || 0) - Number(payment.summary?.reservedAmount || 0) < 0.5
+                    ? "Pagamento già in corso"
+                    : paymentMode === "share"
+                      ? `Paga ${money(payment.summary?.nextShareAmount)}`
+                      : "Paga il saldo"}
               </button>
               <p>Pagamento sicuro gestito da Stripe. EasyMenu non salva i dati della carta.</p>
             </section>

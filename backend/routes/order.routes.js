@@ -12,6 +12,7 @@ import {
   deleteOrder,
   getOrderAudit,
   reopenOrder,
+  updateOrderBillSettings,
   updateOrderItem,
   updateOrderStatus,
 } from "../controllers/order.controller.js";
@@ -56,6 +57,15 @@ router.post(
   requireActiveSubscription,
   requireRole(["owner", "admin", "cashier"]),
   addOrderPayment
+);
+
+router.patch(
+  "/:id/bill-settings",
+  requireAuth,
+  denyImpersonatedPrivateData,
+  requireActiveSubscription,
+  requireRole(["owner", "admin", "cashier"]),
+  updateOrderBillSettings
 );
 
 router.patch(

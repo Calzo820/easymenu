@@ -2834,6 +2834,147 @@ input:focus, select:focus, textarea:focus {
 .pos-item-action-choice button.is-active,
 .pos-item-action-buttons button.is-primary { border-color: #7c3aed; background: #7c3aed; color: #fff; }
 .pos-item-action-buttons { justify-content: flex-end; }
+.pos-confirm {
+  margin-bottom: 12px;
+  border: 1px solid #86efac;
+  border-left: 4px solid #16a34a;
+  padding: 11px 13px;
+  background: #f0fdf4;
+  color: #166534;
+  font-weight: 900;
+}
+.pos-bill-setup {
+  display: grid;
+  gap: 11px;
+  border: 1px solid #99d8cf;
+  border-top: 4px solid #0f766e;
+  padding: 13px;
+  background: #f7fffd;
+}
+.pos-bill-setup.is-locked {
+  border-color: #cbd5e1;
+  border-top-color: #64748b;
+  background: #f8fafc;
+}
+.pos-bill-setup__head,
+.pos-bill-setup__foot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pos-bill-setup__head > div,
+.pos-bill-setup__foot > div {
+  display: grid;
+  gap: 3px;
+}
+.pos-bill-setup__head span {
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.pos-bill-setup__head strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+.pos-bill-setup__head > b {
+  color: #0f172a;
+  font-size: 21px;
+  white-space: nowrap;
+}
+.pos-bill-setup__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr .75fr;
+  gap: 7px;
+}
+.pos-bill-setup__fields label {
+  display: grid;
+  gap: 4px;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 900;
+}
+.pos-bill-setup__fields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 39px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+.pos-input-suffix {
+  position: relative;
+  display: block;
+}
+.pos-input-suffix input {
+  padding-right: 32px;
+}
+.pos-input-suffix i {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-style: normal;
+  font-weight: 950;
+}
+.pos-bill-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.pos-bill-options label {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  border: 1px solid #dbe7e5;
+  padding: 8px;
+  background: #fff;
+}
+.pos-bill-options input {
+  margin-top: 2px;
+  accent-color: #0f766e;
+}
+.pos-bill-options span {
+  display: grid;
+  gap: 2px;
+}
+.pos-bill-options b {
+  color: #0f172a;
+  font-size: 10px;
+}
+.pos-bill-options small,
+.pos-bill-setup__foot small {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.pos-bill-setup__foot span {
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+}
+.pos-bill-setup__foot button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pos-bill-setup__foot button:disabled,
+.pos-bill-setup input:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
 .pos-mixed-toggle { display: flex; gap: 9px; align-items: flex-start; padding: 10px 12px; border: 1px solid #dbe7f5; background: #f8fbff; }
 .pos-mixed-toggle input { margin-top: 3px; accent-color: #0f766e; }
 .pos-mixed-toggle span { display: grid; }
@@ -2870,6 +3011,11 @@ input:focus, select:focus, textarea:focus {
   .cash-recent-orders p { grid-template-columns: 1fr auto; }
   .cash-recent-orders p button { grid-column: 1 / -1; }
   .pos-audit p { grid-template-columns: 1fr; }
+  .pos-bill-setup__fields,
+  .pos-bill-options { grid-template-columns: 1fr; }
+  .pos-bill-setup__head,
+  .pos-bill-setup__foot { display: grid; }
+  .pos-bill-setup__foot button { width: 100%; }
 }
 .em-connection {
   position: fixed;
