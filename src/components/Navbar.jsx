@@ -96,27 +96,27 @@ export default function Navbar() {
 
   const links = useMemo(() => {
     if (!logged) return [];
-    if (isSuperAdmin) return [{ to: "/super-admin", label: "SuperAdmin", icon: "SA", match: ["/super-admin"] }];
+    if (isSuperAdmin) return [{ to: "/super-admin", label: "SuperAdmin", match: ["/super-admin"] }];
 
     return [
-      isAdmin && { to: "/dashboard", label: "Dashboard", icon: "D", match: ["/dashboard"] },
-      canKitchen && !impersonating && { to: "/cucina", label: isAdmin ? "Servizio" : "Cucina", icon: "K", match: ["/cucina"] },
-      canBar && { to: "/bar", label: "Bar", icon: "B", match: ["/bar"] },
-      canCashier && !impersonating && { to: "/cassa", label: "Cassa", icon: "C", match: ["/cassa"] },
-      isAdmin && { to: "/tavoli", label: "Tavoli", icon: "T", match: ["/tavoli"] },
-      isAdmin && { to: "/admin?tab=menu", label: "Menu", icon: "M", match: ["/admin"], adminTab: "menu" },
-      isAdmin && !impersonating && { to: "/statistiche", label: "Statistiche", icon: "ST", match: ["/statistiche"] },
-      isAdmin && !impersonating && { to: "/storico", label: "Storico", icon: "SO", match: ["/storico"] },
+      isAdmin && { to: "/dashboard", label: "Dashboard", match: ["/dashboard"] },
+      canKitchen && !impersonating && { to: "/cucina", label: isAdmin ? "Servizio" : "Cucina", match: ["/cucina"] },
+      canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
+      canCashier && !impersonating && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
+      isAdmin && { to: "/tavoli", label: "Tavoli", match: ["/tavoli"] },
+      isAdmin && { to: "/admin?tab=menu", label: "Menu", match: ["/admin"], adminTab: "menu" },
+      isAdmin && !impersonating && { to: "/statistiche", label: "Statistiche", match: ["/statistiche"] },
+      isAdmin && !impersonating && { to: "/storico", label: "Storico", match: ["/storico"] },
     ].filter(Boolean);
   }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier, impersonating]);
 
   const settingsLinks = useMemo(() => {
     if (!logged || !isAdmin || isSuperAdmin) return [];
     return [
-      { to: "/onboarding", label: "Setup guidato", icon: "OK", match: ["/onboarding", "/setup"] },
-      { to: "/billing", label: "Abbonamento", icon: "EU", match: ["/billing"] },
-      { to: "/privacy", label: "Privacy", icon: "PR", match: ["/privacy", "/termini", "/cookie"] },
-      { to: "/contattaci", label: "Contattaci", icon: "SOS", match: ["/contattaci"] },
+      { to: "/onboarding", label: "Setup guidato", match: ["/onboarding", "/setup"] },
+      { to: "/billing", label: "Abbonamento", match: ["/billing"] },
+      { to: "/privacy", label: "Privacy", match: ["/privacy", "/termini", "/cookie"] },
+      { to: "/contattaci", label: "Contattaci", match: ["/contattaci"] },
     ];
   }, [logged, isAdmin, isSuperAdmin]);
 
@@ -259,8 +259,6 @@ export default function Navbar() {
         }
         .em-sidebar__sublink:hover { background: rgba(255,255,255,0.07); color: #fff; }
         .em-sidebar__sublink.is-active { background: rgba(255,255,255,0.95); color: #07111f; }
-        .em-sidebar__sublink-icon { width: 20px; display: inline-grid; place-items: center; font-size: 10px; font-weight: 950; letter-spacing: 0; }
-        .em-sidebar__icon { width: 24px; display: inline-grid; place-items: center; font-size: 11px; font-weight: 950; letter-spacing: 0; }
         .em-sidebar__footer { margin-top: auto; padding: 14px; display: grid; gap: 10px; }
         .em-sidebar__user { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 18px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08); }
         .em-sidebar__avatar { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: #1d4ed8; color: white; font-size: 13px; font-weight: 950; flex: 0 0 auto; }
@@ -297,7 +295,6 @@ export default function Navbar() {
         <nav className="em-sidebar__nav">
           {links.map((link) => (
             <Link key={link.to} to={link.to} onClick={handleNavigate} className={isActive(link) ? "em-sidebar__link is-active" : "em-sidebar__link"}>
-              <span className="em-sidebar__icon">{link.icon}</span>
               <span>{link.label}</span>
             </Link>
           ))}
@@ -310,7 +307,6 @@ export default function Navbar() {
                 onClick={() => setSettingsOpen((prev) => !prev)}
                 aria-expanded={settingsOpen}
               >
-                <span className="em-sidebar__icon">SET</span>
                 <span className="em-sidebar__settings-label">Impostazioni</span>
                 <span className={settingsOpen ? "em-sidebar__chevron is-open" : "em-sidebar__chevron"} aria-hidden="true">v</span>
               </button>
@@ -320,12 +316,10 @@ export default function Navbar() {
                   {settingsLinks.map((link) =>
                     link.href ? (
                       <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={handleNavigate} className="em-sidebar__sublink">
-                        <span className="em-sidebar__sublink-icon">{link.icon}</span>
                         <span>{link.label}</span>
                       </a>
                     ) : (
                       <Link key={link.to} to={link.to} onClick={handleNavigate} className={isActive(link) ? "em-sidebar__sublink is-active" : "em-sidebar__sublink"}>
-                        <span className="em-sidebar__sublink-icon">{link.icon}</span>
                         <span>{link.label}</span>
                       </Link>
                     )

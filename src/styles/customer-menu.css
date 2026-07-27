@@ -871,3 +871,70 @@
     width: 100%;
   }
 }
+
+.cm-page {
+  --cm-accent: #123f3b;
+  background: #f4f7f6;
+}
+
+.cm-header {
+  border-bottom: 1px solid #dbe4e1;
+  background: rgba(244, 247, 246, .96);
+}
+
+.cm-header img,
+.cm-logo-fallback,
+.cm-active-order,
+.cm-search,
+.cm-product,
+.cm-cartbar,
+.cm-cart-detail,
+.cm-confirmation,
+.cm-empty,
+.cm-payment-panel {
+  border-radius: 8px;
+}
+
+.cm-product {
+  border-color: #dbe4e1;
+  box-shadow: 0 10px 28px rgba(23, 33, 31, .07);
+}
+
+.cm-product.is-selected {
+  border-color: #4d9b8f;
+  box-shadow: 0 12px 30px rgba(18, 63, 59, .11);
+}
+
+.cm-product-kicker span,
+.cm-product-kicker b,
+.cm-allergen-row b,
+.cm-allergens span,
+.cm-light-note,
+.cm-status-pill {
+  border-radius: 5px;
+}
+
+.cm-item-note,
+.cm-add,
+.cm-order-button,
+.cm-confirm-actions button {
+  border-radius: 7px;
+}
+
+.cm-add {
+  box-shadow: none;
+}
+
+.cm-cartbar {
+  border-color: rgba(255, 255, 255, .12);
+  background: rgba(11, 45, 42, .98);
+  box-shadow: 0 14px 38px rgba(11, 45, 42, .24);
+}
+
+.cm-cart-summary {
+  border-radius: 6px;
+}
+
+.cm-order-button {
+  color: #0b2d2a;
+}

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import logoEasyMenu from "../assets/logo-easymenu.png";
+import restaurantServiceImage from "../assets/landing-restaurant-service-v2.jpg";
 
 const WHATSAPP_NUMBER = "3240467723";
 const WHATSAPP_MESSAGE = "Ciao, vorrei provare EasyMenu nel mio ristorante con una beta assistita.";
@@ -35,7 +36,10 @@ function Card({ children, className = "" }) {
 export default function Landing() {
   return (
     <main className="landing-page">
-      <section className="landing-hero">
+      <section
+        className="landing-hero"
+        style={{ "--landing-hero-image": `url(${restaurantServiceImage})` }}
+      >
         <nav className="landing-nav">
           <div className="landing-brand">
             <img src={logoEasyMenu} alt="EasyMenu" />
@@ -49,33 +53,28 @@ export default function Landing() {
           </div>
         </nav>
 
-        <div className="landing-hero-grid">
-          <div>
-            <div className="landing-eyebrow">Menu QR + cucina + cassa + tavoli, pensato per margine e velocità</div>
-            <h1>Riduci gli errori di sala e servi più tavoli con lo stesso personale.</h1>
-            <p className="landing-lead">
-              EasyMenu non è solo un menu digitale: è un flusso operativo per prendere ordini, smistarli in cucina, incassare meglio e controllare cosa succede durante il servizio.
-            </p>
-            <div className="landing-cta-row">
-              <a className="landing-primary" href={whatsappUrl} target="_blank" rel="noreferrer">Prenota beta assistita</a>
-              <Link className="landing-secondary" to="/demo">Guarda demo pubblica</Link>
-            </div>
-            <p className="landing-proof">Proposta consigliata: 30 giorni di beta assistita, setup incluso e decisione solo dopo la prova reale.</p>
+        <div className="landing-hero-content">
+          <div className="landing-eyebrow">Menu QR, sala, cucina e cassa in un solo flusso</div>
+          <h1>EasyMenu per ristoranti</h1>
+          <p className="landing-hero-promise">Riduci gli errori di sala e gestisci più tavoli con lo stesso personale.</p>
+          <p className="landing-lead">
+            Dal QR del cliente alla comanda, fino al conto: ogni passaggio resta chiaro, aggiornato e collegato durante il servizio.
+          </p>
+          <div className="landing-cta-row">
+            <a className="landing-primary" href={whatsappUrl} target="_blank" rel="noreferrer">Prenota beta assistita</a>
+            <Link className="landing-secondary" to="/demo">Guarda demo pubblica</Link>
           </div>
-
-          <Card className="landing-proof-panel">
-            <span className="landing-panel-label">Prova reale</span>
-            <h2>Prima fai funzionare il servizio, poi misuri i risultati.</h2>
-            <div className="landing-metrics">
-              {serviceProof.map((item, index) => (
-                <div className="landing-metric" key={item}>
-                  <strong>{index + 1}</strong>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <p className="landing-proof">30 giorni di prova assistita, configurazione inclusa e nessun vincolo iniziale.</p>
         </div>
+      </section>
+
+      <section className="landing-service-proof" aria-label="Cosa include EasyMenu">
+        {serviceProof.map((item, index) => (
+          <article key={item}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <p>{item}</p>
+          </article>
+        ))}
       </section>
 
       <section className="landing-section">

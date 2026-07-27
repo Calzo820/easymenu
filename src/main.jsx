@@ -8,6 +8,7 @@ import "./styles/easymenu-os.css";
 import "./styles/easymenu-ux-pro.css";
 import "./styles/operational-ux.css";
 import "./styles/foundation.css";
+import "./styles/premium-final.css";
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
