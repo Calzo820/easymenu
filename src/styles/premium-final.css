@@ -910,6 +910,264 @@ body .em-sidebar__avatar {
   border-radius: 6px !important;
 }
 
+/* Operational states */
+.dash-table-seat {
+  border-color: #16a34a !important;
+  background: #22c55e !important;
+  color: #052e16 !important;
+  box-shadow: 0 5px 13px rgba(34, 197, 94, 0.24) !important;
+}
+
+.dash-table-seat span {
+  color: #064e2a !important;
+}
+
+.dash-table-seat--busy {
+  border-color: #1d4ed8 !important;
+  background: #2563eb !important;
+  color: #fff !important;
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.3) !important;
+}
+
+.dash-table-seat--busy span {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.em-table-grid .cash-table-card--free,
+.em-table-grid .table-map-tile--free,
+.table-compact--free {
+  border-color: #16a34a !important;
+  background: #22c55e !important;
+  color: #052e16 !important;
+  box-shadow: 0 7px 16px rgba(34, 197, 94, 0.24) !important;
+}
+
+.em-table-grid .cash-table-card--open,
+.em-table-grid .cash-table-card--occupied,
+.em-table-grid .table-map-tile--occupied,
+.table-compact--occupied {
+  border-color: #1d4ed8 !important;
+  background: #2563eb !important;
+  color: #fff !important;
+  box-shadow: 0 7px 18px rgba(37, 99, 235, 0.3) !important;
+}
+
+.em-table-grid .cash-table-card--progress {
+  border-color: #d97706 !important;
+  background: #f59e0b !important;
+  color: #3b1d00 !important;
+  box-shadow: 0 7px 18px rgba(245, 158, 11, 0.3) !important;
+}
+
+.em-table-grid .cash-table-card--ready,
+.em-table-grid .table-map-tile--ready,
+.table-compact--ready {
+  border-color: #0f8f7f !important;
+  background: #14b8a6 !important;
+  color: #042f2e !important;
+  box-shadow: 0 7px 18px rgba(20, 184, 166, 0.28) !important;
+}
+
+.em-table-grid .cash-table-card--bill,
+.em-table-grid .table-map-tile--bill,
+.table-compact--bill {
+  border-color: #6d28d9 !important;
+  background: #7c3aed !important;
+  color: #fff !important;
+  box-shadow: 0 7px 18px rgba(124, 58, 237, 0.3) !important;
+}
+
+.em-table-grid .table-map-tile--reserved,
+.table-compact--reserved {
+  border-color: #ea580c !important;
+  background: #f97316 !important;
+  color: #431407 !important;
+  box-shadow: 0 7px 18px rgba(249, 115, 22, 0.28) !important;
+}
+
+.em-table-grid .cash-table-card--staff {
+  border-color: #dc2626 !important;
+  background: #ef4444 !important;
+  color: #fff !important;
+  box-shadow: 0 7px 18px rgba(239, 68, 68, 0.3) !important;
+}
+
+.em-table-grid .cash-table-card__number,
+.em-table-grid .table-map-tile__number {
+  background: rgba(255, 255, 255, 0.26) !important;
+  color: inherit !important;
+}
+
+.pos-order-status.is-open {
+  border-color: #2563eb !important;
+  background: #dbeafe !important;
+  color: #1e3a8a !important;
+}
+
+.pos-order-status.is-progress {
+  border-color: #f59e0b !important;
+  background: #ffedd5 !important;
+  color: #7c2d12 !important;
+}
+
+.pos-order-status.is-ready {
+  border-color: #14b8a6 !important;
+  background: #ccfbf1 !important;
+  color: #134e4a !important;
+}
+
+.pos-order-status.is-bill {
+  border-color: #7c3aed !important;
+  background: #ede9fe !important;
+  color: #4c1d95 !important;
+}
+
+.pos-order-status.is-staff {
+  border-color: #ef4444 !important;
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+.table-booking-status {
+  border: 1px solid #16a34a !important;
+  background: #22c55e !important;
+  color: #052e16 !important;
+}
+
+.table-booking-status.is-reserved {
+  border-color: #ea580c !important;
+  background: #f97316 !important;
+  color: #431407 !important;
+}
+
+.table-booking-status.is-occupied {
+  border-color: #1d4ed8 !important;
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+.table-booking-status.is-ready {
+  border-color: #0f8f7f !important;
+  background: #14b8a6 !important;
+  color: #042f2e !important;
+}
+
+.table-booking-status.is-bill {
+  border-color: #6d28d9 !important;
+  background: #7c3aed !important;
+  color: #fff !important;
+}
+
+.pos-legend .free,
+.tables-calendar-legend .free {
+  background: #22c55e !important;
+}
+
+.pos-legend .open,
+.tables-calendar-legend .occupied {
+  background: #2563eb !important;
+}
+
+.pos-legend .progress,
+.tables-calendar-legend .reserved {
+  background: #f97316 !important;
+}
+
+.pos-legend .ready {
+  background: #14b8a6 !important;
+}
+
+.pos-legend .bill,
+.tables-calendar-legend .bill {
+  background: #7c3aed !important;
+}
+
+.pos-legend .staff {
+  background: #ef4444 !important;
+}
+
+.dash-order-row--pending {
+  border-color: #93c5fd !important;
+  border-left-color: #2563eb !important;
+  background: #dbeafe !important;
+}
+
+.dash-order-row--progress {
+  border-color: #fdba74 !important;
+  border-left-color: #f97316 !important;
+  background: #ffedd5 !important;
+}
+
+.dash-order-row--ready {
+  border-color: #6ee7b7 !important;
+  border-left-color: #10b981 !important;
+  background: #d1fae5 !important;
+}
+
+.kds-column--pending .kds-column__head {
+  background: #2563eb !important;
+}
+
+.kds-column--in_progress .kds-column__head {
+  background: #f97316 !important;
+  color: #2d1406 !important;
+}
+
+.kds-column--ready .kds-column__head {
+  background: #10b981 !important;
+  color: #052e16 !important;
+}
+
+.kds-ticket--pending {
+  border-color: #93c5fd !important;
+  border-left-color: #2563eb !important;
+  background: #e0edff !important;
+}
+
+.kds-ticket--in_progress {
+  border-color: #fdba74 !important;
+  border-left-color: #f97316 !important;
+  background: #fff0dc !important;
+}
+
+.kds-ticket--ready {
+  border-color: #6ee7b7 !important;
+  border-left-color: #10b981 !important;
+  background: #d9fbe9 !important;
+}
+
+.kds-ticket--pending .kds-ticket__primary {
+  background: #2563eb !important;
+}
+
+.kds-ticket--in_progress .kds-ticket__primary {
+  background: #c2410c !important;
+}
+
+.kds-ticket--ready .kds-ticket__primary {
+  background: #047857 !important;
+}
+
+.kds-ticket.is-urgent {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.22), 0 12px 28px rgba(239, 68, 68, 0.18) !important;
+}
+
+.kds-pass-strip .is-warn {
+  border-color: #f59e0b !important;
+  background: #ffedd5 !important;
+}
+
+.kds-pass-strip .is-hot {
+  border-color: #ef4444 !important;
+  background: #fee2e2 !important;
+}
+
+.kds-pass-strip .is-ready {
+  border-color: #10b981 !important;
+  background: #d1fae5 !important;
+}
+
 /* Setup, statistiche e gestione */
 .management-os,
 .onb-shell {
