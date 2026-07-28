@@ -938,3 +938,130 @@
 .cm-order-button {
   color: #0b2d2a;
 }
+
+/* Premium customer ordering surface */
+.cm-page {
+  padding-top: 0;
+  background:
+    linear-gradient(180deg, rgba(225, 238, 234, .55) 0, rgba(244, 247, 246, 0) 230px),
+    #f4f7f6;
+}
+
+.cm-header {
+  min-height: 68px;
+  padding: 10px 0;
+}
+
+.cm-header img,
+.cm-logo-fallback {
+  width: 50px;
+  height: 50px;
+  border: 1px solid #d2dfdc;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(18, 63, 59, .12);
+}
+
+.cm-header strong {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.cm-search {
+  padding-top: 10px;
+}
+
+.cm-search input {
+  min-height: 50px;
+  border-color: #cbdad6;
+  border-radius: 8px;
+  box-shadow: 0 7px 22px rgba(23, 33, 31, .06);
+}
+
+.cm-categories {
+  gap: 6px;
+  padding-block: 7px 11px;
+}
+
+.cm-categories button {
+  padding: 10px 13px;
+  border-radius: 7px;
+}
+
+.cm-section-head h2 {
+  font-size: 28px;
+}
+
+.cm-products {
+  gap: 12px;
+}
+
+.cm-product {
+  border-radius: 8px;
+  box-shadow: 0 11px 28px rgba(23, 33, 31, .08);
+}
+
+.cm-product.with-image {
+  grid-template-columns: minmax(210px, .44fr) minmax(0, .56fr);
+}
+
+.cm-product-image {
+  min-height: 220px;
+}
+
+.cm-product-body {
+  gap: 14px;
+  padding: 18px;
+}
+
+.cm-product-kicker span {
+  border-color: #cfe2dd;
+  background: #eef6f3;
+  color: #123f3b;
+}
+
+.cm-product h3,
+.cm-product-top strong {
+  font-size: 22px;
+}
+
+.cm-allergen-row {
+  padding-top: 10px;
+  border-top: 1px solid #edf1ef;
+}
+
+.cm-add {
+  min-height: 48px;
+  background: var(--cm-accent);
+  color: #fff;
+}
+
+.cm-product.is-selected .cm-add {
+  background: #15803d;
+}
+
+.cm-cartbar {
+  border-radius: 8px;
+  background: #0b2d2a;
+}
+
+.cm-order-button {
+  background: #22c55e;
+  color: #052e16;
+  font-size: 16px;
+}
+
+.cm-confirmation {
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(23, 33, 31, .1);
+}
+
+@media (max-width: 720px) {
+  .cm-product.with-image {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-product-image {
+    height: 220px;
+    min-height: 220px;
+  }
+}

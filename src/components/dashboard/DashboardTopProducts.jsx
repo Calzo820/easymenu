@@ -1,10 +1,5 @@
 import DashboardEmptyState from "./DashboardEmptyState.jsx";
 
-function euro(value) {
-  if (value === null || value === undefined) return "importo nascosto";
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
-}
-
 export default function DashboardTopProducts({ products = [] }) {
   const max = Math.max(1, ...products.map((p) => Number(p.quantity) || 0));
   return (
@@ -21,7 +16,7 @@ export default function DashboardTopProducts({ products = [] }) {
             const pct = Math.max(6, Math.min(100, ((Number(product.quantity) || 0) / max) * 100));
             return (
               <div className="dash-bar-row" key={product.id || product.name}>
-                <div><b>{product.name}</b><span>{product.quantity} venduti - {euro(product.revenue)}</span></div>
+                <div><b>{product.name}</b><span>{product.quantity} venduti</span></div>
                 <div className="dash-bar-track"><i style={{ width: `${pct}%` }} /></div>
               </div>
             );

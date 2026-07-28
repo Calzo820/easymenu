@@ -9,7 +9,6 @@ import "../styles/customer-menu.css";
 const DEMO_SLUG = "demo";
 const LEGACY_DEMO_SLUG = "demo-restaurant";
 const DEMO_TABLE_TOKEN = "demo-table-1";
-const FEATURED_CATEGORY = "Consigliati";
 const MONEY_FORMATTER = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
 const DEMO_MENU_ITEMS = [
@@ -100,13 +99,11 @@ function OrderTimeline({ status }) {
 }
 
 function getCategories(items) {
-  const base = [...new Set(items.map((item) => item.category).filter(Boolean))];
-  return items.some((item) => item.isFeatured) ? [FEATURED_CATEGORY, ...base] : base;
+  return [...new Set(items.map((item) => item.category).filter(Boolean))];
 }
 
 function getCategoryCounts(items) {
   return items.reduce((acc, item) => {
-    if (item.isFeatured) acc[FEATURED_CATEGORY] = Number(acc[FEATURED_CATEGORY] || 0) + 1;
     acc[item.category] = Number(acc[item.category] || 0) + 1;
     return acc;
   }, {});
@@ -120,7 +117,7 @@ function ProductCard({ item, quantity, note, onAdd, onRemove, onNoteChange }) {
       {hasImage ? <img className="cm-product-image" src={item.imageUrl} alt={item.name} /> : null}
       <div className="cm-product-body">
         <div className="cm-product-kicker">
-          <span>{item.isFeatured ? "Consigliato" : item.category}</span>
+          <span>{item.category}</span>
           {quantity > 0 ? <b>{quantity} nel carrello</b> : null}
         </div>
         <div className="cm-product-top">
@@ -208,7 +205,7 @@ export default function Cliente() {
   const [restaurant, setRestaurant] = useState({ name: isDemo ? "EasyMenu Demo Bistro" : "Ristorante", slug, logoUrl: isDemo ? demoRestaurantLogo() : "", primaryColor: isDemo ? "#0f766e" : "#0f172a" });
   const [table, setTable] = useState({ name: `Tavolo ${params.tavolo || "1"}`, qrToken: tableToken });
   const [items, setItems] = useState([]);
-  const [activeCategory, setActiveCategory] = useState(FEATURED_CATEGORY);
+  const [activeCategory, setActiveCategory] = useState("");
   const [cart, setCart] = useState({});
   const [itemNotes, setItemNotes] = useState({});
   const [query, setQuery] = useState("");
@@ -370,9 +367,7 @@ export default function Cliente() {
       });
     }
 
-    return activeCategory === FEATURED_CATEGORY
-      ? items.filter((item) => item.isFeatured)
-      : items.filter((item) => item.category === activeCategory);
+    return items.filter((item) => item.category === activeCategory);
   }, [activeCategory, items, query]);
 
   const visibleSectionTitle = query.trim() ? "Risultati" : activeCategory;

@@ -138,16 +138,6 @@ function buildRuleInsights(facts) {
     ));
   }
 
-  if (facts.issues.unresolvedErrors > 0) {
-    insights.push(makeInsight(
-      "medium",
-      "Controlla gli errori tecnici aperti",
-      "Sono presenti problemi non ancora risolti. Se interferiscono con il servizio, contatta l'assistenza.",
-      "Contattaci",
-      "/contattaci"
-    ));
-  }
-
   if (facts.sales.paidOrders === 0) {
     insights.push(makeInsight(
       "low",

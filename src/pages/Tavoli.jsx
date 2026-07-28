@@ -83,6 +83,38 @@ function normalizeTableCode(value) {
   return String(value || "").trim().replace(/[^a-zA-Z0-9-]/g, "").toUpperCase();
 }
 
+function getTableNumber(table) {
+  const candidates = [table?.number, table?.code, table?.name];
+  for (const candidate of candidates) {
+    const match = String(candidate || "").trim().match(/^(?:T(?:AVOLO)?[\s-]*)?0*(\d+)$/i);
+    if (match) return Number(match[1]);
+  }
+  return null;
+}
+
+function semanticTableKey(table, index = 0) {
+  const number = getTableNumber(table);
+  if (number !== null) return `number:${number}`;
+  return `table:${String(table?.code || table?.name || table?.id || index).trim().toLocaleLowerCase("it")}`;
+}
+
+function deduplicateTables(rows, score = () => 0) {
+  const unique = new Map();
+  rows.forEach((table, index) => {
+    const key = semanticTableKey(table, index);
+    const current = unique.get(key);
+    if (!current || score(table) > score(current)) unique.set(key, table);
+  });
+  return [...unique.values()].sort((left, right) => {
+    const leftNumber = getTableNumber(left);
+    const rightNumber = getTableNumber(right);
+    if (leftNumber !== null && rightNumber !== null) return leftNumber - rightNumber;
+    if (leftNumber !== null) return -1;
+    if (rightNumber !== null) return 1;
+    return String(left.code || left.name || "").localeCompare(String(right.code || right.name || ""), "it", { numeric: true });
+  });
+}
+
 function formatTableLabel(table) {
   const code = String(table?.code || table?.name || "?").trim();
   return /^t/i.test(code) ? code.toUpperCase() : `T${code}`;
@@ -118,7 +150,7 @@ function reservationMatchesTable(reservation, table) {
   return reservation.tableId === table.id || (
     reservation.tableCode &&
     String(reservation.tableCode).toUpperCase() === String(table.code || "").toUpperCase()
-  );
+  ) || semanticTableKey({ code: reservation.tableCode, name: reservation.tableName }) === semanticTableKey(table);
 }
 
 function liveTableState(table, status, reservations, selectedDate) {
@@ -180,9 +212,14 @@ export default function Tavoli() {
       apiGet("/restaurants/me"),
       apiGet("/tables/status"),
     ]);
-    setTables((Array.isArray(tablesData) ? tablesData : []).filter((table) => table.isActive !== false));
+    const activeTables = (Array.isArray(tablesData) ? tablesData : []).filter((table) => table.isActive !== false);
+    setTables(deduplicateTables(activeTables, (table) => (table.isActive !== false ? 10 : 0)));
     setRestaurant(restaurantData || null);
-    setTableStatuses(normalizeStatuses(statusesData));
+    setTableStatuses(deduplicateTables(normalizeStatuses(statusesData), (table) => (
+      (table.activeOrder ? 100 : 0) +
+      (table.activeSession ? 50 : 0) +
+      (table.isActive !== false ? 10 : 0)
+    )));
   }, []);
 
   const loadReservations = useCallback(async (month) => {
@@ -247,6 +284,7 @@ export default function Tavoli() {
     tableStatuses.forEach((item) => {
       if (item.id) map.set(`id:${item.id}`, item);
       if (item.code) map.set(`code:${String(item.code).toUpperCase()}`, item);
+      map.set(semanticTableKey(item), item);
     });
     return map;
   }, [tableStatuses]);
@@ -295,7 +333,7 @@ export default function Tavoli() {
   const tableCards = useMemo(() => tables
     .map((table) => {
       const tableReservations = dayReservations.filter((reservation) => reservationMatchesTable(reservation, table));
-      const status = statusMap.get(`id:${table.id}`) || statusMap.get(`code:${String(table.code || "").toUpperCase()}`) || null;
+      const status = statusMap.get(`id:${table.id}`) || statusMap.get(`code:${String(table.code || "").toUpperCase()}`) || statusMap.get(semanticTableKey(table)) || null;
       return { ...table, dayReservations: tableReservations, visual: liveTableState(table, status, tableReservations, selectedDate) };
     })
     .sort((a, b) => String(a.code).localeCompare(String(b.code), "it", { numeric: true })), [dayReservations, selectedDate, statusMap, tables]);

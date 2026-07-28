@@ -55,6 +55,11 @@ function BarRow({ label, value, max, valueLabel, detail }) {
   );
 }
 
+function isOperationalInsight(insight) {
+  const text = `${insight?.title || ""} ${insight?.message || ""}`.toLocaleLowerCase("it");
+  return !text.includes("errori tecnici") && !text.includes("problemi non ancora risolti");
+}
+
 export default function Statistiche() {
   const [period, setPeriod] = useState(30);
   const [summary, setSummary] = useState(null);
@@ -186,7 +191,7 @@ export default function Statistiche() {
                   <span className={`advisor-source ${advisor?.source === "openai" ? "is-ai" : ""}`}>{advisor?.source === "openai" ? "Assistente AI" : "Controllo operativo"}</span>
                 </div>
                 <div className="advisor-grid">
-                  {(advisor?.insights || []).slice(0, 4).map((insight, index) => (
+                  {(advisor?.insights || []).filter(isOperationalInsight).slice(0, 4).map((insight, index) => (
                     <article className={`advisor-insight ${insight.priority || "medium"}`} key={`${insight.title}-${index}`}>
                       <span>{insight.priority === "high" ? "Priorità alta" : insight.priority === "medium" ? "Da controllare" : "Suggerimento"}</span>
                       <h3>{insight.title}</h3>

@@ -26,6 +26,52 @@ function tableCodeFromPayload(payload) {
   return String(raw || "").trim().toUpperCase().replace(/\s+/g, "-").slice(0, 30);
 }
 
+function getTableNumber(table) {
+  const candidates = [table?.number, table?.code, table?.name];
+  for (const candidate of candidates) {
+    const match = String(candidate || "").trim().match(/^(?:T(?:AVOLO)?[\s-]*)?0*(\d+)$/i);
+    if (match) return Number(match[1]);
+  }
+  return null;
+}
+
+function tableIdentity(table, index = 0) {
+  const number = getTableNumber(table);
+  if (number !== null) return `number:${number}`;
+  const fallback = String(table?.code || table?.name || table?.id || index).trim().toLocaleLowerCase("it");
+  return `table:${fallback}`;
+}
+
+function deduplicateTables(tables, score = () => 0) {
+  const unique = new Map();
+  tables.forEach((table, index) => {
+    const key = tableIdentity(table, index);
+    const current = unique.get(key);
+    if (!current || score(table) > score(current)) unique.set(key, table);
+  });
+  return [...unique.values()].sort((left, right) => {
+    const leftNumber = getTableNumber(left);
+    const rightNumber = getTableNumber(right);
+    if (leftNumber !== null && rightNumber !== null) return leftNumber - rightNumber;
+    if (leftNumber !== null) return -1;
+    if (rightNumber !== null) return 1;
+    return String(left.code || left.name || "").localeCompare(String(right.code || right.name || ""), "it", { numeric: true });
+  });
+}
+
+async function semanticDuplicate(restaurantId, table, excludedId = "") {
+  const incomingNumber = getTableNumber(table);
+  if (incomingNumber === null) return null;
+  const existingTables = await prisma.table.findMany({
+    where: {
+      restaurantId,
+      ...(excludedId ? { id: { not: excludedId } } : {}),
+    },
+    select: { id: true, code: true, name: true, isActive: true },
+  });
+  return existingTables.find((existing) => getTableNumber(existing) === incomingNumber) || null;
+}
+
 function mapOrderStatusToCashierStatus(order, session) {
   if (!order) return "free";
   if (order.paymentStatus === "pending" || session?.status === "closing") return "bill_requested";
@@ -92,7 +138,8 @@ export const getPublicTableMenu = async (req, res) => {
 
 export const getTables = async (req, res) => {
   try {
-    const tables = await prisma.table.findMany({ where: { restaurantId: req.user.restaurantId }, orderBy: [{ sortOrder: "asc" }, { code: "asc" }, { name: "asc" }] });
+    const rawTables = await prisma.table.findMany({ where: { restaurantId: req.user.restaurantId }, orderBy: [{ sortOrder: "asc" }, { code: "asc" }, { name: "asc" }] });
+    const tables = deduplicateTables(rawTables, (table) => (table.isActive ? 10 : 0));
     return res.json(tables);
   } catch (error) {
     console.error("getTables error:", error);
@@ -103,7 +150,7 @@ export const getTables = async (req, res) => {
 export const getTablesStatus = async (req, res) => {
   try {
     const restaurantId = req.user.restaurantId;
-    const tables = await prisma.table.findMany({
+    const rawTables = await prisma.table.findMany({
       where: { restaurantId },
       include: {
         sessions: { where: { status: { in: ["open", "closing"] } }, orderBy: { openedAt: "desc" }, take: 1 },
@@ -118,6 +165,11 @@ export const getTablesStatus = async (req, res) => {
       },
       orderBy: [{ sortOrder: "asc" }, { code: "asc" }, { name: "asc" }],
     });
+    const tables = deduplicateTables(rawTables, (table) => (
+      (table.orders?.length ? 100 : 0) +
+      (table.sessions?.length ? 50 : 0) +
+      (table.isActive ? 10 : 0)
+    ));
 
     const mapped = tables.map((table) => {
       const activeSession = table.sessions[0] || null;
@@ -195,6 +247,8 @@ export const createTable = async (req, res) => {
     const code = tableCodeFromPayload(req.body || {});
     if (!tableName) return res.status(400).json({ message: "Nome tavolo obbligatorio" });
     if (!code) return res.status(400).json({ message: "Codice tavolo obbligatorio" });
+    const duplicate = await semanticDuplicate(req.user.restaurantId, { code, name: tableName });
+    if (duplicate) return res.status(409).json({ message: `Tavolo ${getTableNumber(duplicate)} esiste già` });
 
     const table = await prisma.table.create({
       data: { restaurantId: req.user.restaurantId, name: tableName, code, qrToken: crypto.randomUUID(), seats: Math.max(1, parseIntValue(seats, 4)), zone: zone ? String(zone).trim() : null, sortOrder: Math.max(0, parseIntValue(sortOrder, 0)), isActive: true },
@@ -223,6 +277,9 @@ export const updateTable = async (req, res) => {
     if (req.body.sortOrder !== undefined) data.sortOrder = Math.max(0, parseIntValue(req.body.sortOrder, current.sortOrder));
     if (req.body.isActive !== undefined) data.isActive = Boolean(req.body.isActive);
     if (req.body.regenerateQrToken) data.qrToken = crypto.randomUUID();
+    const nextIdentity = { code: data.code || current.code, name: data.name || current.name };
+    const duplicate = await semanticDuplicate(req.user.restaurantId, nextIdentity, id);
+    if (duplicate) return res.status(409).json({ message: `Tavolo ${getTableNumber(duplicate)} esiste già` });
 
     const updated = await prisma.table.update({ where: { id }, data });
     emitTableUpdate(req, updated, "updated");

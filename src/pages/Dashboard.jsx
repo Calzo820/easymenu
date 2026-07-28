@@ -35,8 +35,9 @@ function num(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function euro(value) {
-  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(num(value));
+function minutes(value) {
+  const amount = num(value);
+  return amount > 0 ? `${Math.round(amount)} min` : "Nessun dato";
 }
 
 function ServiceReadinessChecklist({ items, progress }) {
@@ -217,7 +218,6 @@ function Dashboard() {
   );
 
   const alertCount = num(kpis.unresolvedErrors) + num(kpis.paymentAlerts);
-  const moneyHidden = Boolean(data?.privacyMode);
   const setupChecks = setupStatus?.checks || {};
   const readinessItems = useMemo(() => [
     { label: "Logo caricato", done: Boolean(setupChecks.profile) },
@@ -307,7 +307,7 @@ function Dashboard() {
 
         {data?.privacyMode ? (
           <div className="dash-super-banner">
-            <div><b>Privacy attiva</b> - incasso, ticket medio e importi ordine sono oscurati durante l'assistenza SuperAdmin.</div>
+            <div><b>Privacy attiva</b> - dati economici e importi ordine sono oscurati durante l'assistenza SuperAdmin.</div>
           </div>
         ) : null}
 
@@ -357,10 +357,15 @@ function Dashboard() {
         {advancedOpen ? (
           <>
             <section className="dash-kpi-grid dash-kpi-grid--advanced">
-              <DashboardStat label="Incasso oggi" value={moneyHidden ? "Nascosto" : euro(kpis.revenueToday)} detail="Totale chiuso oggi" tone="money" />
-              <DashboardStat label="Ticket medio" value={moneyHidden ? "Nascosto" : euro(kpis.averageTicketToday)} detail="Scontrino medio oggi" tone={alertCount ? "warning" : "neutral"} />
+              <DashboardStat label="Tempo cucina" value={minutes(kpis.averagePreparationMinutes)} detail="Media accettazione-pronto" tone="live" />
+              <DashboardStat label="Tempo servizio" value={minutes(kpis.averageServiceMinutes)} detail="Media ordine-servito" tone="neutral" />
               <DashboardStat label="Ordini completati" value={num(kpis.completedOrdersToday)} detail="Serviti e chiusi oggi" tone="live" />
-              <DashboardStat label="Incasso periodo" value={moneyHidden ? "Nascosto" : euro(kpis.revenueRange)} detail={`${num(kpis.completedOrdersRange)} ordini nel periodo`} tone="money" />
+              <DashboardStat
+                label="Annulli e omaggi"
+                value={num(kpis.voidedItems) + num(kpis.complimentaryItems)}
+                detail="Voci da verificare nel periodo"
+                tone={num(kpis.voidedItems) + num(kpis.complimentaryItems) ? "warning" : "neutral"}
+              />
             </section>
 
             <section className="dash-main-grid dash-main-grid--advanced">
