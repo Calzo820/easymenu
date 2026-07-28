@@ -41,7 +41,7 @@ async function buildStatus(restaurantId) {
     prisma.table.count({ where: { restaurantId } }),
     prisma.table.count({ where: { restaurantId, isActive: true } }),
     prisma.menuItem.count({ where: { restaurantId, isDeleted: false } }),
-    prisma.user.count({ where: { restaurantId, role: { in: ["kitchen", "bar", "cashier"] }, isActive: true } }),
+    prisma.user.count({ where: { restaurantId, role: { in: ["kitchen", "bar", "cashier", "waiter"] }, isActive: true } }),
   ]);
   const settings = restaurant?.settingsJson && typeof restaurant.settingsJson === "object" ? restaurant.settingsJson : {};
   const onboarding = settings.onboarding || {};

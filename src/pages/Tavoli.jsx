@@ -187,6 +187,14 @@ function liveTableState(table, status, reservations, selectedDate) {
 
 export default function Tavoli() {
   const today = localDateKey();
+  const currentRole = (() => {
+    try {
+      return String(JSON.parse(localStorage.getItem("auth_user") || "{}")?.role || "").toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+  const canConfigureTables = currentRole === "owner" || currentRole === "admin";
   const [tables, setTables] = useState([]);
   const [tableStatuses, setTableStatuses] = useState([]);
   const [restaurant, setRestaurant] = useState(null);
@@ -525,11 +533,13 @@ export default function Tavoli() {
             <span><i className="occupied" />Occupato</span>
             <span><i className="bill" />Conto</span>
           </div>
-          <form onSubmit={createTable}>
-            <input value={tableCode} onChange={(event) => setTableCode(event.target.value)} placeholder="N. tavolo" aria-label="Numero tavolo" />
-            <button type="submit" disabled={saving || !tableCode.trim()}>Aggiungi</button>
-            <button type="button" className="secondary" onClick={() => { window.location.href = "/onboarding?qr=1"; }}>Stampe QR</button>
-          </form>
+          {canConfigureTables ? (
+            <form onSubmit={createTable}>
+              <input value={tableCode} onChange={(event) => setTableCode(event.target.value)} placeholder="N. tavolo" aria-label="Numero tavolo" />
+              <button type="submit" disabled={saving || !tableCode.trim()}>Aggiungi</button>
+              <button type="button" className="secondary" onClick={() => { window.location.href = "/onboarding?qr=1"; }}>Stampe QR</button>
+            </form>
+          ) : <span className="tables-staff-view">Vista operativa sala</span>}
         </section>
 
         {error ? <div className="tables-inline-message is-error"><b>Attenzione</b><span>{error}</span><button type="button" onClick={loadPage}>Riprova</button></div> : null}
@@ -651,7 +661,7 @@ export default function Tavoli() {
             {!loading && !tableCards.length ? (
               <div className="tables-calendar-empty">
                 <b>Nessun tavolo configurato</b>
-                <span>Inserisci il numero in alto e premi Aggiungi.</span>
+                <span>{canConfigureTables ? "Inserisci il numero in alto e premi Aggiungi." : "Chiedi al responsabile di configurare i tavoli."}</span>
               </div>
             ) : null}
 

@@ -1055,6 +1055,14 @@
   box-shadow: 0 12px 32px rgba(23, 33, 31, .1);
 }
 
+.cm-confirm-actions .cm-coming-soon-button:disabled {
+  border: 1px solid #c6d8d3;
+  background: #eaf4f1;
+  color: #245c54;
+  cursor: default;
+  opacity: 1;
+}
+
 @media (max-width: 720px) {
   .cm-product.with-image {
     grid-template-columns: 1fr;

@@ -288,7 +288,7 @@ export const loginWithPin = async (req, res) => {
         isActive: true,
         pinEnabled: true,
         pinHash: { not: null },
-        role: { in: ["admin", "kitchen", "bar", "cashier"] },
+        role: { in: ["admin", "kitchen", "bar", "cashier", "waiter"] },
       },
     });
 

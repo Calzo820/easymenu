@@ -9,6 +9,7 @@ import "../styles/customer-menu.css";
 const DEMO_SLUG = "demo";
 const LEGACY_DEMO_SLUG = "demo-restaurant";
 const DEMO_TABLE_TOKEN = "demo-table-1";
+const TABLE_PAYMENT_AVAILABLE = false;
 const MONEY_FORMATTER = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
 const DEMO_MENU_ITEMS = [
@@ -315,7 +316,9 @@ export default function Cliente() {
       try {
         const [data, summary] = await Promise.all([
           publicApiGet(`/orders/public/${encodeURIComponent(token)}`),
-          isDemo ? Promise.resolve(null) : publicApiGet(`/payments/public/${encodeURIComponent(token)}/summary`).catch(() => null),
+          TABLE_PAYMENT_AVAILABLE && !isDemo
+            ? publicApiGet(`/payments/public/${encodeURIComponent(token)}/summary`).catch(() => null)
+            : Promise.resolve(null),
         ]);
         if (data && active) {
           setOrder((prev) => {
@@ -344,11 +347,11 @@ export default function Cliente() {
   }, [isDemo, order?.id, order?.publicToken, slug, tableToken]);
 
   useEffect(() => {
-    if (paymentResult === "success") {
+    if (TABLE_PAYMENT_AVAILABLE && paymentResult === "success") {
       setServiceMessage("Pagamento ricevuto. La cassa sta aggiornando il conto.");
       setPayment((prev) => ({ ...prev, open: true, error: "" }));
     }
-    if (paymentResult === "cancelled") {
+    if (TABLE_PAYMENT_AVAILABLE && paymentResult === "cancelled") {
       setPayment((prev) => ({ ...prev, open: true, error: "Pagamento annullato: il conto non è stato addebitato." }));
     }
   }, [paymentResult]);
@@ -596,14 +599,14 @@ export default function Cliente() {
 
           {payment.error ? <div className="cm-error">{payment.error}</div> : null}
           {serviceMessage ? <div className="cm-service-message">{serviceMessage}</div> : null}
-          {payment.summary?.requiresGuestConfirmation && order.paymentStatus !== "paid" ? (
+          {order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
             <div className="cm-payment-waiting">
-              <b>Pagamento dal telefono quasi pronto</b>
-              <span>Il personale deve confermare il numero di coperti e il totale. Usa “Chiedi conto” per avvisare la cassa.</span>
+              <b>Pagamento dal tavolo</b>
+              <span>Prossimamente potrai pagare in sicurezza direttamente dal telefono. Per ora usa “Chiedi conto”.</span>
             </div>
           ) : null}
 
-          {payment.open && payment.summary?.onlinePaymentAvailable && order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
+          {TABLE_PAYMENT_AVAILABLE && payment.open && payment.summary?.onlinePaymentAvailable && order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
             <section className="cm-payment-panel">
               <div className="cm-payment-summary">
                 <div><span>Totale</span><b>{money(payment.summary?.totalAmount ?? order.totalAmount)}</b></div>
@@ -659,9 +662,9 @@ export default function Cliente() {
             <button type="button" className="secondary" onClick={() => requestService("bill")}>
               Chiedi conto
             </button>
-            {(order.publicToken || (!isDemo && order.id)) && payment.summary?.onlinePaymentAvailable && order.paymentStatus !== "paid" ? (
-              <button type="button" onClick={() => setPayment((prev) => ({ ...prev, open: !prev.open, error: "" }))} disabled={payment.loading}>
-                {payment.open ? "Chiudi pagamento" : "Paga dal tavolo"}
+            {order.paymentStatus !== "paid" && payment.summary?.paymentStatus !== "paid" ? (
+              <button type="button" className="cm-coming-soon-button" disabled>
+                Pagamento dal tavolo · Prossimamente
               </button>
             ) : null}
             <button

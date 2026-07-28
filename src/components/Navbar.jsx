@@ -80,9 +80,11 @@ export default function Navbar() {
       : getRistoranteAttivo() || "Nessun ristorante";
 
   const isAdmin = !isSuperAdmin && (role === "admin" || role === "owner");
+  const isWaiter = role === "waiter";
   const canKitchen = isAdmin || role === "kitchen";
   const canBar = role === "bar";
   const canCashier = isAdmin || role === "cashier";
+  const canTables = isAdmin || role === "cashier" || isWaiter;
 
   useEffect(() => {
     if (!logged) return undefined;
@@ -103,12 +105,12 @@ export default function Navbar() {
       canKitchen && !impersonating && { to: "/cucina", label: isAdmin ? "Servizio" : "Cucina", match: ["/cucina"] },
       canBar && { to: "/bar", label: "Bar", match: ["/bar"] },
       canCashier && !impersonating && { to: "/cassa", label: "Cassa", match: ["/cassa"] },
-      isAdmin && { to: "/tavoli", label: "Tavoli", match: ["/tavoli"] },
+      canTables && { to: "/tavoli", label: isWaiter ? "Sala" : "Tavoli", match: ["/tavoli"] },
       isAdmin && { to: "/admin?tab=menu", label: "Menu", match: ["/admin"], adminTab: "menu" },
       isAdmin && !impersonating && { to: "/statistiche", label: "Statistiche", match: ["/statistiche"] },
       isAdmin && !impersonating && { to: "/storico", label: "Storico", match: ["/storico"] },
     ].filter(Boolean);
-  }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier, impersonating]);
+  }, [logged, isSuperAdmin, isAdmin, canKitchen, canBar, canCashier, canTables, impersonating, isWaiter]);
 
   const settingsLinks = useMemo(() => {
     if (!logged || !isAdmin || isSuperAdmin) return [];

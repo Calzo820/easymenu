@@ -1297,11 +1297,11 @@ function Cassa() {
                 <section className={`pos-bill-setup ${contoSelezionatoBloccato ? "is-locked" : ""}`}>
                   <div className="pos-bill-setup__head">
                     <div>
-                      <span>Coperti e conto digitale</span>
+                      <span>Coperti e conto</span>
                       <strong>
                         {ordineSelezionato.billConfiguredAt || cfgSelezionato.billConfiguredAt
                           ? "Totale confermato"
-                          : "Da confermare prima del pagamento dal telefono"}
+                          : "Da confermare prima della chiusura"}
                       </strong>
                     </div>
                     <b>{formatEuro(totaleFinale(ordineSelezionato))}</b>
@@ -1386,7 +1386,7 @@ function Cassa() {
                       {quotaPerPersona(ordineSelezionato) ? (
                         <span>Quota indicativa <b>{formatEuro(quotaPerPersona(ordineSelezionato))}</b></span>
                       ) : (
-                        <span>Pagamento dal telefono solo per il saldo completo</span>
+                        <span>Pagamento dal tavolo: prossimamente</span>
                       )}
                       {pagamentoSelezionatoInCorso ? <small>Pagamento online in corso: attendi l'esito.</small> : null}
                       {!pagamentoSelezionatoInCorso && contoSelezionatoBloccato ? <small>Totale bloccato dopo il primo pagamento.</small> : null}

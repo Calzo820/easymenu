@@ -8,6 +8,7 @@ function getPrimaryTarget() {
     if (role === "kitchen") return "/cucina";
     if (role === "bar") return "/bar";
     if (role === "cashier") return "/cassa";
+    if (role === "waiter") return "/tavoli";
     if (role === "superadmin" || user?.isSuperAdmin) return "/super-admin";
   } catch {
     // La destinazione predefinita resta la dashboard.

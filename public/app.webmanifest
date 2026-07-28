@@ -1,0 +1,48 @@
+{
+  "name": "EasyMenu Staff",
+  "short_name": "EasyMenu",
+  "description": "Sala, cucina, bar e cassa del tuo ristorante.",
+  "lang": "it",
+  "start_url": "/staff",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f4f7f6",
+  "theme_color": "#0b2d2a",
+  "categories": ["business", "food", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/easymenu-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/easymenu-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/easymenu-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Accesso staff",
+      "short_name": "Staff",
+      "url": "/staff",
+      "icons": [{ "src": "/icons/easymenu-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Accesso titolare",
+      "short_name": "Titolare",
+      "url": "/login",
+      "icons": [{ "src": "/icons/easymenu-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

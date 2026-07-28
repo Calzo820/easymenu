@@ -437,6 +437,7 @@ enum UserRole {
   kitchen
   bar
   cashier
+  waiter
 }
 
 enum PreparationArea {

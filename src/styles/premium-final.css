@@ -904,6 +904,17 @@ body .em-sidebar__avatar {
   top: 72px !important;
 }
 
+.tables-staff-view {
+  align-self: center;
+  padding: 9px 12px;
+  border: 1px solid #b9d7d1;
+  border-radius: 6px;
+  background: #e6f5f1;
+  color: #145d55;
+  font-size: 12px;
+  font-weight: 950;
+}
+
 .table-booking-status,
 .table-qr-mini,
 .table-booking-placeholder {
@@ -1198,6 +1209,83 @@ body .em-sidebar__avatar {
 .kds-pass-strip .is-ready {
   border-color: #10b981 !important;
   background: #d1fae5 !important;
+}
+
+.em-install-prompt {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1000;
+  width: min(390px, calc(100vw - 28px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 8px;
+  background: #0b2d2a;
+  color: #fff;
+  box-shadow: 0 18px 42px rgba(11, 45, 42, .28);
+}
+
+.em-install-prompt div {
+  min-width: 0;
+}
+
+.em-install-prompt b,
+.em-install-prompt span {
+  display: block;
+}
+
+.em-install-prompt b {
+  font-size: 14px;
+}
+
+.em-install-prompt span {
+  margin-top: 3px;
+  color: #c7d9d5;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.em-install-prompt button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 13px;
+  background: #22c55e;
+  color: #052e16;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.em-install-prompt .em-install-dismiss {
+  width: 34px;
+  padding: 0;
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+  font-size: 19px;
+}
+
+@media (max-width: 560px) {
+  .em-install-prompt {
+    right: 14px;
+    bottom: 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .em-install-prompt > button:not(.em-install-dismiss) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .em-install-prompt .em-install-dismiss {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 /* Setup, statistiche e gestione */

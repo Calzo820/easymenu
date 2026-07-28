@@ -10,9 +10,9 @@ import { requireActiveSubscription } from "../middleware/billing.middleware.js";
 
 const router = express.Router();
 
-router.get("/", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "cashier"]), listReservations);
-router.post("/", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "cashier"]), createReservation);
-router.patch("/:id", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "cashier"]), updateReservation);
-router.delete("/:id", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "cashier"]), cancelReservation);
+router.get("/", requireAuth, requireActiveSubscription, requireRole(["owner", "admin", "cashier", "waiter"]), listReservations);
+router.post("/", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "cashier", "waiter"]), createReservation);
+router.patch("/:id", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "cashier", "waiter"]), updateReservation);
+router.delete("/:id", requireAuth, denyImpersonatedPrivateData, requireActiveSubscription, requireRole(["owner", "admin", "cashier", "waiter"]), cancelReservation);
 
 export default router;

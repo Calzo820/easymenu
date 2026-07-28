@@ -84,6 +84,7 @@ function roleLabel(role) {
   if (role === "kitchen") return "Cucina";
   if (role === "bar") return "Bar";
   if (role === "cashier") return "Cassa";
+  if (role === "waiter") return "Sala / cameriere";
   if (role === "admin") return "Admin";
   return role || "Staff";
 }
@@ -770,8 +771,33 @@ export default function AdminPanel({ embedded = false } = {}) {
   }
 
   function renderStaff() {
+    const staffAccessUrl = `${window.location.origin}/staff?locale=${encodeURIComponent(restaurant?.slug || "")}`;
+
+    async function copyStaffAccessUrl() {
+      try {
+        await navigator.clipboard.writeText(staffAccessUrl);
+        setSuccess("Link accesso staff copiato.");
+        setError("");
+      } catch {
+        setError("Non riesco a copiare il link. Aprilo e condividilo dal browser.");
+      }
+    }
+
     return (
       <div className="management-grid-2">
+        <div className="management-card" style={{ gridColumn: "1 / -1" }}>
+          <SectionHead
+            title="App staff"
+            subtitle="Condividi questo link una volta: il telefono ricorderà il locale e chiederà soltanto il PIN personale."
+            action={<button className="management-btn secondary" type="button" onClick={copyStaffAccessUrl}>Copia link</button>}
+          />
+          <div className="staff-code-note">
+            <span>Accesso rapido</span>
+            <strong>{staffAccessUrl}</strong>
+            <small>Dopo l'apertura, lo staff può installare EasyMenu sulla schermata Home.</small>
+          </div>
+        </div>
+
         <form className="management-card management-form" onSubmit={handleUserSubmit}>
           <SectionHead title="Nuovo accesso" subtitle="Sul tablet condiviso basta un PIN. Email e password restano disponibili per chi lavora da remoto." />
           <div className="staff-access-switch" aria-label="Tipo di accesso">
@@ -794,6 +820,7 @@ export default function AdminPanel({ embedded = false } = {}) {
             <SelectInput value={userForm.role} onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}>
               <option value="kitchen">Cucina</option>
               <option value="bar">Bar</option>
+              <option value="waiter">Sala / cameriere</option>
               <option value="cashier">Cassa</option>
               <option value="admin">Admin</option>
             </SelectInput>

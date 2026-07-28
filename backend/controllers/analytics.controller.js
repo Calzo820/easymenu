@@ -318,7 +318,7 @@ export const getAnalyticsSummary = async (req, res) => {
         where: {
           restaurantId,
           role: {
-            in: ["admin", "kitchen", "bar", "cashier"],
+            in: ["admin", "kitchen", "bar", "cashier", "waiter"],
           },
           isActive: true,
         },

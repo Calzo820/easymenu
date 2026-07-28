@@ -4,8 +4,8 @@ import prisma from "../lib/prisma.js";
 import { writeAudit } from "../lib/audit.js";
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
-const ALLOWED_ROLES = new Set(["owner", "admin", "kitchen", "bar", "cashier"]);
-const PIN_ROLES = new Set(["admin", "kitchen", "bar", "cashier"]);
+const ALLOWED_ROLES = new Set(["owner", "admin", "kitchen", "bar", "cashier", "waiter"]);
+const PIN_ROLES = new Set(["admin", "kitchen", "bar", "cashier", "waiter"]);
 const PIN_REGEX = /^\d{4,6}$/;
 
 function sanitizeUser(user) {

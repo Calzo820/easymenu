@@ -358,7 +358,7 @@ export async function getPublicPaymentSummary(req, res) {
       include: { payments: { orderBy: { createdAt: "asc" } }, table: true, restaurant: true },
     });
     const split = paymentSplitSummary(order, order.payments);
-    const stripeReady = Boolean(
+    const stripeReady = process.env.PUBLIC_TABLE_PAYMENTS_ENABLED === "true" && Boolean(
       order.restaurant?.stripeConnectAccountId &&
       order.restaurant?.stripeConnectChargesEnabled &&
       process.env.STRIPE_CONNECT_WEBHOOK_SECRET
@@ -410,6 +410,12 @@ export async function createPublicStripeCheckout(req, res) {
   let reservedPaymentId = null;
 
   try {
+    if (process.env.PUBLIC_TABLE_PAYMENTS_ENABLED !== "true") {
+      return res.status(503).json({
+        message: "Il pagamento dal tavolo sarà disponibile prossimamente. Per ora chiedi il conto al personale.",
+      });
+    }
+
     const stripe = getStripe();
     if (!stripe) {
       return res.status(501).json({

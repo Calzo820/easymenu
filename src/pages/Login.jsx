@@ -16,6 +16,7 @@ function getDashboardPathByRole(role) {
   if (normalized === "kitchen") return "/cucina";
   if (normalized === "bar") return "/bar";
   if (normalized === "cashier") return "/cassa";
+  if (normalized === "waiter") return "/tavoli";
 
   return "/dashboard";
 }

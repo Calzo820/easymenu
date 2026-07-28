@@ -354,7 +354,7 @@ export const getAnalyticsAdvisor = async (req, res) => {
         where: {
           restaurantId,
           isActive: true,
-          role: { in: ["admin", "kitchen", "bar", "cashier"] },
+          role: { in: ["admin", "kitchen", "bar", "cashier", "waiter"] },
         },
       }),
       prisma.reservation.findMany({

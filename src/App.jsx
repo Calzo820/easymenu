@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ConnectionStatus from "./components/ConnectionStatus.jsx";
+import AppInstallPrompt from "./components/AppInstallPrompt.jsx";
 import ServiceUnavailable from "./pages/ServiceUnavailable.jsx";
 
 const AdminPanel = lazy(() => import("./pages/AdminPanel.jsx"));
@@ -26,6 +27,7 @@ const QRCodeTavoli = lazy(() => import("./pages/QRCodeTavoli.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const Statistiche = lazy(() => import("./pages/Statistiche.jsx"));
+const StaffAccess = lazy(() => import("./pages/StaffAccess.jsx"));
 const Storico = lazy(() => import("./pages/Storico.jsx"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin.jsx"));
 const Tavoli = lazy(() => import("./pages/Tavoli.jsx"));
@@ -44,10 +46,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <ConnectionStatus />
+      <AppInstallPrompt />
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/staff" element={<StaffAccess />} />
           <Route path="/register" element={<Register />} />
           <Route path="/password-dimenticata" element={<ForgotPassword />} />
           <Route path="/reimposta-password" element={<ResetPassword />} />
@@ -76,7 +80,7 @@ export default function App() {
           <Route path="/cucina" element={<ProtectedRoute roles={["owner", "admin", "kitchen"]}><Cucina /></ProtectedRoute>} />
           <Route path="/bar" element={<ProtectedRoute roles={["owner", "admin", "bar"]}><Bar /></ProtectedRoute>} />
           <Route path="/cassa" element={<ProtectedRoute roles={["owner", "admin", "cashier"]}><Cassa /></ProtectedRoute>} />
-          <Route path="/tavoli" element={<ProtectedRoute roles={["owner", "admin", "cashier"]}><Tavoli /></ProtectedRoute>} />
+          <Route path="/tavoli" element={<ProtectedRoute roles={["owner", "admin", "cashier", "waiter"]}><Tavoli /></ProtectedRoute>} />
           <Route path="/qr" element={<ProtectedRoute roles={["owner", "admin"]}><QRCodeTavoli /></ProtectedRoute>} />
           <Route path="/storico" element={<ProtectedRoute roles={["owner", "admin"]}><Storico /></ProtectedRoute>} />
           <Route path="/statistiche" element={<ProtectedRoute roles={["owner", "admin"]}><Statistiche /></ProtectedRoute>} />
