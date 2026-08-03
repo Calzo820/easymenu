@@ -4,12 +4,20 @@ import { createRestaurantSocket } from "../lib/realtime";
 import { sendTicketToBridge } from "../lib/printTickets";
 
 function settingsKey(area) {
+  return `ordynora_printer_${area}_v1`;
+}
+
+function legacySettingsKey(area) {
   return `easymenu_printer_${area}_v1`;
 }
 
 function readSettings(area) {
   try {
-    const saved = JSON.parse(localStorage.getItem(settingsKey(area)) || "null");
+    const currentKey = settingsKey(area);
+    const current = localStorage.getItem(currentKey);
+    const legacy = current === null ? localStorage.getItem(legacySettingsKey(area)) : null;
+    if (current === null && legacy !== null) localStorage.setItem(currentKey, legacy);
+    const saved = JSON.parse(current || legacy || "null");
     return {
       autoPrint: Boolean(saved?.autoPrint),
       bridgeUrl: String(saved?.bridgeUrl || import.meta.env.VITE_PRINT_BRIDGE_URL || "").trim(),

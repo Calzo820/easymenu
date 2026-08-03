@@ -1,4 +1,4 @@
-# Delta EasyMenu — criticità complete
+# Delta Ordynora — criticità complete
 
 ## Modificati
 - .gitignore

@@ -26,7 +26,7 @@ const PRINT_LAYOUTS = [
   {
     key: "flyer",
     title: "Volantino A5",
-    text: "Spiega EasyMenu al cliente con un QR grande.",
+    text: "Spiega Ordynora al cliente con un QR grande.",
   },
 ];
 
@@ -59,7 +59,7 @@ function QrPrintDocument({ preview = false, layout, qrLinks, restaurant }) {
             <article className="onb-flyer" key={table.id}>
               <header>
                 {restaurant?.logoUrl ? <img src={restaurant.logoUrl} alt="" /> : <span>{restaurant?.name?.slice(0, 1) || "E"}</span>}
-                <div><b>{restaurant?.name || "Ristorante"}</b><small>Menu digitale EasyMenu</small></div>
+                <div><b>{restaurant?.name || "Ristorante"}</b><small>Menu digitale Ordynora</small></div>
               </header>
               <div className="onb-flyer-copy">
                 <span>Ordina dal tavolo</span>
@@ -75,7 +75,7 @@ function QrPrintDocument({ preview = false, layout, qrLinks, restaurant }) {
                 <QRCodeSVG value={table.link} size={260} includeMargin />
                 <div><strong>{table.name}</strong><span>Apri la fotocamera e inquadra il QR</span><small>Puoi anche chiedere il conto e pagare dal telefono quando il servizio è attivo.</small></div>
               </div>
-              <footer>easy.menu.service@gmail.com · EasyMenu</footer>
+              <footer>support@ordynora.com · Ordynora</footer>
             </article>
           ))}
           {!qrLinks.length ? <div className="onb-qr-empty">Crea prima i tavoli per generare i QR.</div> : null}
@@ -94,7 +94,7 @@ function QrPrintDocument({ preview = false, layout, qrLinks, restaurant }) {
       <div className="onb-qr-grid">
         {qrLinks.map((table) => (
           <article className="onb-qr-card" key={table.id}>
-            <div className="onb-qr-brand">{restaurant?.name || "EasyMenu"}</div>
+            <div className="onb-qr-brand">{restaurant?.name || "Ordynora"}</div>
             <h3>{table.name}</h3>
             <QRCodeSVG className="onb-qr-code" value={table.link} size={180} includeMargin />
             <strong className="onb-qr-cta">Ordina dal tavolo</strong>

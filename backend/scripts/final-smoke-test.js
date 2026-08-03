@@ -3,7 +3,7 @@ dotenv.config({ quiet: true });
 
 const API = (process.env.API_URL || process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
 const EMAIL = process.env.DEMO_OWNER_EMAIL || 'owner@demo.test';
-const PASSWORD = process.env.DEMO_OWNER_PASSWORD || 'EasyMenu2026!';
+const PASSWORD = process.env.DEMO_OWNER_PASSWORD || 'Ordynora2026!';
 
 async function request(path, options = {}) {
   let res;
@@ -23,7 +23,7 @@ function assert(value, label) {
 }
 
 async function main() {
-  console.log(`Smoke test EasyMenu su ${API}`);
+  console.log(`Smoke test Ordynora su ${API}`);
   const health = await request('/health');
   assert(health.ok, 'backend online');
 

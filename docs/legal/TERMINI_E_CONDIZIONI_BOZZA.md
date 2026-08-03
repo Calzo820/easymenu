@@ -1,9 +1,9 @@
-# Termini e Condizioni EasyMenu - bozza operativa
+# Termini e Condizioni Ordynora - bozza operativa
 
 > Bozza da revisionare prima della pubblicazione.
 
 ## Servizio
-EasyMenu e una piattaforma SaaS per ristoranti che include menu QR, ordini al tavolo, cucina, bar, cassa, tavoli, staff, report e billing.
+Ordynora e una piattaforma SaaS per ristoranti che include menu QR, ordini al tavolo, cucina, bar, cassa, tavoli, staff, report e billing.
 
 ## Account ristorante
 Il ristorante e responsabile di:
@@ -19,7 +19,7 @@ Il ristorante e responsabile di:
 - Il ristorante puo gestire abbonamento e disdetta dal portale Stripe.
 
 ## Limitazioni
-EasyMenu non sostituisce:
+Ordynora non sostituisce:
 - consulenza fiscale;
 - registratore telematico;
 - gestione HACCP;
@@ -27,7 +27,7 @@ EasyMenu non sostituisce:
 - sistemi POS o stampanti fiscali non ancora integrati.
 
 ## Disponibilita
-Il servizio puo avere manutenzioni, riavvii o indisponibilita temporanee. EasyMenu deve comunicare messaggi chiari e ridurre il rischio di perdita dati.
+Il servizio puo avere manutenzioni, riavvii o indisponibilita temporanee. Ordynora deve comunicare messaggi chiari e ridurre il rischio di perdita dati.
 
 ## Supporto
 Il supporto superadmin deve essere limitato a casi reali di assistenza, billing, sicurezza o problemi tecnici. Ogni accesso supporto deve avere motivo documentato.

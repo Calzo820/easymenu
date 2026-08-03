@@ -1,4 +1,4 @@
-# Patch EasyMenu - realtime + dashboard owner potente
+# Patch Ordynora - realtime + dashboard owner potente
 
 Questa patch è additiva: non rimuove le funzioni esistenti.
 

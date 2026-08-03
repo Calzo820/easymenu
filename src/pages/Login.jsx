@@ -55,7 +55,7 @@ export default function Login() {
         if (!cancelled) setAvviso("");
       } catch {
         if (!cancelled) {
-          setAvviso("EasyMenu si sta preparando. Il primo accesso può richiedere qualche secondo.");
+          setAvviso("Ordynora si sta preparando. Il primo accesso può richiedere qualche secondo.");
         }
       }
     }
@@ -70,7 +70,7 @@ export default function Login() {
     const message = error?.message || fallback || "Operazione non riuscita.";
     if (/server.*avviando|server in avvio|temporaneamente non disponibile|render|riprova tra qualche secondo/i.test(message)) {
       setErrore("");
-      setAvviso("EasyMenu non è ancora pronto. Attendi qualche secondo e riprova: le credenziali non sono il problema.");
+      setAvviso("Ordynora non è ancora pronto. Attendi qualche secondo e riprova: le credenziali non sono il problema.");
       return;
     }
     setAvviso("");
@@ -181,9 +181,9 @@ export default function Login() {
       setAvviso("");
       setSuccesso("Preparo la demo completa: logo, tavoli, menu, ordini e storico...");
       await publicApiPost("/demo/ensure", {}, {}, { timeoutMs: 120000 });
-      setForm({ email: "owner@demo.test", password: "EasyMenu2026!" });
+      setForm({ email: "owner@demo.test", password: "Ordynora2026!" });
       setSuccesso("Demo completa pronta. Accesso in corso...");
-      await loginWithCredentials("owner@demo.test", "EasyMenu2026!");
+      await loginWithCredentials("owner@demo.test", "Ordynora2026!");
     } catch (error) {
       showError(error, "Non sono riuscito a preparare la demo completa.");
     } finally {

@@ -1,9 +1,9 @@
-# Termini di Servizio - EasyMenu
+# Termini di Servizio - Ordynora
 
 > Template operativo da far validare legalmente.
 
 ## Oggetto
-EasyMenu consente a ristoranti e locali di gestire menu digitale, tavoli, ordini, staff, pagamenti e statistiche.
+Ordynora consente a ristoranti e locali di gestire menu digitale, tavoli, ordini, staff, pagamenti e statistiche.
 
 ## Account e responsabilità
 Il cliente è responsabile degli account staff, della correttezza del menu, prezzi, allergeni, fiscalità e procedure interne.

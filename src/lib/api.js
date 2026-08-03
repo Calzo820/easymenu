@@ -7,7 +7,7 @@ function wait(ms) {
 
 function dispatchConnectionStatus(detail) {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent("easymenu:connection-status", { detail }));
+  window.dispatchEvent(new CustomEvent("ordynora:connection-status", { detail }));
 }
 
 export function createClientRequestId(prefix = "request") {

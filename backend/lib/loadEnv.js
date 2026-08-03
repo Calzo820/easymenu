@@ -60,7 +60,7 @@ export function loadEnvironment({ silent = true } = {}) {
   };
 
   if (!silent) {
-    console.log(`EasyMenu env caricati da: ${loadedFiles.join(", ") || "nessun file .env trovato"}`);
+    console.log(`Ordynora env caricati da: ${loadedFiles.join(", ") || "nessun file .env trovato"}`);
   }
 
   return status;

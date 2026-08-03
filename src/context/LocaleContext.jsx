@@ -1,13 +1,18 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "easymenu_locale";
+const STORAGE_KEY = "ordynora_locale";
+const LEGACY_STORAGE_KEY = "easymenu_locale";
 const RTL_LANGUAGES = new Set(["ar", "dv", "fa", "he", "ku", "ps", "sd", "ug", "ur", "yi"]);
 
 const LocaleContext = createContext(null);
 
 function getInitialLocale() {
-  const savedLocale = window.localStorage.getItem(STORAGE_KEY);
+  const savedLocale = window.localStorage.getItem(STORAGE_KEY)
+    || window.localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (!window.localStorage.getItem(STORAGE_KEY) && savedLocale) {
+    window.localStorage.setItem(STORAGE_KEY, savedLocale);
+  }
   const candidate = savedLocale || window.navigator.language || "it";
   try {
     return Intl.getCanonicalLocales(String(candidate).replaceAll("_", "-"))[0] || "it";

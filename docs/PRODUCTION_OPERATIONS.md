@@ -1,4 +1,4 @@
-# EasyMenu - operativita di produzione
+# Ordynora - operativita di produzione
 
 ## Controlli di disponibilita
 
@@ -24,7 +24,7 @@ Il disco locale di un servizio cloud non va considerato un backup permanente. Us
 
 ## Stripe Connect
 
-- L'abbonamento EasyMenu usa `STRIPE_WEBHOOK_SECRET`.
+- L'abbonamento Ordynora usa `STRIPE_WEBHOOK_SECRET`.
 - I pagamenti dei clienti ai ristoranti usano anche `STRIPE_CONNECT_WEBHOOK_SECRET`.
 - In Stripe va creato un endpoint webhook per gli eventi degli account collegati verso `/payments/webhook`.
 - Eventi minimi: `account.updated`, `checkout.session.completed`, `checkout.session.expired`, `payment_intent.payment_failed`, `charge.refunded`.

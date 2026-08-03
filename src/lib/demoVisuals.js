@@ -40,7 +40,7 @@ export function demoRestaurantLogo() {
 </svg>`);
 }
 
-export function demoDishImage(title, subtitle = "EasyMenu Demo", theme = "primo") {
+export function demoDishImage(title, subtitle = "Ordynora Demo", theme = "primo") {
   const [bg, plate, accent, dark] = THEMES[theme] || THEMES.primo;
   const safeTitle = escapeSvg(title);
   const safeSubtitle = escapeSvg(subtitle);

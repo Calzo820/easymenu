@@ -1,7 +1,9 @@
 import { API_URL } from "./api";
 
-const QUEUE_KEY = "easymenu_pending_public_orders_v2";
-const SYNCED_KEY_PREFIX = "easymenu_synced_public_order_v1:";
+const QUEUE_KEY = "ordynora_pending_public_orders_v2";
+const SYNCED_KEY_PREFIX = "ordynora_synced_public_order_v1:";
+const LEGACY_QUEUE_KEY = "easymenu_pending_public_orders_v2";
+const LEGACY_SYNCED_KEY_PREFIX = "easymenu_synced_public_order_v1:";
 const MAX_RETRIES = 8;
 const REQUEST_TIMEOUT_MS = 20000;
 
@@ -11,12 +13,15 @@ function safeJson(value, fallback) {
 
 export function getPendingPublicOrders() {
   if (typeof window === "undefined") return [];
-  return safeJson(localStorage.getItem(QUEUE_KEY) || "[]", []).filter(Boolean);
+  const current = localStorage.getItem(QUEUE_KEY);
+  const legacy = current === null ? localStorage.getItem(LEGACY_QUEUE_KEY) : null;
+  if (current === null && legacy !== null) localStorage.setItem(QUEUE_KEY, legacy);
+  return safeJson(current || legacy || "[]", []).filter(Boolean);
 }
 
 function saveQueue(queue) {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.slice(-60)));
-  window.dispatchEvent(new CustomEvent("easymenu:offline-queue", { detail: { pending: queue.length } }));
+  window.dispatchEvent(new CustomEvent("ordynora:offline-queue", { detail: { pending: queue.length } }));
 }
 
 export function pendingPublicOrdersCount() {
@@ -38,8 +43,10 @@ function rememberSyncedPublicOrder(queueId, result) {
 export function consumeSyncedPublicOrder(queueId) {
   if (typeof window === "undefined" || !queueId) return null;
   const key = syncedOrderKey(queueId);
-  const stored = safeJson(localStorage.getItem(key) || "null", null);
+  const legacyKey = `${LEGACY_SYNCED_KEY_PREFIX}${queueId}`;
+  const stored = safeJson(localStorage.getItem(key) || localStorage.getItem(legacyKey) || "null", null);
   localStorage.removeItem(key);
+  localStorage.removeItem(legacyKey);
   return stored?.result || null;
 }
 
@@ -116,7 +123,7 @@ export async function flushPendingPublicOrders() {
       const result = await postPublicOrder(item.payload);
       sent += 1;
       rememberSyncedPublicOrder(item.id, result);
-      window.dispatchEvent(new CustomEvent("easymenu:offline-order-synced", {
+      window.dispatchEvent(new CustomEvent("ordynora:offline-order-synced", {
         detail: { queueId: item.id, result },
       }));
     } catch (error) {

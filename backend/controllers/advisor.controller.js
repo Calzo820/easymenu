@@ -2,6 +2,11 @@ import prisma from "../lib/prisma.js";
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-5";
 
+function isAiEnabled() {
+  const configured = process.env.ORDYNORA_AI_ENABLED ?? process.env.EASYMENU_AI_ENABLED;
+  return String(configured || "").toLowerCase() === "true";
+}
+
 function toNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -231,7 +236,7 @@ function normalizeAiInsights(value) {
 }
 
 async function buildAiInsights(facts) {
-  const enabled = process.env.EASYMENU_AI_ENABLED === "true";
+  const enabled = isAiEnabled();
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!enabled || !apiKey || facts.privacyMode) return null;
@@ -248,7 +253,7 @@ async function buildAiInsights(facts) {
         {
           role: "system",
           content:
-            "Sei il consulente operativo di EasyMenu per ristoranti. Usa solo dati aggregati. Dai consigli brevi, pratici e non invasivi. Non citare dati personali.",
+            "Sei il consulente operativo di Ordynora per ristoranti. Usa solo dati aggregati. Dai consigli brevi, pratici e non invasivi. Non citare dati personali.",
         },
         {
           role: "user",
@@ -483,14 +488,14 @@ export const getAnalyticsAdvisor = async (req, res) => {
     try {
       aiResult = await buildAiInsights(facts);
     } catch (error) {
-      console.warn("EasyMenu advisor fallback:", error.message);
+      console.warn("Ordynora advisor fallback:", error.message);
     }
 
     return res.json({
       generatedAt: new Date().toISOString(),
       source: aiResult ? "openai" : "rules",
       aiConfigured: Boolean(process.env.OPENAI_API_KEY),
-      aiEnabled: process.env.EASYMENU_AI_ENABLED === "true",
+      aiEnabled: isAiEnabled(),
       privacyMode,
       summary: aiResult?.summary || "Consigli operativi generati dai dati del ristorante.",
       insights: aiResult?.insights || ruleInsights,
@@ -498,6 +503,6 @@ export const getAnalyticsAdvisor = async (req, res) => {
     });
   } catch (error) {
     console.error("getAnalyticsAdvisor error:", error);
-    return res.status(500).json({ message: "Consulente EasyMenu temporaneamente non disponibile" });
+    return res.status(500).json({ message: "Consulente Ordynora temporaneamente non disponibile" });
   }
 };

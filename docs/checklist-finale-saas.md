@@ -1,4 +1,4 @@
-# Checklist finale EasyMenu SaaS
+# Checklist finale Ordynora SaaS
 
 ## 1. Test finale completo
 - Avvia backend: `cd backend && npm run dev`.

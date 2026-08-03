@@ -4,7 +4,7 @@
 
 ## Ruoli
 - Ristorante: titolare del trattamento verso clienti finali e staff.
-- EasyMenu: responsabile del trattamento per hosting, gestione piattaforma, log tecnici e supporto.
+- Ordynora: responsabile del trattamento per hosting, gestione piattaforma, log tecnici e supporto.
 - Stripe: autonomo titolare/responsabile per i dati pagamento secondo il proprio contratto.
 
 ## Categorie dati

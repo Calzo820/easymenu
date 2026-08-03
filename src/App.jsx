@@ -37,7 +37,7 @@ function PageFallback() {
   return (
     <div className="em-page-fallback" role="status" aria-live="polite">
       <i aria-hidden="true" />
-      <span>Caricamento EasyMenu...</span>
+      <span>Caricamento Ordynora...</span>
     </div>
   );
 }

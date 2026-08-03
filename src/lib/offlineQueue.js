@@ -1,10 +1,18 @@
 import { createClientRequestId, publicApiPostIdempotent } from "./api";
 
-const STORAGE_KEY = "easymenu_pending_orders_v1";
+const STORAGE_KEY = "ordynora_pending_orders_v1";
+const LEGACY_STORAGE_KEY = "easymenu_pending_orders_v1";
 const listeners = new Set();
 
 function readQueue() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+  try {
+    const current = localStorage.getItem(STORAGE_KEY);
+    const legacy = current === null ? localStorage.getItem(LEGACY_STORAGE_KEY) : null;
+    if (current === null && legacy !== null) localStorage.setItem(STORAGE_KEY, legacy);
+    return JSON.parse(current || legacy || "[]");
+  } catch {
+    return [];
+  }
 }
 function writeQueue(queue) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(queue.slice(-50)));

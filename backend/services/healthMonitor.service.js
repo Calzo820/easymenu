@@ -50,7 +50,7 @@ export async function collectSystemHealth() {
   const healthy = checks.database.ok;
   return {
     ok: healthy,
-    service: "easymenu-backend",
+    service: "ordynora-backend",
     environment: process.env.NODE_ENV || "development",
     timestamp: new Date().toISOString(),
     responseTimeMs: Date.now() - startedAt,

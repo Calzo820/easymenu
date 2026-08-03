@@ -164,7 +164,7 @@ export default function Register() {
                 marginBottom: 18,
               }}
             >
-              Inizia con EasyMenu
+              Inizia con Ordynora
             </div>
 
             <h1 className="auth-title" style={{ margin: 0, fontSize: 42, lineHeight: 1.08 }}>

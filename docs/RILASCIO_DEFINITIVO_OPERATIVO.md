@@ -1,4 +1,4 @@
-# EasyMenu — rilascio operativo pronto vendita
+# Ordynora — rilascio operativo pronto vendita
 
 Questa versione è stata ripulita e orientata all'uso reale in ristorante: meno spazio occupato da blocchi descrittivi, più contenuto visibile per cucina, bar e cassa.
 

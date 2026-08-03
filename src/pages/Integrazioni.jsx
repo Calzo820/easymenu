@@ -47,7 +47,7 @@ const integrations = [
     area: "POS",
     status: "In valutazione",
     priority: "Media",
-    impact: "EasyMenu lavora insieme alla cassa già presente nel locale.",
+    impact: "Ordynora lavora insieme alla cassa già presente nel locale.",
     setup: "Da verificare piano, API e gestione reparti.",
   },
   {
@@ -96,7 +96,7 @@ export default function Integrazioni() {
   const [selected, setSelected] = useState(integrations[0].name);
   const [requested, setRequested] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("easymenu_requested_integrations") || "[]");
+      return JSON.parse(localStorage.getItem("ordynora_requested_integrations") || "[]");
     } catch {
       return [];
     }
@@ -114,7 +114,7 @@ export default function Integrazioni() {
       ? requested.filter((item) => item !== name)
       : [...requested, name];
     setRequested(next);
-    localStorage.setItem("easymenu_requested_integrations", JSON.stringify(next));
+    localStorage.setItem("ordynora_requested_integrations", JSON.stringify(next));
   }
 
   return (
@@ -126,7 +126,7 @@ export default function Integrazioni() {
           <h1>Pagamenti, POS, fatture, prenotazioni e delivery in un solo posto.</h1>
           <p>
             Questa pagina serve al ristorante per capire cosa si può collegare, cosa è già prioritario e cosa richiedere
-            al supporto EasyMenu.
+            al supporto Ordynora.
           </p>
         </section>
 

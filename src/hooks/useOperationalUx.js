@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-function readStoredBoolean(key, fallback = false) {
+function readStoredBoolean(key, fallback = false, legacyKey = null) {
   try {
-    const value = window.localStorage.getItem(key);
+    const current = window.localStorage.getItem(key);
+    const legacy = current === null && legacyKey ? window.localStorage.getItem(legacyKey) : null;
+    if (current === null && legacy !== null) window.localStorage.setItem(key, legacy);
+    const value = current ?? legacy;
     if (value === null) return fallback;
     return value === "true";
   } catch {
@@ -11,22 +14,31 @@ function readStoredBoolean(key, fallback = false) {
 }
 
 export function useOperationalUx({
-  storageKey = "easymenu-operational",
+  storageKey = "ordynora-operational",
   onRefresh,
   onPrimaryView,
   onSecondaryView,
   onToggleUrgent,
   onEnableAudio,
 } = {}) {
-  const [darkMode, setDarkMode] = useState(() => readStoredBoolean(`${storageKey}:dark`, true));
-  const [soundEnabled, setSoundEnabled] = useState(() => readStoredBoolean(`${storageKey}:sound`, false));
+  const legacyStorageKey = storageKey === "ordynora-operational" ? "easymenu-operational" : null;
+  const [darkMode, setDarkMode] = useState(() => readStoredBoolean(
+    `${storageKey}:dark`,
+    true,
+    legacyStorageKey ? `${legacyStorageKey}:dark` : null
+  ));
+  const [soundEnabled, setSoundEnabled] = useState(() => readStoredBoolean(
+    `${storageKey}:sound`,
+    false,
+    legacyStorageKey ? `${legacyStorageKey}:sound` : null
+  ));
   const [fullscreenActive, setFullscreenActive] = useState(false);
 
   useEffect(() => {
     try {
       window.localStorage.setItem(`${storageKey}:dark`, String(darkMode));
     } catch {}
-    document.documentElement.classList.toggle("easy-operational-dark", darkMode);
+    document.documentElement.classList.toggle("ordynora-operational-dark", darkMode);
   }, [darkMode, storageKey]);
 
   useEffect(() => {
@@ -57,8 +69,8 @@ export function useOperationalUx({
         await document.exitFullscreen?.();
       }
     } catch {
-      document.documentElement.classList.toggle("easy-fullscreen-fallback");
-      setFullscreenActive(document.documentElement.classList.contains("easy-fullscreen-fallback"));
+      document.documentElement.classList.toggle("ordynora-fullscreen-fallback");
+      setFullscreenActive(document.documentElement.classList.contains("ordynora-fullscreen-fallback"));
     }
   }, []);
 

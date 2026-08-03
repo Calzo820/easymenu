@@ -41,7 +41,7 @@ const INTEGRATIONS = [
     category: "pos",
     priority: "media",
     status: "discovery",
-    businessImpact: "Evita cambio forzato di gestionale: EasyMenu si innesta nel flusso esistente.",
+    businessImpact: "Evita cambio forzato di gestionale: Ordynora si innesta nel flusso esistente.",
     requirements: ["accesso API", "mapping prodotti", "sincronizzazione scontrini"],
   },
   {
@@ -75,7 +75,7 @@ const INTEGRATIONS = [
 
 export function listIntegrations(_req, res) {
   res.json({
-    positioning: "EasyMenu Growth OS: integrazioni orientate a margine, velocità e riduzione errori.",
+    positioning: "Ordynora Growth OS: integrazioni orientate a margine, velocità e riduzione errori.",
     disclaimer: "planned/discovery non significa integrazione attiva: servono credenziali e accessi API ufficiali.",
     integrations: INTEGRATIONS,
   });

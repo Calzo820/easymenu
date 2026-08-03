@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: easymenu-backend
+    name: ordynora-backend
     env: node
     rootDir: backend
     buildCommand: npm ci && npx prisma generate && npx prisma migrate deploy
@@ -43,9 +43,9 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM_EMAIL
-        value: easy.menu.service@gmail.com
+        sync: false
       - key: MAIL_FROM_NAME
-        value: EasyMenu
+        value: Ordynora
       - key: GOOGLE_TRANSLATE_API_KEY
         sync: false
       - key: MONITOR_WEBHOOK_URL

@@ -1,7 +1,7 @@
-# Roadmap competitiva EasyMenu — da QR menu a Restaurant Growth OS
+# Roadmap competitiva Ordynora — da QR menu a Restaurant Growth OS
 
 ## Obiettivo
-EasyMenu deve vendere un risultato economico, non un software: più coperti, meno errori, meno passaggi manuali, più margine per tavolo.
+Ordynora deve vendere un risultato economico, non un software: più coperti, meno errori, meno passaggi manuali, più margine per tavolo.
 
 ## Criticità risolte in questa patch
 
@@ -66,7 +66,7 @@ Priorità consigliata:
 5. Deliveroo/Glovo per delivery.
 
 ## Criterio di vendita
-Un ristoratore dovrebbe cambiare software solo se EasyMenu può rispondere a questa domanda:
+Un ristoratore dovrebbe cambiare software solo se Ordynora può rispondere a questa domanda:
 
 > Quanto margine in più mi porta entro 30 giorni?
 

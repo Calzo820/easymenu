@@ -4,7 +4,7 @@ export default function DashboardHeader({ restaurantName, liveBadge, refreshing,
     <header className="dash-hero-pro">
       <div>
         <div className="dash-eyebrow">
-          <span className={live ? "dash-live-dot" : "dash-live-dot dash-live-dot--warn"} /> EasyMenu live - {liveBadge}
+          <span className={live ? "dash-live-dot" : "dash-live-dot dash-live-dot--warn"} /> Ordynora live - {liveBadge}
         </div>
         <h1>{restaurantName}</h1>
         <p>Solo le priorità del turno: ordini aperti, sala, cassa e setup essenziale. Meno pagine da studiare, più servizio da gestire.</p>

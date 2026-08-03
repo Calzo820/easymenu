@@ -203,7 +203,7 @@ export default function Cliente() {
 
   const isDemo = [DEMO_SLUG, LEGACY_DEMO_SLUG].includes(slug) && String(tableToken).startsWith("demo-table");
 
-  const [restaurant, setRestaurant] = useState({ name: isDemo ? "EasyMenu Demo Bistro" : "Ristorante", slug, logoUrl: isDemo ? demoRestaurantLogo() : "", primaryColor: isDemo ? "#0f766e" : "#0f172a" });
+  const [restaurant, setRestaurant] = useState({ name: isDemo ? "Ordynora Demo Bistro" : "Ristorante", slug, logoUrl: isDemo ? demoRestaurantLogo() : "", primaryColor: isDemo ? "#0f766e" : "#0f172a" });
   const [table, setTable] = useState({ name: `Tavolo ${params.tavolo || "1"}`, qrToken: tableToken });
   const [items, setItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState("");
@@ -245,8 +245,8 @@ export default function Cliente() {
       applySyncedOrder(queueId, result);
     };
 
-    window.addEventListener("easymenu:offline-order-synced", onSynced);
-    return () => window.removeEventListener("easymenu:offline-order-synced", onSynced);
+    window.addEventListener("ordynora:offline-order-synced", onSynced);
+    return () => window.removeEventListener("ordynora:offline-order-synced", onSynced);
   }, [order?.id, slug, tableToken]);
 
   useEffect(() => {
@@ -263,7 +263,7 @@ export default function Cliente() {
           if (!isDemo) throw err;
           const demoItems = DEMO_MENU_ITEMS.map(normalizeItem);
           if (!active) return;
-          setRestaurant({ name: "EasyMenu Demo Bistro", slug: DEMO_SLUG, logoUrl: demoRestaurantLogo(), primaryColor: "#0f766e" });
+          setRestaurant({ name: "Ordynora Demo Bistro", slug: DEMO_SLUG, logoUrl: demoRestaurantLogo(), primaryColor: "#0f766e" });
           setTable({ name: `Tavolo ${String(tableToken).replace("demo-table-", "") || "1"}`, qrToken: tableToken });
           setItems(demoItems);
           setActiveCategory(getCategories(demoItems)[0] || "Menu");
@@ -274,7 +274,7 @@ export default function Cliente() {
         if (!active) return;
         const nextRestaurant = data.restaurant || { name: "Ristorante", slug, logoUrl: "", primaryColor: "#0f172a" };
         setRestaurant(isDemo
-          ? { ...nextRestaurant, name: nextRestaurant.name || "EasyMenu Demo Bistro", logoUrl: nextRestaurant.logoUrl || demoRestaurantLogo(), primaryColor: nextRestaurant.primaryColor || "#0f766e" }
+          ? { ...nextRestaurant, name: nextRestaurant.name || "Ordynora Demo Bistro", logoUrl: nextRestaurant.logoUrl || demoRestaurantLogo(), primaryColor: nextRestaurant.primaryColor || "#0f766e" }
           : nextRestaurant);
         setTable(data.table || { name: "Tavolo", qrToken: tableToken });
         setItems(mapped);
@@ -651,7 +651,7 @@ export default function Cliente() {
                       ? `Paga ${money(payment.summary?.nextShareAmount)}`
                       : "Paga il saldo"}
               </button>
-              <p>Pagamento sicuro gestito da Stripe. EasyMenu non salva i dati della carta.</p>
+              <p>Pagamento sicuro gestito da Stripe. Ordynora non salva i dati della carta.</p>
             </section>
           ) : null}
 

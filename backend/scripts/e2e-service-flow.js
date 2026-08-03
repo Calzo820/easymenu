@@ -1,5 +1,5 @@
 const apiUrl = String(process.env.E2E_API_URL || "http://localhost:5000").replace(/\/$/, "");
-const password = process.env.E2E_PASSWORD || "EasyMenu2026!";
+const password = process.env.E2E_PASSWORD || "Ordynora2026!";
 const ownerEmail = process.env.E2E_OWNER_EMAIL || "owner@demo.test";
 const kitchenEmail = process.env.E2E_KITCHEN_EMAIL || "cucina@demo.test";
 const cashierEmail = process.env.E2E_CASHIER_EMAIL || "cassa@demo.test";
@@ -55,7 +55,7 @@ try {
     body: {
       restaurantSlug: owner.restaurant.slug,
       tableToken: table.qrToken,
-      customerName: "Test automatico EasyMenu",
+      customerName: "Test automatico Ordynora",
       notes: "Ordine temporaneo, eliminato a fine verifica",
       clientRequestId: `e2e-${Date.now()}`,
       items: [{ menuItemId: product.id, quantity: 1 }],

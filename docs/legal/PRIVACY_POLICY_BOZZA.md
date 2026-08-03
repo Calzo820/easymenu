@@ -1,11 +1,11 @@
-# Privacy Policy EasyMenu - bozza operativa
+# Privacy Policy Ordynora - bozza operativa
 
 > Bozza da far revisionare da consulente privacy/legale prima della vendita pubblica.
 
 ## Titolari e ruoli
 - Il ristorante resta titolare dei dati dei propri clienti finali.
-- EasyMenu agisce come fornitore SaaS e responsabile del trattamento per i dati gestiti sulla piattaforma.
-- Il superadmin EasyMenu accede solo a dati necessari per assistenza, sicurezza, billing e stato account.
+- Ordynora agisce come fornitore SaaS e responsabile del trattamento per i dati gestiti sulla piattaforma.
+- Il superadmin Ordynora accede solo a dati necessari per assistenza, sicurezza, billing e stato account.
 
 ## Dati trattati
 - Dati account ristorante: nome locale, email owner, piano, stato abbonamento, utenti staff.
@@ -14,7 +14,7 @@
 - Log tecnici: errori, eventi pagamento, accessi supporto, diagnostica.
 
 ## Finalita
-- Erogare il servizio EasyMenu.
+- Erogare il servizio Ordynora.
 - Smistare ordini a cucina, bar e cassa.
 - Gestire abbonamento, pagamenti e fatturazione.
 - Dare supporto tecnico documentato.

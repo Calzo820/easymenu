@@ -1,9 +1,9 @@
 console.log(`
-Credenziali demo EasyMenu
+Credenziali demo Ordynora
 
-Password per tutti: EasyMenu2026!
+Password per tutti: Ordynora2026!
 
-EasyMenu Demo:
+Ordynora Demo:
 - owner@demo.test
 - admin@demo.test
 - cucina@demo.test

@@ -1,4 +1,4 @@
--- Clean full init migration for EasyMenu / Prisma 5.22
+-- Clean full init migration for Ordynora / Prisma 5.22
 
 CREATE TYPE "RestaurantPlan" AS ENUM ('starter', 'growth', 'enterprise');
 CREATE TYPE "SubscriptionStatus" AS ENUM ('trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete');

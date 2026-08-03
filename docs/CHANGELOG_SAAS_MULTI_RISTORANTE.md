@@ -7,7 +7,7 @@
 - Modello Prisma `ErrorLog` per errori backend, webhook e pagamenti falliti.
 - Migrazione Prisma per `clientRequestId` idempotente e `ErrorLog`.
 - Utility frontend `src/lib/realtime.js` per connessioni realtime coerenti.
-- Manuale ristoratore operativo in `docs/MANUALE_RISTORATORE_EASYMENU.md`.
+- Manuale ristoratore operativo in `docs/MANUALE_RISTORATORE_ORDYNORA.md`.
 
 ## Rafforzato
 - Eventi ordine/pagamento inviati solo al ristorante corretto.

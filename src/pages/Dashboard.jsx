@@ -110,7 +110,7 @@ function Dashboard() {
   const [demoSeeding, setDemoSeeding] = useState(false);
   const [demoSeedMessage, setDemoSeedMessage] = useState("");
   const [dismissedSupportAccess, setDismissedSupportAccess] = useState(
-    () => localStorage.getItem("easymenu_dismissed_support_access") || ""
+    () => localStorage.getItem("ordynora_dismissed_support_access") || ""
   );
 
   const restaurantName = getRestaurantName();
@@ -147,7 +147,7 @@ function Dashboard() {
 
       const loginData = await publicApiPost("/auth/login", {
         email: "owner@demo.test",
-        password: "EasyMenu2026!",
+        password: "Ordynora2026!",
       });
 
       if (loginData?.token) setAuthToken(loginData.token);
@@ -281,7 +281,7 @@ function Dashboard() {
           <SupportAccessNotice
             access={supportAccess}
             onDismiss={() => {
-              localStorage.setItem("easymenu_dismissed_support_access", supportAccess.id);
+              localStorage.setItem("ordynora_dismissed_support_access", supportAccess.id);
               setDismissedSupportAccess(supportAccess.id);
             }}
           />
@@ -325,7 +325,7 @@ function Dashboard() {
           <article className="dash-service-card is-report">
             <span>Statistiche</span>
             <b>Report e consigli</b>
-            <small>Apri numeri, prodotti top e consulente EasyMenu.</small>
+            <small>Apri numeri, prodotti top e consulente Ordynora.</small>
           </article>
           <article className="dash-service-card is-report">
             <span>Storico</span>

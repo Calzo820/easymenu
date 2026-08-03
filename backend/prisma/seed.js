@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const DEMO_PASSWORD = "EasyMenu2026!";
+const DEMO_PASSWORD = "Ordynora2026!";
 
 function slugify(value) {
   return String(value || "")
@@ -126,7 +126,7 @@ async function seedRestaurant({ name, slug, primaryColor }) {
       allergens: ["glutine", "latte"],
     }),
     ensureMenuItem(restaurant.id, {
-      name: "Burger EasyMenu",
+      name: "Burger Ordynora",
       shortDescription: "Burger demo con patatine",
       description: "Piatto demo per verificare upsell e cassa.",
       price: 13.9,
@@ -180,7 +180,7 @@ async function seedRestaurant({ name, slug, primaryColor }) {
 
 async function main() {
   const restaurants = await Promise.all([
-    seedRestaurant({ name: "EasyMenu Demo", slug: "demo", primaryColor: "#2563eb" }),
+    seedRestaurant({ name: "Ordynora Demo", slug: "demo", primaryColor: "#2563eb" }),
     seedRestaurant({ name: "Pizzeria Demo", slug: slugify("Pizzeria Demo"), primaryColor: "#dc2626" }),
   ]);
 

@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import logoEasyMenu from "../assets/logo-easymenu.png";
+import logoOrdynora from "../assets/logo-ordynora.png";
 import { apiPost, clearAuthSession, getAuthToken, setAuthToken } from "../lib/api";
 import "../styles/staff-access.css";
 
-const RESTAURANT_CODE_KEY = "easymenu_staff_restaurant_code";
+const RESTAURANT_CODE_KEY = "ordynora_staff_restaurant_code";
 
 function rolePath(role) {
   if (role === "kitchen") return "/cucina";
@@ -111,7 +111,7 @@ export default function StaffAccess() {
     return (
       <main className="staff-access-page">
         <section className="staff-access-resume">
-          <img src={logoEasyMenu} alt="EasyMenu" />
+          <img src={logoOrdynora} alt="Ordynora" />
           <span>Sessione staff attiva</span>
           <h1>{currentUser.name || "Operatore"}</h1>
           <p>{roleLabel(currentUser.role)} è già collegato su questo dispositivo.</p>
@@ -127,7 +127,7 @@ export default function StaffAccess() {
   return (
     <main className="staff-access-page">
       <section className="staff-access-intro">
-        <img src={logoEasyMenu} alt="EasyMenu" />
+        <img src={logoOrdynora} alt="Ordynora" />
         <div>
           <span>Accesso operativo</span>
           <h1>Entra nel tuo ruolo.</h1>
@@ -142,7 +142,7 @@ export default function StaffAccess() {
 
       <form className="staff-access-form" onSubmit={submit}>
         <div className="staff-access-heading">
-          <span>EasyMenu Staff</span>
+          <span>Ordynora Staff</span>
           <h2>{rememberedCode ? "Inserisci il PIN" : "Collega il ristorante"}</h2>
           <p>{rememberedCode ? `Locale: ${restaurantCode}` : "Il codice si inserisce solo la prima volta su questo telefono."}</p>
         </div>

@@ -4,7 +4,8 @@ import { gunzip } from "node:zlib";
 import { promisify } from "node:util";
 
 const gunzipAsync = promisify(gunzip);
-const MAGIC = Buffer.from("EASYMENU1");
+const MAGIC = Buffer.from("ORDYNORA1");
+const LEGACY_MAGIC = Buffer.from("EASYMENU1");
 const filePath = process.env.BACKUP_FILE || process.argv[2];
 const secret = String(process.env.BACKUP_ENCRYPTION_KEY || "");
 
@@ -12,7 +13,9 @@ if (!filePath) throw new Error("Indica il file con BACKUP_FILE oppure come primo
 if (secret.length < 32) throw new Error("BACKUP_ENCRYPTION_KEY deve contenere almeno 32 caratteri.");
 
 const encrypted = await fs.readFile(filePath);
-if (!encrypted.subarray(0, MAGIC.length).equals(MAGIC)) throw new Error("Formato backup EasyMenu non riconosciuto.");
+const fileMagic = encrypted.subarray(0, MAGIC.length);
+const recognizedMagic = fileMagic.equals(MAGIC) || fileMagic.equals(LEGACY_MAGIC);
+if (!recognizedMagic) throw new Error("Formato backup Ordynora non riconosciuto.");
 
 const ivStart = MAGIC.length;
 const tagStart = ivStart + 12;

@@ -135,7 +135,7 @@ export default function SuperAdmin() {
     slug: "",
     ownerName: "Owner",
     ownerEmail: "",
-    ownerPassword: "EasyMenu2026!",
+    ownerPassword: "Ordynora2026!",
     plan: "starter",
     tablesCount: 10,
   });
@@ -294,7 +294,7 @@ export default function SuperAdmin() {
         slug: "",
         ownerName: "Owner",
         ownerEmail: "",
-        ownerPassword: "EasyMenu2026!",
+        ownerPassword: "Ordynora2026!",
         plan: "starter",
         tablesCount: 10,
       });
@@ -314,7 +314,7 @@ export default function SuperAdmin() {
         <section className="superadmin-hero">
           <div className="superadmin-panel superadmin-hero-card">
             <div className="superadmin-kicker">Console piattaforma</div>
-            <h1 className="superadmin-title">SuperAdmin EasyMenu</h1>
+            <h1 className="superadmin-title">SuperAdmin Ordynora</h1>
             <p className="superadmin-subtitle">
               Gestisci clienti, piani, stato servizio e accesso operativo ai ristoranti. Da qui controlli la piattaforma,
               non un singolo locale.

@@ -1,4 +1,4 @@
-# Privacy Policy - EasyMenu
+# Privacy Policy - Ordynora
 
 > Template da far validare a un consulente privacy prima della pubblicazione.
 

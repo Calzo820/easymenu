@@ -13,14 +13,14 @@ if (!email || !password) {
   process.exit(1);
 }
 
-const slug = "easymenu-platform";
+const slug = "ordynora-platform";
 const passwordHash = await bcrypt.hash(password, 12);
 
 const restaurant = await prisma.restaurant.upsert({
   where: { slug },
-  update: { name: "EasyMenu Platform", isActive: true },
+  update: { name: "Ordynora Platform", isActive: true },
   create: {
-    name: "EasyMenu Platform",
+    name: "Ordynora Platform",
     slug,
     primaryColor: "#111827",
     currency: "EUR",

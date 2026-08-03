@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 import prisma from "../lib/prisma.js";
 
-const DEMO_PASSWORD = "EasyMenu2026!";
+const DEMO_PASSWORD = "Ordynora2026!";
 const RESTAURANT_SLUG = "demo";
 const LEGACY_RESTAURANT_SLUG = "demo-restaurant";
 const DEMO_TABLE_TOKEN_PREFIX = "demo-table";
@@ -291,7 +291,7 @@ const demoMenuItems = [
   },
   {
     id: "demo-special-2",
-    name: "Menu degustazione Easy",
+    name: "Menu degustazione Signature",
     description: "Percorso demo in tre portate con drink consigliato.",
     price: 34,
     category: "Speciali",
@@ -453,7 +453,7 @@ async function resetDemoRestaurant(restaurantId) {
 }
 
 async function main() {
-  console.log("Ricreo account demo completo EasyMenu...");
+  console.log("Ricreo account demo completo Ordynora...");
 
   const legacy = await prisma.restaurant.findUnique({ where: { slug: LEGACY_RESTAURANT_SLUG } });
   if (legacy && legacy.slug !== RESTAURANT_SLUG) {
@@ -463,7 +463,7 @@ async function main() {
   const restaurant = await prisma.restaurant.upsert({
     where: { slug: RESTAURANT_SLUG },
     update: {
-      name: "EasyMenu Demo Bistro",
+      name: "Ordynora Demo Bistro",
       logoUrl: demoLogo(),
       primaryColor: "#0f766e",
       currency: "EUR",
@@ -482,7 +482,7 @@ async function main() {
       },
     },
     create: {
-      name: "EasyMenu Demo Bistro",
+      name: "Ordynora Demo Bistro",
       slug: RESTAURANT_SLUG,
       logoUrl: demoLogo(),
       primaryColor: "#0f766e",
@@ -688,7 +688,7 @@ async function main() {
   });
 
   console.log("OK. Demo completa pronta.");
-  console.log(`Ristorante: EasyMenu Demo Bistro (${RESTAURANT_SLUG})`);
+  console.log(`Ristorante: Ordynora Demo Bistro (${RESTAURANT_SLUG})`);
   console.log(`Logo: presente`);
   console.log(`Tavoli: 24 con QR demo-table-1 ... demo-table-24`);
   console.log(`Menu: ${demoMenuItems.length} prodotti con foto SVG integrate`);

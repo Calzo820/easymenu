@@ -40,9 +40,9 @@ const emptyUser = {
 };
 
 const CATEGORY_PRESETS = ["Antipasti", "Primi", "Secondi", "Contorni", "Dolci", "Bevande"];
-const SUPPORT_EMAIL = "easy.menu.service@gmail.com";
+const SUPPORT_EMAIL = "support@ordynora.com";
 const SUPPORT_PHONE = "+39 324 046 7723";
-const supportWhatsAppUrl = `https://wa.me/393240467723?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
+const supportWhatsAppUrl = `https://wa.me/393240467723?text=${encodeURIComponent("Ciao, ho bisogno di supporto per Ordynora.")}`;
 
 function getMenuQualityStats(items) {
   const total = items.length;
@@ -794,7 +794,7 @@ export default function AdminPanel({ embedded = false } = {}) {
           <div className="staff-code-note">
             <span>Accesso rapido</span>
             <strong>{staffAccessUrl}</strong>
-            <small>Dopo l'apertura, lo staff può installare EasyMenu sulla schermata Home.</small>
+            <small>Dopo l'apertura, lo staff può installare Ordynora sulla schermata Home.</small>
           </div>
         </div>
 
@@ -895,7 +895,7 @@ export default function AdminPanel({ embedded = false } = {}) {
               subtitle="Poche sezioni chiare: profilo, setup e integrazioni. Menu e tavoli restano nelle loro pagine dedicate."
             />
             <div className="settings-card-grid">
-              <SettingsCard icon="SET" title="Setup guidato" subtitle="Completa EasyMenu passo passo." action="Apri" onClick={() => window.location.href = "/onboarding"} />
+              <SettingsCard icon="SET" title="Setup guidato" subtitle="Completa Ordynora passo passo." action="Apri" onClick={() => window.location.href = "/onboarding"} />
               <SettingsCard icon="BRD" title="Brand e colori" subtitle="Logo, colore primario e valuta del menu." action="Modifica" onClick={() => document.querySelector(".settings-brand-panel")?.scrollIntoView({ behavior: "smooth" })} />
               <SettingsCard icon="INT" title="Integrazioni" subtitle="POS, stampanti, delivery e prenotazioni." action="Apri" onClick={() => window.location.href = "/integrazioni"} />
             </div>
@@ -922,14 +922,14 @@ export default function AdminPanel({ embedded = false } = {}) {
           </div>
 
           <div className="management-card settings-support-panel">
-            <SectionHead title="Contattaci" subtitle="Se il ristorante riscontra un problema, EasyMenu risponde entro 24 ore lavorative." />
+            <SectionHead title="Contattaci" subtitle="Se il ristorante riscontra un problema, Ordynora risponde entro 24 ore lavorative." />
             <div className="settings-support-grid">
               <a href={supportWhatsAppUrl} target="_blank" rel="noreferrer">
                 <strong>WhatsApp</strong>
                 <span>{SUPPORT_PHONE}</span>
                 <small>Per problemi durante il servizio o richieste urgenti.</small>
               </a>
-              <a href={`mailto:${SUPPORT_EMAIL}?subject=Supporto EasyMenu`}>
+              <a href={`mailto:${SUPPORT_EMAIL}?subject=Supporto Ordynora`}>
                 <strong>Email supporto</strong>
                 <span>{SUPPORT_EMAIL}</span>
                 <small>Per domande su account, abbonamento, QR o configurazione.</small>
@@ -972,7 +972,7 @@ export default function AdminPanel({ embedded = false } = {}) {
         <div className="app-shell management-os">
           <div className="management-hero">
             <div className="management-hero-main">
-              <div className="management-kicker">EasyMenu - gestione</div>
+              <div className="management-kicker">Ordynora - gestione</div>
               <h1 className="management-hero-title">{pageTitle}</h1>
               <p className="management-hero-subtitle">{pageSubtitle}</p>
             </div>

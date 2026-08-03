@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient({ log: [] });
 
 const email = process.argv[2] || "owner@demo.test";
-const password = process.argv[3] || "EasyMenu2026!";
+const password = process.argv[3] || "Ordynora2026!";
 
 function printFriendlyError(error) {
   const message = String(error?.message || error || "");

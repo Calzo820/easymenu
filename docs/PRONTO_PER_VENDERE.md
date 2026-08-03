@@ -1,4 +1,4 @@
-# EasyMenu — pacchetto beta vendibile
+# Ordynora — pacchetto beta vendibile
 
 Questa versione è pensata per vendere una **beta controllata** a ristoranti pilota.
 

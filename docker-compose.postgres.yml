@@ -1,16 +1,16 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: easymenu-postgres
+    container_name: ordynora-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: easymenu
-      POSTGRES_PASSWORD: easymenu
-      POSTGRES_DB: easymenu
+      POSTGRES_USER: ordynora
+      POSTGRES_PASSWORD: ordynora
+      POSTGRES_DB: ordynora
     ports:
       - "5432:5432"
     volumes:
-      - easymenu_postgres_data:/var/lib/postgresql/data
+      - ordynora_postgres_data:/var/lib/postgresql/data
 
 volumes:
-  easymenu_postgres_data:
+  ordynora_postgres_data:

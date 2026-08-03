@@ -7,7 +7,8 @@ import prisma from "../lib/prisma.js";
 import { logError } from "../lib/logger.js";
 
 const gzipAsync = promisify(gzip);
-const MAGIC = Buffer.from("EASYMENU1");
+// Nuovi backup: Ordynora. Il verificatore continua ad accettare anche il magic storico.
+const MAGIC = Buffer.from("ORDYNORA1");
 
 function backupKey() {
   const secret = String(process.env.BACKUP_ENCRYPTION_KEY || "");
@@ -59,7 +60,7 @@ async function collectBackupData() {
   ]);
 
   return {
-    format: "easymenu-encrypted-backup",
+    format: "ordynora-encrypted-backup",
     version: 1,
     generatedAt: new Date().toISOString(),
     data: {
@@ -131,7 +132,7 @@ export async function runEncryptedBackup() {
   const encrypted = encrypt(compressed);
   const directory = path.resolve(process.env.BACKUP_DIR || "./backups");
   await fs.mkdir(directory, { recursive: true });
-  const fileName = `easymenu-${new Date().toISOString().replace(/[:.]/g, "-")}.json.gz.enc`;
+  const fileName = `ordynora-${new Date().toISOString().replace(/[:.]/g, "-")}.json.gz.enc`;
   const filePath = path.join(directory, fileName);
   await fs.writeFile(filePath, encrypted);
   const upload = await uploadBackup(fileName, encrypted);

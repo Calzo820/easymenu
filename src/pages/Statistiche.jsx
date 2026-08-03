@@ -117,7 +117,7 @@ export default function Statistiche() {
             <div>
               <div className="management-kicker">Dati reali del locale</div>
               <h1 className="management-hero-title">Numeri utili, senza report inutili</h1>
-              <p className="management-hero-subtitle">Incasso, margine, tempi e prodotti calcolati sui conti registrati in EasyMenu.</p>
+              <p className="management-hero-subtitle">Incasso, margine, tempi e prodotti calcolati sui conti registrati in Ordynora.</p>
             </div>
             <div className="report-period-switch" aria-label="Periodo statistiche">
               {[7, 30, 90].map((days) => (
@@ -149,7 +149,7 @@ export default function Statistiche() {
                 <section className="management-card report-empty-clean">
                   <span>Nessun conto nel periodo</span>
                   <h2>I numeri appariranno dopo il primo pagamento.</h2>
-                  <p>EasyMenu non inserisce dati finti. Costi e scorte del menu restano comunque disponibili per preparare il servizio.</p>
+                  <p>Ordynora non inserisce dati finti. Costi e scorte del menu restano comunque disponibili per preparare il servizio.</p>
                 </section>
               ) : (
                 <>

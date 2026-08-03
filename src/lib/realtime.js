@@ -17,7 +17,7 @@ function rememberEvent(eventName, payload = {}) {
 }
 
 function dispatchSocketStatus(detail) {
-  window.dispatchEvent(new CustomEvent("easymenu:socket-status", { detail }));
+  window.dispatchEvent(new CustomEvent("ordynora:socket-status", { detail }));
 }
 
 export function createRestaurantSocket(options = {}) {
@@ -55,8 +55,8 @@ export function createRestaurantSocket(options = {}) {
 
 export function subscribeSocketStatus(callback) {
   const handler = (event) => callback(event.detail || { status: "unknown" });
-  window.addEventListener("easymenu:socket-status", handler);
-  return () => window.removeEventListener("easymenu:socket-status", handler);
+  window.addEventListener("ordynora:socket-status", handler);
+  return () => window.removeEventListener("ordynora:socket-status", handler);
 }
 
 export function playOrderSound() {

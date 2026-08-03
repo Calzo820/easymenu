@@ -1,4 +1,4 @@
-# Sicurezza EasyMenu
+# Sicurezza Ordynora
 
 ## File da non committare mai
 - `.env`

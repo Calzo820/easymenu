@@ -1,4 +1,4 @@
-:root.easy-operational-dark body {
+:root.ordynora-operational-dark body {
   background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.2), transparent 30%), linear-gradient(135deg, #020617 0%, #0f172a 58%, #111827 100%);
 }
 
@@ -12,7 +12,7 @@
 }
 
 .operational-screen.operational-fullscreen .app-shell,
-.easy-fullscreen-fallback .operational-screen .app-shell {
+.ordynora-fullscreen-fallback .operational-screen .app-shell {
   max-width: none;
   padding: 10px;
 }
@@ -164,7 +164,7 @@
   }
 }
 
-/* EasyMenu v3 — premium restaurant operating system skin */
+/* Ordynora v3 — premium restaurant operating system skin */
 :root {
   --em-bg: #f4f5f7;
   --em-ink: #07111f;

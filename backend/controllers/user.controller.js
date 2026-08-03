@@ -92,7 +92,7 @@ export const createUser = async (req, res) => {
       return res.status(403).json({ message: "Non puoi creare utenti con questo ruolo" });
     }
 
-    const internalEmail = `pin-${crypto.randomUUID()}@internal.easymenu.local`;
+    const internalEmail = `pin-${crypto.randomUUID()}@internal.ordynora.local`;
     const accountEmail = usePin ? internalEmail : email;
     const existing = await prisma.user.findUnique({ where: { email: accountEmail } });
     if (existing) {

@@ -83,7 +83,7 @@ export async function sendTicketToBridge(order, area, bridgeUrl) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      source: "easymenu",
+      source: "ordynora",
       area,
       orderId: order?.id,
       orderNumber: order?.orderNumber,

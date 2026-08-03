@@ -1,9 +1,9 @@
-# Cookie Policy EasyMenu - bozza operativa
+# Cookie Policy Ordynora - bozza operativa
 
 > Bozza da revisionare in base ai cookie reali usati in produzione.
 
 ## Cookie tecnici
-EasyMenu puo usare cookie o storage locale necessari per:
+Ordynora puo usare cookie o storage locale necessari per:
 - sessione utente;
 - autenticazione;
 - preferenze interfaccia;

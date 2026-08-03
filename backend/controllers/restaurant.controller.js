@@ -558,7 +558,7 @@ export const exportMyRestaurantData = async (req, res) => {
     };
 
     const safeSlug = String(restaurant.slug || "ristorante").replace(/[^a-z0-9-]/gi, "-");
-    res.setHeader("Content-Disposition", `attachment; filename="easymenu-${safeSlug}-${localDateForFilename()}.json"`);
+    res.setHeader("Content-Disposition", `attachment; filename="ordynora-${safeSlug}-${localDateForFilename()}.json"`);
     return res.json(exportPayload);
   } catch (error) {
     console.error("exportMyRestaurantData error:", error);

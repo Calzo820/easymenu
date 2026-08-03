@@ -15,7 +15,7 @@ export default function AppInstallPrompt() {
   const location = useLocation();
   const [installEvent, setInstallEvent] = useState(null);
   const [installed, setInstalled] = useState(isStandalone);
-  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem("easymenu_install_dismissed") === "1");
+  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem("ordynora_install_dismissed") === "1");
 
   useEffect(() => {
     const handlePrompt = (event) => {
@@ -47,14 +47,14 @@ export default function AppInstallPrompt() {
   }
 
   function dismiss() {
-    sessionStorage.setItem("easymenu_install_dismissed", "1");
+    sessionStorage.setItem("ordynora_install_dismissed", "1");
     setDismissed(true);
   }
 
   return (
-    <aside className="em-install-prompt" aria-label="Installa EasyMenu">
+    <aside className="em-install-prompt" aria-label="Installa Ordynora">
       <div>
-        <b>EasyMenu sul telefono</b>
+        <b>Ordynora sul telefono</b>
         <span>{installEvent ? "Aprilo come un'app, senza cercarlo ogni volta." : "Tocca Condividi e poi Aggiungi alla schermata Home."}</span>
       </div>
       {installEvent ? <button type="button" onClick={install}>Installa</button> : null}

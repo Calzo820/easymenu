@@ -1,6 +1,6 @@
-# EasyMenu — SaaS QR Ordering per Ristoranti
+# Ordynora — SaaS QR Ordering per Ristoranti
 
-EasyMenu è una piattaforma SaaS per ristoranti che permette ai clienti di ordinare dal tavolo tramite QR code, mentre staff, cucina, bar e cassa gestiscono gli ordini in tempo reale.
+Ordynora è una piattaforma SaaS per ristoranti che permette ai clienti di ordinare dal tavolo tramite QR code, mentre staff, cucina, bar e cassa gestiscono gli ordini in tempo reale.
 
 ## Funzioni principali
 
@@ -67,6 +67,9 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 2. Esegui le migration Prisma.
 3. Installa le dipendenze da `package-lock.json` con `npm ci`.
 4. Non caricare `node_modules`, `.env`, build locali o file temporanei.
+
+Per dominio, Render, Stripe, GitHub e posta usa l'ordine indicato in
+[`docs/REBRAND-ORDYNORA-CHECKLIST.md`](docs/REBRAND-ORDYNORA-CHECKLIST.md).
 
 ## Cosa non includere nel repository
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import logoEasyMenu from "../assets/logo-easymenu.png";
+import logoOrdynora from "../assets/logo-ordynora.png";
 
 function getRistoranteAttivo() {
   return localStorage.getItem("ristorante_attivo") || "";
@@ -278,18 +278,18 @@ export default function Navbar() {
         type="button"
         aria-label={open ? "Chiudi navigazione" : "Apri navigazione"}
         aria-expanded={open}
-        aria-controls="easymenu-sidebar"
+        aria-controls="ordynora-sidebar"
         onClick={() => setOpen((prev) => !prev)}
       >
         <span className={open ? "em-menu-glyph is-close" : "em-menu-glyph"} aria-hidden="true" />
       </button>
       <div className={open ? "em-sidebar-backdrop is-open" : "em-sidebar-backdrop"} onClick={() => setOpen(false)} />
 
-      <aside id="easymenu-sidebar" className={open ? "em-sidebar is-open" : "em-sidebar"} aria-label="Navigazione EasyMenu">
+      <aside id="ordynora-sidebar" className={open ? "em-sidebar is-open" : "em-sidebar"} aria-label="Navigazione Ordynora">
         <div className="em-sidebar__brand">
-          <div className="em-sidebar__logo"><img src={logoEasyMenu} alt="EasyMenu" /></div>
+          <div className="em-sidebar__logo"><img src={logoOrdynora} alt="Ordynora" /></div>
           <div style={{ minWidth: 0 }}>
-            <div className="em-sidebar__name">EasyMenu</div>
+            <div className="em-sidebar__name">Ordynora</div>
             <div className="em-sidebar__restaurant"><span className="em-sidebar__dot" />{restaurantName}</div>
           </div>
         </div>

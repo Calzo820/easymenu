@@ -2,10 +2,10 @@ import Navbar from "../components/Navbar";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import "../styles/contact.css";
 
-const SUPPORT_EMAIL = "easy.menu.service@gmail.com";
+const SUPPORT_EMAIL = "support@ordynora.com";
 const SUPPORT_PHONE_DISPLAY = "+39 324 046 7723";
 const SUPPORT_PHONE_LINK = "+393240467723";
-const WHATSAPP_URL = `https://wa.me/393240467723?text=${encodeURIComponent("Ciao, ho bisogno di supporto per EasyMenu.")}`;
+const WHATSAPP_URL = `https://wa.me/393240467723?text=${encodeURIComponent("Ciao, ho bisogno di supporto per Ordynora.")}`;
 
 export default function Contattaci() {
   return (
@@ -14,7 +14,7 @@ export default function Contattaci() {
       <div style={appShellStyle}>
         <main className="app-shell contact-shell">
           <section className="contact-hero">
-            <span>Supporto EasyMenu</span>
+            <span>Supporto Ordynora</span>
             <h1>Contattaci quando il ristorante ha bisogno di una mano.</h1>
             <p>
               Per problemi tecnici, configurazione QR, menu, account o abbonamento riceverai una risposta entro 24 ore.
@@ -30,7 +30,7 @@ export default function Contattaci() {
                 <p>Ideale per spiegare il problema, allegare screenshot o chiedere assistenza su account e configurazione.</p>
               </div>
               <strong>{SUPPORT_EMAIL}</strong>
-              <a href={`mailto:${SUPPORT_EMAIL}?subject=Supporto EasyMenu`}>Scrivi email</a>
+              <a href={`mailto:${SUPPORT_EMAIL}?subject=Supporto Ordynora`}>Scrivi email</a>
             </article>
 
             <article className="contact-card">

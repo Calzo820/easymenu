@@ -57,7 +57,9 @@ function runDemoSeed() {
 }
 
 export const ensureDemoAccount = async (_req, res) => {
-  if (process.env.EASYMENU_DEMO_SEED_ENABLED === "false") {
+  const demoSeedSetting = process.env.ORDYNORA_DEMO_SEED_ENABLED
+    ?? process.env.EASYMENU_DEMO_SEED_ENABLED;
+  if (String(demoSeedSetting || "").toLowerCase() === "false") {
     return res.status(403).json({
       message: "Creazione demo disattivata su questo ambiente",
     });
@@ -78,7 +80,7 @@ export const ensureDemoAccount = async (_req, res) => {
       message: "Account demo completo creato o aggiornato.",
       credentials: {
         email: "owner@demo.test",
-        password: "EasyMenu2026!",
+        password: "Ordynora2026!",
       },
       output: result.stdout,
     });

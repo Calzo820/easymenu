@@ -33,7 +33,7 @@ export default function RestaurantDataControls() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `easymenu-${restaurant.slug || "ristorante"}-${new Date().toISOString().slice(0, 10)}.json`;
+      link.download = `ordynora-${restaurant.slug || "ristorante"}-${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
       setMessage("Esportazione completata.");

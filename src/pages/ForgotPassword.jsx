@@ -26,7 +26,7 @@ export default function ForgotPassword() {
     <AuthActionCard
       eyebrow="Recupero account"
       title="Hai dimenticato la password?"
-      description="Inserisci l'email usata per EasyMenu. Se l'account esiste, riceverai un link valido per 60 minuti."
+      description="Inserisci l'email usata per Ordynora. Se l'account esiste, riceverai un link valido per 60 minuti."
     >
       {message ? <div className="auth-action-status success" role="status">{message}</div> : null}
       {error ? <div className="auth-action-status error" role="alert">{error}</div> : null}
