@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import { appShellStyle, glowPageStyle } from "../styles/pageStyles";
 import {
   createSubscriptionCheckout,
   getBillingStatus,
-  getStripeConnectStatus,
   openBillingPortal,
-  openStripeConnectDashboard,
-  openStripeConnectOnboarding,
 } from "../lib/api";
 
 const WHATSAPP_NUMBER = "3240467723";
@@ -152,9 +150,6 @@ export default function Billing() {
   const [error, setError] = useState("");
   const [loadingPlan, setLoadingPlan] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
-  const [connect, setConnect] = useState(null);
-  const [connectLoading, setConnectLoading] = useState(false);
-  const [connectError, setConnectError] = useState("");
 
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const queryStatus = searchParams.get("billing");
@@ -163,15 +158,8 @@ export default function Billing() {
   async function load() {
     try {
       setLoading(true);
-      const [res, connectResult] = await Promise.all([
-        getBillingStatus(),
-        getStripeConnectStatus().catch((requestError) => {
-          setConnectError(requestError.message || "Stato incassi non disponibile.");
-          return null;
-        }),
-      ]);
+      const res = await getBillingStatus();
       setData(res);
-      setConnect(connectResult);
       setError("");
     } catch (err) {
       setError(err.message || "Errore caricamento billing");
@@ -215,31 +203,6 @@ export default function Billing() {
     }
   }
 
-  async function handleConnectOnboarding() {
-    try {
-      setConnectLoading(true);
-      setConnectError("");
-      const result = await openStripeConnectOnboarding();
-      if (result?.onboardingUrl) window.location.href = result.onboardingUrl;
-    } catch (requestError) {
-      setConnectError(requestError.message || "Non è stato possibile aprire la configurazione incassi.");
-    } finally {
-      setConnectLoading(false);
-    }
-  }
-
-  async function handleConnectDashboard() {
-    try {
-      setConnectLoading(true);
-      setConnectError("");
-      const result = await openStripeConnectDashboard();
-      if (result?.dashboardUrl) window.location.href = result.dashboardUrl;
-    } catch (requestError) {
-      setConnectError(requestError.message || "Non è stato possibile aprire il pannello incassi.");
-    } finally {
-      setConnectLoading(false);
-    }
-  }
 
   const currentPlan = data?.subscription?.plan || data?.restaurant?.plan || "";
   const status = data?.subscription?.status || "trialing";
@@ -247,13 +210,6 @@ export default function Billing() {
   const missingPlans = planOrder.filter((id) => data && !configuredPlans[id]);
   const billingWarning = data && (!data.billingConfigured || missingPlans.length > 0);
   const paymentProblem = ["past_due", "unpaid", "incomplete"].includes(status);
-  const connectNeedsWebhook = Boolean(
-    connect?.connected &&
-    connect?.detailsSubmitted &&
-    connect?.chargesEnabled &&
-    connect?.payoutsEnabled &&
-    !connect?.webhookConfigured
-  );
 
   return (
     <div style={glowPageStyle}>
@@ -280,7 +236,7 @@ export default function Billing() {
           {error ? <div style={errorBox}>{error}</div> : null}
           {paymentProblem ? (
             <div style={warnBox}>
-              Pagamento da verificare: lo stato abbonamento e <b>{status}</b>. Aggiorna il metodo di pagamento dal portale o contattaci per assistenza.
+              Pagamento da verificare: lo stato abbonamento è <b>{status}</b>. Aggiorna il metodo di pagamento dal portale o contattaci per assistenza.
             </div>
           ) : null}
           {billingWarning ? (
@@ -310,42 +266,27 @@ export default function Billing() {
 
           <section className="billing-connect-card" style={connectCardStyle}>
             <div style={connectCopyStyle}>
-              <div style={connectEyebrowStyle}>Incassi del ristorante</div>
-              <h2 style={{ margin: "7px 0 8px", color: "#0f172a", fontSize: 26 }}>Pagamenti dal tavolo</h2>
+              <div style={connectEyebrowStyle}>Pagamenti dal tavolo</div>
+              <h2 style={{ margin: "7px 0 8px", color: "#0f172a", fontSize: 26 }}>Funzione disponibile presto</h2>
               <p style={{ margin: 0, color: "#52647a", lineHeight: 1.55, fontWeight: 750 }}>
-                Collega il conto Stripe del locale. Gli incassi dei clienti vengono separati dall'abbonamento EasyMenu e accreditati al ristorante.
+                Il collegamento Stripe per far pagare i clienti direttamente dal telefono non è ancora disponibile.
+                EasyMenu oggi gestisce QR, ordini, cucina, bar, cassa e richiesta conto; gli incassi online dal tavolo saranno attivati in una prossima versione.
               </p>
-              {connectError ? <div style={{ ...errorBox, margin: "14px 0 0" }}>{connectError}</div> : null}
             </div>
             <div className="billing-connect-status" style={connectStatusStyle}>
-              <span style={{ ...connectDotStyle, background: connect?.ready ? "#22c55e" : connect?.connected ? "#f59e0b" : "#94a3b8" }} />
+              <span style={{ ...connectDotStyle, background: "#f59e0b" }} />
               <div>
-                <b>{connect?.ready ? "Incassi attivi" : connectNeedsWebhook ? "Attivazione tecnica in corso" : connect?.connected ? "Configurazione da completare" : "Conto non collegato"}</b>
-                <small>
-                  {connect?.ready
-                    ? "Carte abilitate e accrediti pronti."
-                    : connectNeedsWebhook
-                      ? "Il conto è pronto; EasyMenu deve completare il collegamento webhook."
-                    : connect?.connected
-                      ? "Stripe richiede ancora alcune informazioni."
-                      : "Serve il conto del titolare del ristorante."}
-                </small>
+                <b>In sviluppo</b>
+                <small>Nessun conto Stripe del ristorante da collegare ora.</small>
               </div>
             </div>
             <div className="billing-connect-actions" style={connectActionsStyle}>
-              <button
-                type="button"
-                onClick={connectNeedsWebhook ? () => { window.location.href = "/contattaci"; } : handleConnectOnboarding}
-                disabled={connectLoading}
-                style={primaryBtn}
-              >
-                {connectLoading ? "Apro..." : connectNeedsWebhook ? "Contatta assistenza" : connect?.connected ? "Completa configurazione" : "Collega Stripe"}
+              <button type="button" disabled style={{ ...secondaryBtn, opacity: 0.65, cursor: "not-allowed" }}>
+                Disponibile presto
               </button>
-              {connect?.ready ? (
-                <button type="button" onClick={handleConnectDashboard} disabled={connectLoading} style={secondaryBtn}>
-                  Gestisci incassi
-                </button>
-              ) : null}
+              <Link to="/contattaci" style={{ ...primaryBtn, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+                Segnalami interesse
+              </Link>
             </div>
           </section>
 

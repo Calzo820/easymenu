@@ -22,6 +22,7 @@ import subscriptionRoutes from "./routes/subscription.routes.js";
 import logRoutes from "./routes/log.routes.js";
 import demoRoutes from "./routes/demo.routes.js";
 import systemRoutes from "./routes/system.routes.js";
+import translationRoutes from "./routes/translation.routes.js";
 import cashRoutes from "./routes/cash.routes.js";
 import printRoutes from "./routes/print.routes.js";
 import { handleStripeWebhook } from "./controllers/payment.controller.js";
@@ -173,6 +174,7 @@ app.use("/auth/reset-password", createRateLimiter({ windowMs: 15 * 60 * 1000, ma
 app.use("/auth/resend-verification", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 }));
 app.use("/demo/ensure", createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 }));
 app.use("/orders/public", createRateLimiter({ windowMs: 5 * 60 * 1000, maxRequests: 40 }));
+app.use("/i18n", createRateLimiter({ windowMs: 5 * 60 * 1000, maxRequests: 30 }));
 
 app.get("/", (_req, res) => {
   res.json({
@@ -219,6 +221,7 @@ app.use("/users", userRoutes);
 app.use("/logs", logRoutes);
 app.use("/demo", demoRoutes);
 app.use("/system", systemRoutes);
+app.use("/i18n", translationRoutes);
 
 if (process.env.NODE_ENV === "production") {
   const staticDir = path.resolve(__dirname, "../dist");

@@ -46,6 +46,8 @@ services:
         value: easy.menu.service@gmail.com
       - key: MAIL_FROM_NAME
         value: EasyMenu
+      - key: GOOGLE_TRANSLATE_API_KEY
+        sync: false
       - key: MONITOR_WEBHOOK_URL
         sync: false
       - key: MONITOR_WEBHOOK_TOKEN

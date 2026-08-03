@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
+import { LocaleProvider } from "./context/LocaleContext.jsx";
 
 import "./index.css";
 import "./styles/easymenu-v2.css";
@@ -18,6 +19,8 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <LocaleProvider>
+      <App />
+    </LocaleProvider>
   </React.StrictMode>
 );
